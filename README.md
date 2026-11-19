@@ -32,8 +32,8 @@ available).
 
 ## Supported hardware
 
-v1: Shelly Plus Plug S (Gen2), including rebranded variants that run Shelly firmware. Other devices with
-a 16 A rating may follow (see `TODO.md`).
+v1: Shelly Plus Plug S (Gen2), including rebranded variants that run Shelly firmware. Other Shelly devices with
+metering may follow (see `TODO.md`).
 
 ## Layout
 

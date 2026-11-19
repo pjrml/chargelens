@@ -32,8 +32,8 @@ browser-based installer replaces the owner's Python upload tool.
 **Non-goals (v1)**
 - Other hardware (Gen3 plugs, Pro PM, other Shelly with metering). Later, only after v1 succeeds and the owner
   has the devices. Candidates (owner 2026-11-19): **Pro PM** (owner has one installed, for tests) and
-  **Plug PM Gen3** (16 A). Other plugs seen are rated 12-13 A only, too little margin for car charging; to be
-  surveyed (TODO).
+  **Plug PM Gen3** (16 A). The Plus Plug S (12 A) is supported (owner 2026-11-19: proven in production with a
+  charger limited to 10 A); support rules by current/power rating are to be re-evaluated later (TODO).
 - Price periods / tariff history (they depend on the real-time clock, the weakest point of the solution).
   Possible v2 if users ask. v1 = one price, applied to everything shown.
 - Cloud, Home Assistant integration, MQTT, multi-device dashboards.
@@ -247,8 +247,10 @@ The manifest format is not documented by Shelly; **spike S3** derives it from Sh
 
 ### 7.2 What the install page does (all from the browser, same origin)
 1. Checks the device: model/app (`Shelly.GetDeviceInfo`; Plus Plug S and the EcoFlow variant id found in spike
-   S1), firmware 1.7.x, free script slots, scripts already running. Unknown model = stop with an explanation
-   (no "force" in v1).
+   S1), firmware 1.7.x **and up to date** (no update offered, `Shelly.CheckForUpdate`), free script slots, scripts
+   already running. Unknown model or firmware not up to date = stop with an explanation (update first via the
+   Shelly app / web UI; no "force" in v1). Asks the user to confirm the charger's maximum current setting
+   (requirement stated in the docs).
 2. Shows what it will do: fresh install or update (existing ChargeLens scripts found by name and version
    header), and **other running/enabled scripts** that must be stopped/disabled to fit the 3-script limit (asks;
    never deletes user scripts).
