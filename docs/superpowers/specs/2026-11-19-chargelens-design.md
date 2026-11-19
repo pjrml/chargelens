@@ -261,7 +261,11 @@ The manifest format is not documented by Shelly; **spike S3** derives it from Sh
    incl. the EcoFlow one, spike S1), firmware **up to date** (no update offered, `Shelly.CheckForUpdate`;
    Gen2: frozen 1.7.x branch, Gen3: 2.x), free script slots, scripts already running. The same gate applies
    to **updates** (owner 2026-11-19). Unknown model or firmware not up to date = stop with an explanation
-   (update first via the Shelly app / web UI; no "force" in v1). Asks the user to confirm the charger's maximum current setting
+   (update first via the Shelly app / web UI; no "force" in v1). Firmware updates come **in steps** (dev plug
+   2026-11-19: 2.0.0 -> 2.1.1 -> 2.2.0, each offered only after the previous one), and right after an update
+   `Shelly.Update` fails with `-109 "Not committed"` for a few minutes (accepted again at ~7 min uptime). The
+   installer message and `docs/shelly-setup.md` say: update, wait for the restart, re-check, repeat until no
+   update is offered. Asks the user to confirm the charger's maximum current setting
    (requirement stated in the docs).
 2. Shows what it will do: fresh install or update (existing ChargeLens scripts found by name and version
    header), and **other running/enabled scripts** that must be stopped/disabled to fit the 3-script limit (asks;
@@ -332,7 +336,7 @@ The installer stays stored and disabled after use (for updates; *Check for updat
 | S7 | `current_limit` / `power_limit` accepted ranges |
 | S8 | `Sys.SetConfig location.tz` -> `sys.utc_offset` updates without reboot? (Meter uses `utc_offset` for days) |
 | S9 | `WiFi.SetConfig ap` while connected through STA: STA link kept? |
-| S10 | Gen3 vs Gen2 on the same code: script limits (enabled/running/stored, endpoints, size, response size), `PLUGS_UI` LED API, `Switch` config/status fields (errors, button mode), KVS limits and RPC shapes, `Script.PutCode`, Library URL; anything that differs needs a per-generation branch, kept minimal |
+| S10 | Gen3 (dev plug, fw 2.2.0; adds e.g. `power_restore_delay*` in `Switch` config) vs Gen2 on the same code: script limits (enabled/running/stored, endpoints, size, response size), `PLUGS_UI` LED API, `Switch` config/status fields (errors, button mode), KVS limits and RPC shapes, `Script.PutCode`, Library URL; anything that differs needs a per-generation branch, kept minimal |
 
 Each answer is recorded in `docs/how-it-works.md` / this spec before building on it.
 
