@@ -58,10 +58,16 @@ RAM on fw 2.0.0) but must run the same code. Gen3 differences are measured in sp
 
 - Shelly Plus Plug S (SNPL-00112EU, Gen2), frozen firmware branch 1.7.x, no HTTPS server, relay `switch:0`
   rated 12 A / 2500 W, LED ring driven only by `PLUGS_UI.SetConfig` (each call writes flash: never animate).
-- Scripts: **max 3 enabled and 3 running**; ~25 KB heap shared by all running scripts *including their source
-  text*; script HTTP response <= ~4 KB; max 5 `registerEndpoint` per script; no `Array.sort`; no `\uXXXX`
-  literals in source; tiny stack; a `Shelly.call` during script load can be rejected (defer to a timer).
-- KVS: 50 keys, values <= 253 bytes. Gen2 RPC shapes: `KVS.List.keys` is an object, `KVS.GetMany.items` an array.
+- Scripts (spike 2026-11-19, identical on Gen2 1.7.6 and Gen3 2.2.0): **max 3 enabled, 3 running, 10 stored**;
+  one script <= 65535 bytes; ~25 KB heap shared by all running scripts (25130 B free with one tiny script), and
+  loaded code costs ~1.25 B of heap per byte of code (comments cost nothing), so Meter+Led+Page together must stay
+  well under ~20 KB of minified code; script HTTP response body <= **4096 B** (4097+ gives HTTP 500); max 5
+  `registerEndpoint` per script (more are silently ignored: 404); no `Array.sort`; no `\uXXXX` literals in
+  source; tiny stack; a `Shelly.call` during script load can be rejected (defer to a timer). Building a string by
+  concatenation peaks at ~3x its length in heap (a 4 KB reply peaked at 12.8 KB): send replies in small pieces.
+- KVS: 50 keys, values <= 253 B, keys <= 42 B. RPC shapes (same on both generations): `KVS.List.keys` is an
+  object, `KVS.GetMany.items` an array and **paged** (`offset`/`total`; 31 of 50 small keys in one call): loop
+  on `offset` until `total` is reached.
 - Script code must be **ASCII** (`Script.PutCode` rejects other bytes): non-ASCII goes as JS escapes generated
   by the build (never typed by hand; Claude Code's tool layer turns typed escapes into real characters) or as
   HTML entities.
@@ -117,9 +123,8 @@ RAM on fw 2.0.0) but must run the same code. Gen3 differences are measured in sp
 | `MailTpl` | built from `src/mail-default.json` | no | never (data) | mail settings + template (JSON text) |
 | `Installer` | `src/installer.js` | no | only when the user starts it | install / update page (section 7) |
 
-7 stored scripts. **Spike S2** confirms the maximum number of stored scripts on the device (expected 10). If it
-is lower, `MailTpl` content moves into the `SetupHtml`/`PageHtml` pair or the Installer deletes itself after use
-(builder's call, record the decision).
+7 stored scripts of the 10 allowed (spike S2, both generations). One script holds at most 65535 bytes, so
+`SetupHtml` fits in one data script unless the minified page grows past ~64 KB.
 
 Page endpoints stay 5/5 (`ui`, `data`, `list`, `time`, `log`). The setup page writes configuration with plain
 `/rpc` calls (`KVS.Set`, `Script.PutCode` for `MailTpl`, `Switch.SetConfig`, `Sys.SetConfig`, `PLUGS_UI.*`,
@@ -208,10 +213,13 @@ tests under Node with a small Shelly shim where possible.
 1. **Thresholds** — residual, minimum, maximum (with a small diagram of the bands and LED colours);
    *Advanced* (collapsed): hysteresis, residual hysteresis, hold time, session gap.
 2. **Relay protection** — current limit (relay cuts above; device native), power limit. Validation:
-   maximum (yellow) < current limit <= device maximum (read from the device; spike S7).
-3. **Button** — `detached` (default: the button does nothing, as on the owner's plug) or `toggle` (the button
-   switches the relay, same as the page toggle). Relay changes from the button are logged with their source like
-   any other relay change. Exact `Switch.SetConfig` field/values: spike S6.
+   maximum (yellow) < current limit <= device maximum (kept per model in the allow-list: 12 A / 2500 W on
+   both supported plugs; no RPC reports it, spike S7).
+3. **Button** — `detached` (default: the button does nothing, as on the owner's plug) or "toggles the relay"
+   (the button switches the relay, same as the page toggle). Relay changes from the button are logged with their
+   source like any other relay change. Field (spike S6, both generations): `PLUGS_UI.SetConfig`
+   `controls["switch:0"].in_mode`, values only `detached` or `momentary` (= toggles the relay; the factory
+   default).
 4. **Price** — price per kWh, currency, decimal separator, date format.
 5. **Time** — time zone (Olson name; "Use this phone's time zone" fills it from
    `Intl.DateTimeFormat().resolvedOptions().timeZone`), clock status, "Set clock from this phone".
@@ -339,6 +347,23 @@ The installer stays stored and disabled after use (for updates; *Check for updat
 | S10 | Gen3 (dev plug, fw 2.2.0; adds e.g. `power_restore_delay*` in `Switch` config) vs Gen2 on the same code: script limits (enabled/running/stored, endpoints, size, response size), `PLUGS_UI` LED API, `Switch` config/status fields (errors, button mode), KVS limits and RPC shapes, `Script.PutCode`, Library URL; anything that differs needs a per-generation branch, kept minimal |
 
 Each answer is recorded in `docs/how-it-works.md` / this spec before building on it.
+
+### 9.1 Spike results (2026-11-19, Gen2 SNPL-00112EU fw 1.7.6 and Gen3 EF3PL-00112EU fw 2.2.0)
+
+Both generations gave **the same answers** for every question below; no per-generation branch is needed so far.
+
+| # | Answer |
+|---|---|
+| S1 | Gen2: `model` `SNPL-00112EU`, `app` `PlusPlugS`, `gen` 2. Gen3 (EcoFlow): `model` `EF3PL-00112EU`, `app` `PlugSG3EF`, `gen` 3 (Gen3 also reports `enhanced_security`). `Shelly.CheckForUpdate` with nothing to offer returns `{}` (no `stable` key) on both: that is the installer's "up to date" test. The genuine Gen3 Plug S model id is still unverified (no device): allow-list it once confirmed. |
+| S2 | 10 stored scripts; one script <= 65535 B; one `Script.PutCode` request body <= ~8 KB (code ~8000 B; larger gives HTTP 413), so chunks of 4000 B are safe; upload ~13-18 KB/s from a PC. Heap: ~25 KB shared by all running scripts; code costs ~1.25 B heap per byte (comments free); two scripts of 8 KB code each leave 4.7 KB and a third fails with `out_of_memory`. Data scripts (never started) cost no heap. `SetupHtml` fits in one data script. The real Meter+Led+Page heap is measured when they are ported. |
+| S3 | Open: needs the GitHub repo (or a temporary public file). |
+| S4 | Partly: `Script.PutCode` as POST JSON to `/rpc` works with `append`; ~8 KB per request. From the page itself: open (same as S5). |
+| S5 | Open: needs the owner's browsers (desktop and iPhone). |
+| S6 | `PLUGS_UI.SetConfig` `controls["switch:0"].in_mode`: `detached` or `momentary` only (`momentary` = button toggles the relay, factory default). |
+| S7 | `Switch.SetConfig`: `current_limit` 0..12 (A, decimals allowed), `power_limit` 0..2500 (W). There is no RPC that reports the maximum; it appears only in the error text, whose wording differs between generations: keep the maxima per model in the allow-list. Meaning of 0 (off or "trip at once") not tested. |
+| S8 | `Sys.SetConfig location.tz` changes `sys.utc_offset` (in `Sys.GetStatus` and `Shelly.GetStatus`) at once, `restart_required: false`. |
+| S9 | `Wifi.SetConfig ap` (ssid, pass, `is_open` false, `enable`) while on STA: `restart_required: false`, STA link kept (`got ip`, RPC answered at once). Setting `pass` makes `is_open` false; to reopen pass `"pass": null`. AP visible on air: owner confirms from a laptop. |
+| S10 | Same limits on both (scripts, endpoints, response size, KVS, heap). `Switch.GetConfig`: Gen3 adds `power_restore_delay*`, `autorecover_voltage_errors`, `reverse`, `counts`; `Switch.GetStatus`: Gen3 adds `tag`, `freq`, `ret_aenergy`, `counts`. The common fields used by v2.2 (`output`, `apower`, `voltage`, `current`, `aenergy`, `temperature`, limits) are identical. `PLUGS_UI.GetConfig` identical (Gen3 also answers `plugs_ui.*`). `Script.GetCode` `{offset,len}` returns `{data,left}`. Error messages differ in wording: never parse them. LED colour writes and the Library URL are not yet compared. |
 
 ## 10. Order of work (detail in the plan)
 
