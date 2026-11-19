@@ -1,7 +1,8 @@
 # ChargeLens v1 — design
 
-Status: **approved by the owner 2026-11-19**; builder check done (answers folded in, see "Builder check" at the end). Next step: owner review in this
-workspace, then the implementation plan (`docs/superpowers/plans/`).
+Status: **approved by the owner 2026-11-19**; builder check done (answers folded in, see "Builder check" at the
+end); **owner review done 2026-11-19** (see "Owner review" at the end). Next step: the implementation plan
+(`docs/superpowers/plans/`).
 
 ## 1. Intent
 
@@ -144,7 +145,7 @@ Page endpoints stay 5/5 (`ui`, `data`, `list`, `time`, `log`). The setup page wr
 | `hs` | band hold time | 10 s | 2-60 |
 | `sg` | session gap: session ends after this long without green | 600 s | 60-3600 |
 | `p` | price per kWh | 0 (unset: page shows kWh only) | 0-10 |
-| `cu` | currency label shown after amounts | `EUR` | <= 4 ASCII chars |
+| `cu` | currency label shown after amounts | `EUR` | 1-4 characters, any (e.g. `EUR`, `€`, `zł`); UTF-8 bytes count towards the 253 B |
 | `ds` | decimal separator | `.` | `.` or `,` |
 | `df` | date format | `YMD` | `YMD`, `DMY`, `MDY` |
 | `lo` | LED ring used | 1 | 0/1 (0 = Led leaves the ring alone after one "off" write) |
@@ -161,16 +162,20 @@ their default field by field.
 ### 5.4 `MailTpl` (data script, JSON text)
 
 ```
-{"v":1,"to":"","subject":"Charging report | {month_name} {year}","body":"...","months":["January",...]}
+{"v":1,"to":"","cc":"","bcc":"","subject":"Charging report | {month_name} {year}","body":"..."}
 ```
+- **Stored ASCII-only:** `Script.PutCode` rejects non-ASCII bytes, so the setup page writes the JSON with every
+  non-ASCII character turned into a JSON Unicode escape; `JSON.parse` gives the original text back. Accents and
+  `€` in the subject/body therefore work (pure function + test).
 - Placeholders: `{month_name}`, `{month}` (MM), `{year}`, `{total_kwh}`, `{total_cost}`, `{currency}`,
   `{price}`, `{outside_kwh}` (energy outside sessions), `{session_count}`, `{sessions_table}` (plain-text
   table: date | kWh | cost, one line per session, as the owner's v2.1 table), `{device_name}`.
-- `months` lets a user writing the mail in another language localise month names; the UI stays English.
+- `{month_name}` is the month name in the phone's language (`toLocaleString(navigator.language, {month:
+  'long'})`), so there is no month-names setting; `{month}` gives the number for anyone who wants it fixed.
 - Default body (English): short report, totals, the table, a polite request to confirm receipt, a signature
   line the user replaces. No personal data in the repo default.
 - Personal data (recipient, name in the signature) lives only on the plug and in the user's export file.
-- The page builds a `mailto:` link as today. Long months can exceed what some mail apps accept in a `mailto:`
+- The page builds a `mailto:` link as today, with `cc` / `bcc` when set. Long months can exceed what some mail apps accept in a `mailto:`
   URL: when the encoded URL is over ~1800 characters the page copies the body to the clipboard and opens the
   mail with a short body asking to paste (builder: test on iPhone Mail).
 
@@ -205,8 +210,8 @@ tests under Node with a small Shelly shim where possible.
 5. **Time** — time zone (Olson name; "Use this phone's time zone" fills it from
    `Intl.DateTimeFormat().resolvedOptions().timeZone`), clock status, "Set clock from this phone".
 6. **LED ring** — on/off, brightness, legend of colours (including the purple/orange "clock unknown" colours).
-7. **Mail** — recipient, subject, body (textarea) with the placeholder list, month names, *Preview* (renders the
-   current month), *Reset to default*.
+7. **Mail** — minimum essential (owner 2026-11-19): to, cc, bcc, subject, body (plain multi-line field), and a
+   static line listing the placeholders. No preview, no editor, no month names.
 8. **Device** — device name; Wi-Fi access point (SSID, WPA2 password, on/off; warning and confirm when the
    browser is connected through that AP); hardening status (cloud, BLE, MQTT off) with a "Fix" button.
 9. **Backup** — *Export configuration* (downloads `chargelens-config-<device>-<date>.json`: `cc:cfg`, `MailTpl`,
@@ -248,7 +253,7 @@ The manifest format is not documented by Shelly; **spike S3** derives it from Sh
 ### 7.2 What the install page does (all from the browser, same origin)
 1. Checks the device: model/app (`Shelly.GetDeviceInfo`; Plus Plug S and the EcoFlow variant id found in spike
    S1), firmware 1.7.x **and up to date** (no update offered, `Shelly.CheckForUpdate`), free script slots, scripts
-   already running. Unknown model or firmware not up to date = stop with an explanation (update first via the
+   already running. The same gate applies to **updates** (owner 2026-11-19). Unknown model or firmware not up to date = stop with an explanation (update first via the
    Shelly app / web UI; no "force" in v1). Asks the user to confirm the charger's maximum current setting
    (requirement stated in the docs).
 2. Shows what it will do: fresh install or update (existing ChargeLens scripts found by name and version
@@ -278,7 +283,14 @@ The installer stays stored and disabled after use (for updates; *Check for updat
   `chargelens-<last 4 MAC>`), **WPA2 password required (>= 8 chars)**, enable. Setting it while connected
   through STA keeps the STA link (verify: spike S9); when the browser is connected through the AP itself the
   page warns that it will disconnect and how to reconnect.
-- Hardening offered (checkboxes, all on by default): cloud off, BLE off, MQTT off; button `detached`.
+- Hardening offered (checkboxes, all on by default): cloud off, BLE off, MQTT off; button `detached`. Each box
+  says what is lost; **cloud off = no Shelly app access from outside the plug's networks** (explicit note in
+  `docs/security.md` and `docs/shelly-setup.md`).
+- **Forget the home Wi-Fi** (owner 2026-11-19): last step of a first install, offered, off by default. With
+  no STA nobody on the home network can reach the unauthenticated setup; the cost is no SNTP clock and that
+  the next update needs the plug joined to a Wi-Fi with internet again (docs). Only allowed once the AP is
+  configured with WPA2; the page warns that the browser will lose the plug and says to reconnect through the
+  AP.
 - Device authentication: explained as not supported (section 3), with the security model.
 
 ## 8. Documentation (English)
@@ -305,7 +317,7 @@ The installer stays stored and disabled after use (for updates; *Check for updat
 | # | Question |
 |---|---|
 | S1 | `Shelly.GetDeviceInfo` of the EcoFlow plug (model, app, fw, update offered?) vs Plus Plug S; any difference in `PLUGS_UI`, switch config, limits |
-| S2 | Max stored scripts; free heap with Meter+Led+Page running and 4 data scripts stored |
+| S2 | Max stored scripts; **max size of one script** vs the minified `SetupHtml` (if it does not fit: split into two data scripts, one more slot; builder's call, recorded); free heap with Meter+Led+Page running and 4 data scripts stored |
 | S3 | Library URL: manifest format, fetch from raw.githubusercontent, code inserted as-is?, size limit, name kept? |
 | S4 | `Script.PutCode` from a page served by a script: method (GET vs POST JSON), max chunk, speed |
 | S5 | `fetch` to raw.githubusercontent.com from `http://<ip>/script/...` on desktop Edge/Chrome and iPhone Safari |
@@ -393,3 +405,15 @@ the owner's and stay open (B5, B6).
   private" and "Block command line pushes that expose my email". Nothing public names private projects, repos,
   hosts or networks (owner rule 2026-11-19): the origin is described only as "a private build"; the port copies
   files only, no git history; the port source location lives in the maintainer's private notes.
+
+## Owner review (2026-11-19)
+
+- Hardware: the Plus Plug S (12 A) is supported; support rules by current/power rating are re-evaluated later
+  (TODO "Later"), including the inconsistent default limits (2500 W trips at ~10.9 A, before 12 A and `y`).
+- Installer gate (7.2): supported model and firmware up to date, also on updates; the user confirms the
+  charger's maximum current (docs state the requirement).
+- Mail template stored ASCII-only with JSON Unicode escapes (5.4); currency label accepts any characters (5.3).
+- Mail settings reduced to to / cc / bcc / subject / body (6.1); month names follow the phone's language.
+- Spike S2 also measures the maximum script size against `SetupHtml`.
+- AP hardening keeps cloud off by default, with an explicit note in the docs; the installer offers to forget
+  the home Wi-Fi after install (7.4).
