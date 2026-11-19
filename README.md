@@ -32,7 +32,8 @@ available).
 
 ## Supported hardware
 
-v1: Shelly Plus Plug S (Gen2), including rebranded variants that run Shelly firmware. Other Shelly devices with
+v1: Shelly Plus Plug S (Gen2) and Shelly Plug S Gen3, including rebranded variants that run Shelly firmware
+(e.g. EcoFlow x Shelly). Other Shelly devices with
 metering may follow (see `TODO.md`).
 
 ## Layout

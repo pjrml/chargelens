@@ -6,7 +6,7 @@ end); **owner review done 2026-11-19** (see "Owner review" at the end). Next ste
 
 ## 1. Intent
 
-ChargeLens turns a **Shelly Plus Plug S** into an offline energy logger for charging an electric car from a
+ChargeLens turns a **Shelly Plus Plug S** (Gen2) or **Plug S Gen3** into an offline energy logger for charging an electric car from a
 socket someone else pays for (condominium, employer, landlord, family). It keeps daily and monthly totals and
 charging sessions on the plug itself (survives power cuts, needs no cloud, no hub, no internet), shows them on a
 phone page served by the plug, and produces a monthly report by e-mail / CSV to settle the bill.
@@ -31,7 +31,7 @@ browser-based installer replaces the owner's Python upload tool.
 - Name **ChargeLens**, a simple logo (magnifier over a plug / charging socket).
 
 **Non-goals (v1)**
-- Other hardware (Gen3 plugs, Pro PM, other Shelly with metering). Later, only after v1 succeeds and the owner
+- Other hardware (Plug PM Gen3, Pro PM, other Shelly with metering). Later, only after v1 succeeds and the owner
   has the devices. Candidates (owner 2026-11-19): **Pro PM** (owner has one installed, for tests) and
   **Plug PM Gen3** (16 A). The Plus Plug S (12 A) is supported (owner 2026-11-19: proven in production with a
   charger limited to 10 A); support rules by current/power rating are to be re-evaluated later (TODO).
@@ -51,6 +51,11 @@ browser-based installer replaces the owner's Python upload tool.
 
 ## 3. Constraints (device facts, verified on the owner's plug, fw 1.7.x)
 
+**Supported hardware (owner 2026-11-19):** Shelly Plus Plug S (Gen2) and Shelly Plug S Gen3, including
+rebranded variants that run Shelly firmware (e.g. EcoFlow x Shelly, model `EF3PL-00112EU`, app `PlugSG3EF`).
+**The code targets the Gen2 limits below** (the owner's production plug); the Gen3 has more room (~150 KB free
+RAM on fw 2.0.0) but must run the same code. Gen3 differences are measured in spike S10.
+
 - Shelly Plus Plug S (SNPL-00112EU, Gen2), frozen firmware branch 1.7.x, no HTTPS server, relay `switch:0`
   rated 12 A / 2500 W, LED ring driven only by `PLUGS_UI.SetConfig` (each call writes flash: never animate).
 - Scripts: **max 3 enabled and 3 running**; ~25 KB heap shared by all running scripts *including their source
@@ -69,8 +74,9 @@ browser-based installer replaces the owner's Python upload tool.
 - The clock: the plug has no battery-backed RTC. Time comes from SNTP (only when the plug has internet) or from
   the phone (the page sets it). Energy used while the clock is unknown is kept against `~boot.uptime` stamps and
   dated later (automatically when the clock is set in the same boot, by hand otherwise). This stays as in v2.2.
-- Devices: **dev** = an EcoFlow x Shelly Smart Plug (a rebranded Plus Plug S that takes Shelly firmware; same
-  behaviour in all tests so far); **second** = a genuine Plus Plug S that can be wiped. **The owner's production
+- Devices: **dev** = an EcoFlow x Shelly plug, a rebranded **Plug S Gen3** (verified 2026-11-19: gen 3, fw 2.x;
+  earlier notes calling it a rebranded Plus Plug S were wrong), free to change; **second** = a genuine Plus Plug
+  S (Gen2), bought together with the production plug, that can be wiped. **The owner's production
   plug (private build) is never used for development.**
 
 ## 4. Approaches considered
@@ -251,10 +257,11 @@ The manifest format is not documented by Shelly; **spike S3** derives it from Sh
 (`ALLTERCO/shelly-script-examples`, its manifest) and checks whether the library inserts the code as-is.
 
 ### 7.2 What the install page does (all from the browser, same origin)
-1. Checks the device: model/app (`Shelly.GetDeviceInfo`; Plus Plug S and the EcoFlow variant id found in spike
-   S1), firmware 1.7.x **and up to date** (no update offered, `Shelly.CheckForUpdate`), free script slots, scripts
-   already running. The same gate applies to **updates** (owner 2026-11-19). Unknown model or firmware not up to date = stop with an explanation (update first via the
-   Shelly app / web UI; no "force" in v1). Asks the user to confirm the charger's maximum current setting
+1. Checks the device: model/app (`Shelly.GetDeviceInfo`; allow-list of Plus Plug S Gen2 and Plug S Gen3 ids
+   incl. the EcoFlow one, spike S1), firmware **up to date** (no update offered, `Shelly.CheckForUpdate`;
+   Gen2: frozen 1.7.x branch, Gen3: 2.x), free script slots, scripts already running. The same gate applies
+   to **updates** (owner 2026-11-19). Unknown model or firmware not up to date = stop with an explanation
+   (update first via the Shelly app / web UI; no "force" in v1). Asks the user to confirm the charger's maximum current setting
    (requirement stated in the docs).
 2. Shows what it will do: fresh install or update (existing ChargeLens scripts found by name and version
    header), and **other running/enabled scripts** that must be stopped/disabled to fit the 3-script limit (asks;
@@ -316,7 +323,7 @@ The installer stays stored and disabled after use (for updates; *Check for updat
 
 | # | Question |
 |---|---|
-| S1 | `Shelly.GetDeviceInfo` of the EcoFlow plug (model, app, fw, update offered?) vs Plus Plug S; any difference in `PLUGS_UI`, switch config, limits |
+| S1 | `Shelly.GetDeviceInfo` of each plug (model, app, fw, update offered?) to build the model allow-list (Gen2 Plus Plug S, Gen3 Plug S, EcoFlow `EF3PL-00112EU` / `PlugSG3EF`) |
 | S2 | Max stored scripts; **max size of one script** vs the minified `SetupHtml` (if it does not fit: split into two data scripts, one more slot; builder's call, recorded); free heap with Meter+Led+Page running and 4 data scripts stored |
 | S3 | Library URL: manifest format, fetch from raw.githubusercontent, code inserted as-is?, size limit, name kept? |
 | S4 | `Script.PutCode` from a page served by a script: method (GET vs POST JSON), max chunk, speed |
@@ -325,12 +332,13 @@ The installer stays stored and disabled after use (for updates; *Check for updat
 | S7 | `current_limit` / `power_limit` accepted ranges |
 | S8 | `Sys.SetConfig location.tz` -> `sys.utc_offset` updates without reboot? (Meter uses `utc_offset` for days) |
 | S9 | `WiFi.SetConfig ap` while connected through STA: STA link kept? |
+| S10 | Gen3 vs Gen2 on the same code: script limits (enabled/running/stored, endpoints, size, response size), `PLUGS_UI` LED API, `Switch` config/status fields (errors, button mode), KVS limits and RPC shapes, `Script.PutCode`, Library URL; anything that differs needs a per-generation branch, kept minimal |
 
 Each answer is recorded in `docs/how-it-works.md` / this spec before building on it.
 
 ## 10. Order of work (detail in the plan)
 
-0. Spike (section 9) on the dev plug, then **go/no-go with the owner** (Builder check B1).
+0. Spike (section 9) on the dev plug (Gen3) and the second plug (Gen2) for the Gen2-only facts, then **go/no-go with the owner** (Builder check B1).
 1. Port: copy the private build v2.2 sources (location in the maintainer's private notes) into `src/`,
    `tests/`, `tools/shelly.py`, **scrubbing personal and private data** (condominium text in the price table and
    the mail, home network names, router-based discovery, names of private projects and hosts). Grep the result before the first commit.
@@ -347,7 +355,7 @@ Each answer is recorded in `docs/how-it-works.md` / this spec before building on
 
 ## 11. Acceptance (v1)
 
-- Fresh Plus Plug S (or the EcoFlow variant), from the docs only: Shelly setup -> Library URL -> installer ->
+- On **both generations** (second plug = Gen2, dev plug = Gen3), from the docs only: Shelly setup -> Library URL -> installer ->
   setup -> logging works, on a phone, without a PC.
 - All private build v2.2 device and page tests pass after the port (adapted to English and config), plus new
   tests for config parsing/validation, the 6-month pruning, migrations and mail placeholders.
@@ -394,10 +402,10 @@ the owner's and stay open (B5, B6).
   session state preserved): Meter tells a script restart from a device boot by comparing `sys.uptime` with the
   uptime saved in `cc:state.u` of the same boot (exact rule: builder, with tests). It logs an "update/restart"
   event instead. This also makes any accidental Meter restart harmless.
-- **B5 — Hardware for acceptance (owner, 2026-11-19).** Both plugs are genuine Plus Plug S hardware (the EcoFlow
-  one is rebranded and takes Shelly firmware). Acceptance runs on both: EcoFlow = dev; the second plug =
-  factory reset, fresh install from the docs, export/reset/import and power-cut tests. The model allow-list is the
-  ids seen on the two (spike S1).
+- **B5 — Hardware for acceptance (owner, 2026-11-19; corrected the same day).** The EcoFlow dev plug is a Plug
+  S **Gen3**; the second plug is a genuine Plus Plug S **Gen2**. Acceptance runs on both: dev (Gen3) for
+  day-to-day development; the second (Gen2) for the Gen2 limits, factory reset, fresh install from the docs,
+  export/reset/import and power-cut tests. The model allow-list is the ids seen on the two (spike S1).
 - **B6 — Identity in the public repo (owner, 2026-11-19: "propose best practice", Claude's call).** The owner's
   GitHub profile shows no real name and no e-mail, so the project keeps that: author name `pjrml`, commit e-mail
   the ID-based GitHub no-reply address (`<id>+pjrml@users.noreply.github.com`, repo-local git config), `LICENSE`
@@ -408,7 +416,8 @@ the owner's and stay open (B5, B6).
 
 ## Owner review (2026-11-19)
 
-- Hardware: the Plus Plug S (12 A) is supported; support rules by current/power rating are re-evaluated later
+- Hardware: Plus Plug S Gen2 and Plug S Gen3 (incl. EcoFlow) are supported, the code targets the Gen2 limits
+  (dev plug found to be Gen3; spike S10 added). Both are 12 A; support rules by current/power rating are re-evaluated later
   (TODO "Later"), including the inconsistent default limits (2500 W trips at ~10.9 A, before 12 A and `y`).
 - Installer gate (7.2): supported model and firmware up to date, also on updates; the user confirms the
   charger's maximum current (docs state the requirement).
