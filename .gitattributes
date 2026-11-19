@@ -1,0 +1,7 @@
+# LF everywhere in the repo, also when checked out on Windows.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.ico binary
+# Build output: show as generated in diffs
+dist/** linguist-generated=true
