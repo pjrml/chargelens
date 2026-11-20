@@ -48,7 +48,8 @@ tmp/
 
 # Note: dist/ is committed on purpose (served to devices through raw.githubusercontent.com).
 
-# Local-only maintainer files (owner, 2026-11-20): kept out of the public repo until reviewed
+# Maintainer files live in a private parent repo, never here (owner, 2026-11-20). Safety net:
+private-terms.txt
 README.private.md
 CLAUDE.md
 TODO.md

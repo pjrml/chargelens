@@ -67,9 +67,14 @@ python tools/check_private.py [paths...]
 
 Exits 1 and prints `file:line: term` on any hit. Generic patterns: IPv4 other than `192.168.33.1` and
 `0.0.0.0`, MAC addresses, e-mail addresses other than `@users.noreply.github.com` / `example.com`, a Portuguese
-`lang` attribute, Windows user paths. Private terms come from `~/.config/chargelens/private-terms.txt`
-(outside the repo, one per line, `#` comments, case-insensitive); a missing file is a warning. By default it scans
-`git ls-files` plus untracked, non-ignored files. Run it before every commit, plus `git status --ignored`.
+`lang` attribute, Windows user paths. Private terms (one per line, `#` comments, case-insensitive) come from
+the first file found of: `$CHARGELENS_PRIVATE_TERMS`, `private-terms.txt` in the folder that contains this
+repo (the maintainer keeps this clone inside a private parent repo), `~/.config/chargelens/private-terms.txt`;
+never inside this repo; no file is a warning. By default it scans `git ls-files` plus untracked, non-ignored
+files. Run it before every commit, plus `git status --ignored`.
+
+The pre-commit hook in `tools/hooks/` runs it on every commit; enable it once per clone with
+`git config core.hooksPath tools/hooks`. CI runs it with `--generic-only`.
 
 ## Build, dist and releases
 

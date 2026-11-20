@@ -4,8 +4,9 @@ Usage: python tools/check_private.py [--generic-only] [paths...]
 --generic-only: skip the private terms file (CI, where it does not exist; no warning).
 Exit 1 and print `file:line: term` for every hit. Default scope: `git ls-files` plus untracked,
 non-ignored files. Generic patterns always apply; private terms are read, one per line (# = comment,
-case-insensitive), from ~/.config/chargelens/private-terms.txt (outside the repo; a missing file is only
-a warning). Stdlib only.
+case-insensitive), from the first file found of: $CHARGELENS_PRIVATE_TERMS, private-terms.txt in the folder
+that contains this repo (a maintainer's private parent folder), ~/.config/chargelens/private-terms.txt
+(never inside the repo; no file found is only a warning). Stdlib only.
 """
 import os
 import re
@@ -13,7 +14,11 @@ import subprocess
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-TERMS_FILE = os.path.join(os.path.expanduser("~"), ".config", "chargelens", "private-terms.txt")
+TERMS_FILES = [x for x in (
+    os.environ.get("CHARGELENS_PRIVATE_TERMS"),
+    os.path.join(os.path.dirname(ROOT), "private-terms.txt"),
+    os.path.join(os.path.expanduser("~"), ".config", "chargelens", "private-terms.txt"),
+) if x]
 ALLOWED_IPS = {"192.168.33.1", "0.0.0.0"}
 ALLOWED_MAIL = ("@users.noreply.github.com", "@example.com", ".example.com")
 BINARY_EXT = {".png", ".jpg", ".jpeg", ".gif", ".ico", ".pdf", ".woff", ".woff2", ".zip"}
@@ -28,11 +33,13 @@ WIN_USER = re.compile("[A-Za-z]:[" + BS2 + "/]+Users[" + BS2 + "/]", re.I)
 
 
 def load_terms():
-    if not os.path.isfile(TERMS_FILE):
-        print("warning: %s not found, private terms not checked" % TERMS_FILE, file=sys.stderr)
+    found = [x for x in TERMS_FILES if os.path.isfile(x)]
+    if not found:
+        print("warning: no private terms file (%s), private terms not checked" % ", ".join(TERMS_FILES),
+              file=sys.stderr)
         return []
     out = []
-    with open(TERMS_FILE, encoding="utf-8") as f:
+    with open(found[0], encoding="utf-8") as f:
         for line in f:
             line = line.strip()
             if line and not line.startswith("#"):

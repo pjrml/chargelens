@@ -1,0 +1,4 @@
+#!/bin/sh
+# Public-repo guard: refuse the commit if any file leaks private data.
+# Enable once per clone: git config core.hooksPath tools/hooks
+exec python tools/check_private.py
