@@ -4,7 +4,7 @@ let B = 1794950000;
 t("stamp", function () {
   eq("unix", stamp(B, 3, 50), B);
   eq("undated", stamp(0, 3, 50.7), "~3.50");
-  eq("real boot", isRealBoot(30), true); eq("restart", isRealBoot(900), false);
+  eq("real boot", isRealBoot(30, 20), true); eq("restart", isRealBoot(900, 800), false);
 });
 t("boots", function () {
   let l = addBoot(parseBoots("2:1794900000:p"), 3, B, "s");

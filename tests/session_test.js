@@ -6,8 +6,8 @@ t("sessOpenClose", function () {
   eq("open", r.ss.c, 1000); eq("no close", r.closed, null);
   r = sessBand(r.ss, 0, {stamp: B + 3600, up: 3700, c: 3300});
   eq("left green", r.ss.g, 3700);
-  r = sessTick(r.ss, 3700 + 599); eq("not yet", r.closed, null);
-  r = sessTick(r.ss, 3700 + 600);
+  r = sessTick(r.ss, 3700 + 599, 600); eq("not yet", r.closed, null);
+  r = sessTick(r.ss, 3700 + 600, 600);
   eq("closed", r.closed, {s: B, min: 60, wh: 2300, f: ""}); eq("ss cleared", r.ss, null);
 });
 t("sessDip", function () {
@@ -19,7 +19,7 @@ t("sessDip", function () {
 t("sessDurationUptime", function () {
   let r = sessBand(null, 2, {stamp: "~3.100", up: 100, c: 0});
   r = sessBand(r.ss, 0, {stamp: B, up: 1900, c: 500});
-  r = sessTick(r.ss, 2500);
+  r = sessTick(r.ss, 2500, 600);
   eq("30 min from uptime", r.closed.min, 30); eq("start undated kept", r.closed.s, "~3.100");
 });
 t("sessPowerCut", function () {
@@ -30,7 +30,7 @@ t("sessPowerCut", function () {
 t("sessSpike", function () {
   let r = sessBand(null, 2, {stamp: B, up: 0, c: 0});
   let ss = sessSpike(r.ss, 300);
-  r = sessBand(ss, 0, {stamp: B + 600, up: 600, c: 1300}); r = sessTick(r.ss, 1200);
+  r = sessBand(ss, 0, {stamp: B + 600, up: 600, c: 1300}); r = sessTick(r.ss, 1200, 600);
   eq("spike out", r.closed.wh, 1000);
 });
 t("fmtRec", function () {

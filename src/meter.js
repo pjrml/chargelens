@@ -10,8 +10,10 @@
 //                previous month folded into day 1, s = counter spike ignored, b = counter went back (lost)
 
 // ==== LIB ====
+//@lib cfg_lib.js
 let CLOCK_MIN = 1700000000;  // unixtime above this = clock set
 let ADJ_MAX = 8;
+let MAX_MONTHS = 6;        // v1 KVS budget: 6 months of cc:m + their cc:s session keys (design 5.2)
 
 function r3(x) { return Math.round(x * 1000) / 1000; }
 
@@ -123,6 +125,7 @@ function capDeletes(names, newKey, max) {
 // v2: full key names to delete before creating month newMonth: the oldest cc:m: months beyond maxMonths and
 // every cc:s:<month>[-2|-3] session key of those months. names = all cc:m:* and cc:s:* keys present.
 function monthDeletes(names, newMonth, maxMonths) {
+  if (!(maxMonths > 0)) return [];  // legacy state (no sv): never prune
   let ms = []; let i; let j;
   for (i = 0; i < names.length; i++) if (names[i].slice(0, 5) === "cc:m:") ms.push(names[i]);
   let del = capDeletes(ms, "cc:m:" + newMonth, maxMonths); let out = [];
@@ -168,7 +171,21 @@ function shouldPersist(unsavedWh, secsSinceSave, forced) {
 // ---- stamps (v2) ----
 // A stamp is unix (clock set) or "~N.UP" (boot N, uptime s). cc:boot = "n:bootUnix:src;..." (src s SNTP/unknown,
 // p phone, r RTC, d manual day), insertion order, oldest dropped so the value fits a KVS value (253).
-function isRealBoot(up) { return up < 120; }
+// real boot: uptime went back below the last saved one (or none saved), or both are young. Otherwise the
+// script was only restarted (installer update, Stop/Start): not a boot.
+function isRealBoot(up, savedU) {
+  return typeof savedU !== "number" || up < savedU || (up < 120 && savedU < 120);
+}
+
+// schema version sv (v1 = 1): fresh state gets it; a state without sv is legacy (sv stays absent)
+function migrate(st, fresh) {
+  if (fresh) { st.sv = 1; return {st: st, legacy: false}; }
+  return {st: st, legacy: st.sv === undefined};
+}
+
+function pruneMax(st) { return st.sv >= 1 ? MAX_MONTHS : 0; }
+
+function ledCfg(c) { return {r: c.r, g: c.g, y: c.y, h: c.h, hr: c.hr, hs: c.hs, lo: c.lo, lb: c.lb}; }
 
 function stamp(unix, n, up) {
   if (unix > CLOCK_MIN) return unix;
@@ -233,9 +250,8 @@ function recKeys(mk) { return ["cc:s:" + mk, "cc:s:" + mk + "-2"]; }
 
 // ---- sessions (v2) ----
 // Open session ss = {s: startStamp, su: upAtStart, c: counterAtStart, g: upLeftGreen|0,
-// gc: counterLeftGreen, x: spikeWh, f: flags}. Session = Led band 2 (green); ends when no green for SESS_GAP s of
+// gc: counterLeftGreen, x: spikeWh, f: flags}. Session = Led band 2 (green); ends when no green for the gap (cfg.sg) s of
 // uptime; the end is the moment green was left. Durations from uptime only. Flags: y yellow, r red, p power cut.
-let SESS_GAP = 600;
 
 function addFlag(f, c) { return f.indexOf(c) >= 0 ? f : f + c; }
 
@@ -256,8 +272,8 @@ function sessBand(ss, b, ctx) {
   return {ss: ss, closed: null};
 }
 
-function sessTick(ss, up) {
-  if (ss && ss.g > 0 && up - ss.g >= SESS_GAP) return {ss: null, closed: sessRec(ss, ss.g, ss.gc, ss.f)};
+function sessTick(ss, up, gap) {
+  if (ss && ss.g > 0 && up - ss.g >= gap) return {ss: null, closed: sessRec(ss, ss.g, ss.gc, ss.f)};
   return {ss: ss, closed: null};
 }
 
@@ -440,8 +456,8 @@ let TICK_MS = 60000;
 let FIRST_TICK_MS = 5000;
 let MAX_W = 4000;          // 16 A x 250 V: anything above is a counter glitch
 let HB_MS = 600000;        // v2 heartbeat (cc:hb0..2) for the power-loss estimate
-let MAX_MONTHS = 12;       // v2 KVS budget: 12 months of cc:m + their cc:s session keys (plan Global Constraints)
 
+let cfg = cfgParse(null), cfgTag = null;  // cc:cfg (parsed with per-field defaults) and its etag
 let st = null, month = null, adj = [];
 let lastTickUp = -1;
 let unsaved = 0, lastSaveUp = 0;
@@ -644,7 +660,21 @@ function onBand(b) {
   if (had || r.ss) saveAll();
 }
 
+// cc:cfg is polled every tick; a changed etag re-parses it (missing key = defaults) and tells Led
+function cfgPoll() {
+  Shelly.call("KVS.Get", {key: "cc:cfg"}, function (r, err) {
+    if (err && err !== -105) return;
+    let tag = err ? "-" : (r.etag || r.value);
+    if (tag === cfgTag) return;
+    cfgTag = tag;
+    cfg = cfgParse(err ? null : r.value);
+    print("meter: cfg changed, session gap " + String(cfg.sg));
+    Shelly.emitEvent("cc_cfg", ledCfg(cfg));
+  });
+}
+
 Shelly.addEventHandler(function (e) {
+  if (e && e.info && e.info.event === "cc_cfgq") Shelly.emitEvent("cc_cfg", ledCfg(cfg));
   if (!st || !e || !e.info || !e.info.data) return;
   if (e.info.event === "cc_band") onBand(e.info.data.b);
   else if (e.info.event === "cc_date") onDate(e.info.data.n, e.info.data.u, e.info.data.day);
@@ -662,7 +692,7 @@ function writeTick(r) {
     if (!lerr && lr && lr.keys) {
       let names = []; let k;
       for (k in lr.keys) names.push(k);
-      let del = monthDeletes(names, month.k, MAX_MONTHS); let i;
+      let del = monthDeletes(names, month.k, pruneMax(st)); let i;
       for (i = 0; i < del.length; i++) q.push(["KVS.Delete", {key: del[i]}]);
     }
     writes();
@@ -684,6 +714,7 @@ function tick() {
   let sys = Shelly.getComponentStatus("sys");
   let sw = Shelly.getComponentStatus("switch:" + SWITCH_ID);
   if (!sys || !sw || !sw.aenergy) return;
+  cfgPoll();
   let unix = (typeof sys.unixtime === "number") ? sys.unixtime : 0;
   let off = (typeof sys.utc_offset === "number") ? sys.utc_offset : 0;
   let up = sys.uptime;
@@ -698,7 +729,7 @@ function tick() {
     month = r.month;
     unsaved = r3(unsaved + r.d);
     if (r.sx) st.ss = sessSpike(st.ss, r.sx);
-    let sr = sessTick(st.ss, up);
+    let sr = sessTick(st.ss, up, cfg.sg);
     if (sr.closed) { st.ss = null; saveRec(sr.closed); r.changed = true; r.forced = true; }
     if (unix > CLOCK_MIN && !st.nb) dateThisBoot({unix: unix, up: up, sync: sys.last_sync_ts});
     if (r.changed && shouldPersist(unsaved, up - lastSaveUp, r.forced)) {
@@ -711,6 +742,7 @@ function tick() {
 
 function startTimers() {
   lastSaveUp = Shelly.getComponentStatus("sys").uptime;
+  Timer.set(1000, false, cfgPoll);
   Timer.set(FIRST_TICK_MS, false, tick);
   Timer.set(TICK_MS, true, tick);
   Timer.set(HB_MS, true, heartbeat);
@@ -725,6 +757,7 @@ function start(total) {
       if (monthLoadAction(err2, null) === "skip") { Timer.set(5000, false, function () { start(total); }); return; }
       let s = null;
       if (!err2 && r2 && r2.value) { try { s = JSON.parse(r2.value); } catch (e) { s = null; } }
+      let fresh = !s;
       if (!s) s = {c: total, o: 0, t: 0, pb: 0, po: 0, dk: "", dw: 0};
       // pending from the previous boot can no longer be dated from uptime: v2.1 it waits in po and in a T line
       // of cc:su for manual dating (pw Wh of boot pn)
@@ -737,10 +770,14 @@ function start(total) {
         st = s;
         if (st.n === undefined) { st.n = 0; st.nb = false; }
         if (st.ss === undefined) st.ss = null;
+        let mg = migrate(st, fresh);
+        if (mg.legacy) logEv(fmtEv("L", stamp(now().unix, st.n, now().up)));
         if (pw > 0) rqPush(function (done) {
           Shelly.call("KVS.Get", {key: "cc:su"}, function (ru, eu) { suSave(suAddT(!eu && ru ? ru.value : null, pn, pw), done); });
         });
-        if (isRealBoot(Shelly.getComponentStatus("sys").uptime)) newBoot(total, startTimers); else startTimers();
+        let t = now();
+        if (isRealBoot(t.up, st.u)) newBoot(total, startTimers);
+        else { logEv(fmtEv("U", stamp(t.unix, st.n, t.up))); startTimers(); }
       });
     });
   });
