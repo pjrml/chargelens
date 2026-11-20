@@ -151,7 +151,7 @@ def put(ip, name, code, start=True, enable=True, mini=True):
             rpc(ip, "Script.Stop", {"id": sid})
         except RuntimeError:
             pass  # not running
-    chunk = 800
+    chunk = 4000
     for i in range(0, max(len(code), 1), chunk):
         rpc(ip, "Script.PutCode", {"id": sid, "code": code[i:i + chunk], "append": i > 0})
     if script_code(ip, sid) != code:
