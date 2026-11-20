@@ -348,7 +348,7 @@ The installer stays stored and disabled after use (for updates; *Check for updat
 
 Each answer is recorded in `docs/how-it-works.md` / this spec before building on it.
 
-### 9.1 Spike results (2026-11-19, Gen2 SNPL-00112EU fw 1.7.6 and Gen3 EF3PL-00112EU fw 2.2.0)
+### 9.1 Spike results (2026-11-19/20, Gen2 SNPL-00112EU fw 1.7.6 and Gen3 EF3PL-00112EU fw 2.2.0)
 
 Both generations gave **the same answers** for every question below; no per-generation branch is needed so far.
 
@@ -356,9 +356,9 @@ Both generations gave **the same answers** for every question below; no per-gene
 |---|---|
 | S1 | Gen2: `model` `SNPL-00112EU`, `app` `PlusPlugS`, `gen` 2. Gen3 (EcoFlow): `model` `EF3PL-00112EU`, `app` `PlugSG3EF`, `gen` 3 (Gen3 also reports `enhanced_security`). `Shelly.CheckForUpdate` with nothing to offer returns `{}` (no `stable` key) on both: that is the installer's "up to date" test. The genuine Gen3 Plug S model id is still unverified (no device): allow-list it once confirmed. |
 | S2 | 10 stored scripts; one script <= 65535 B; one `Script.PutCode` request body <= ~8 KB (code ~8000 B; larger gives HTTP 413), so chunks of 4000 B are safe; upload ~13-18 KB/s from a PC. Heap: ~25 KB shared by all running scripts; code costs ~1.25 B heap per byte (comments free); two scripts of 8 KB code each leave 4.7 KB and a third fails with `out_of_memory`. Data scripts (never started) cost no heap. `SetupHtml` fits in one data script. The real Meter+Led+Page heap is measured when they are ported. |
-| S3 | Open: needs the GitHub repo (or a temporary public file). |
-| S4 | Partly: `Script.PutCode` as POST JSON to `/rpc` works with `append`; ~8 KB per request. From the page itself: open (same as S5). |
-| S5 | Open: needs the owner's browsers (desktop and iPhone). |
+| S3 | Works (Gen2 web UI, Edge, 2026-11-20, temporary public repo). Manifest = JSON array of `{fname, title, description}` (as the official examples repo; `tags` optional), `fname` relative to the manifest URL. *Import code* stores the file as a new script **named after `fname`** (not `title`), stopped, *Run on startup* off; a 40 KB file arrived complete (only the final newline dropped; 65535 B limit applies). So the bootstrap script's `fname` is its final name (e.g. `Installer.js` would be named so): pick `fname` = the script name the code looks up, or let the installer rename itself. The Library URL is kept by the web UI, the device was not changed by it. |
+| S4 | `Script.PutCode` from a page served by a script: **POST JSON to `/rpc`** with chunks of 4000 B and `append`; 40 KB in ~2.4 s (Edge) / ~3.0 s (Safari), verified byte-exact at the end. `GET /rpc/Script.PutCode?code=...` stores the value literally (no JSON decoding): not usable for code. |
+| S5 | `fetch` of `https://raw.githubusercontent.com/...` from `http://<ip>/script/...` works on desktop Edge 157 (both plugs) and Safari 27 / WebKit (Apple device, desktop UA mode): HTTP 200, 20 KB in 40-270 ms; GitHub sends `Access-Control-Allow-Origin: *`. Chrome is the same engine as Edge (not tested separately). |
 | S6 | `PLUGS_UI.SetConfig` `controls["switch:0"].in_mode`: `detached` or `momentary` only (`momentary` = button toggles the relay, factory default). |
 | S7 | `Switch.SetConfig`: `current_limit` 0..12 (A, decimals allowed), `power_limit` 0..2500 (W). There is no RPC that reports the maximum; it appears only in the error text, whose wording differs between generations: keep the maxima per model in the allow-list. Meaning of 0 (off or "trip at once") not tested. |
 | S8 | `Sys.SetConfig location.tz` changes `sys.utc_offset` (in `Sys.GetStatus` and `Shelly.GetStatus`) at once, `restart_required: false`. |
