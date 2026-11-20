@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 1.0.0-rc.3 (2026-11-20)
+
+- Docs: LED ring colour table in daily use (`docs/usage.md`); use cases in the README.
+- Developer CLI: `tools/shelly.py backup` now saves every KVS key (it kept only the first page of `KVS.GetMany`).
+
 ## 1.0.0-rc.2 (2026-11-20)
 
 - Daily page: *About* card with the installed version and the access point (network name and the page address on

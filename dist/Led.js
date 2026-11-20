@@ -1,4 +1,4 @@
-// ChargeLens Led v1.0.0-rc.2
+// ChargeLens Led v1.0.0-rc.3
 let LED_DEF = {r: 0.1, g: 5, y: 11, h: 0.3, hr: 0.05, hs: 10, lo: 1, lb: 50};
 function rawBand(a, on, c) {
 if (!on || a <= c.r) return 0;
