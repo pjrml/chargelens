@@ -77,10 +77,12 @@ const apSsid=m=>'chargelens-'+String(m||'').replace(/[^0-9a-fA-F]/g,'').slice(-4
 const viaAp=h=>h==='192.168.33.1';
 const bleState=c=>{if(!c)return null;const en=typeof c.enable==='boolean'?c.enable:null,rp=c.rpc&&typeof c.rpc.enable==='boolean'?c.rpc.enable:null;return en===null&&rp===null?null:{en:en,rpc:rp}};
 const bleOn=b=>b?(b.en===true||b.rpc===true):null;
+const dbgOn=c=>{const w=c&&c.debug&&c.debug.websocket;return w&&typeof w.enable==='boolean'?w.enable:null};
 function hardenPlan(cur,b){const P=[];
 [['cloud','Cloud','Cloud'],['mqtt','MQTT','MQTT']].forEach(x=>{if(b[x[0]]&&cur[x[0]]===true)P.push({rpc:x[1]+'.SetConfig',params:{config:{enable:false}},label:x[2]+' off'})});
 if(b.ble&&bleOn(cur.ble)){const k={};if(cur.ble.en===true)k.enable=false;if(cur.ble.rpc===true)k.rpc={enable:false};P.push({rpc:'BLE.SetConfig',params:{config:k},label:'Bluetooth off'})}
 if(b.button&&cur.in_mode&&cur.in_mode!=='detached')P.push({rpc:'PLUGS_UI.SetConfig',params:{config:{controls:{'switch:0':{in_mode:'detached'}}}},label:'Button does nothing'});
+if(b.dbg&&cur.dbg===true)P.push({rpc:'Sys.SetConfig',params:{config:{debug:{websocket:{enable:false}}}},label:'Websocket debug logs off'});
 return P}
 /* ==== END PURE ==== */
 const $=i=>document.getElementById(i),esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -108,9 +110,9 @@ return idleOk(null,ss,sw.current,cfgParse(raw))}
 async function gather(){const L=await list(),H={};
 for(const f of REL.files)if(OWN.indexOf(f.name)<0&&f.name!=='MailTpl'){const id=idOf(L,f.name);if(id!==null)H[f.name]=(await g('/rpc/Script.GetCode?id='+id+'&offset=0&len=80').then(r=>hdrLine(r.data),()=>undefined))}
 return{L:L,H:H}}
-async function curState(){const x=await Promise.all(['Cloud','MQTT','BLE'].map(n=>g('/rpc/'+n+'.GetConfig').catch(()=>null))),ui=await g('/rpc/PLUGS_UI.GetConfig').catch(()=>null);
+async function curState(){const x=await Promise.all(['Cloud','MQTT','BLE','Sys'].map(n=>g('/rpc/'+n+'.GetConfig').catch(()=>null))),ui=await g('/rpc/PLUGS_UI.GetConfig').catch(()=>null);
 const sw=ui&&ui.controls&&ui.controls['switch:0'];
-return{cloud:x[0]?!!x[0].enable:null,mqtt:x[1]?!!x[1].enable:null,ble:bleState(x[2]),in_mode:sw?sw.in_mode:null}}
+return{cloud:x[0]?!!x[0].enable:null,mqtt:x[1]?!!x[1].enable:null,ble:bleState(x[2]),in_mode:sw?sw.in_mode:null,dbg:dbgOn(x[3])}}
 const ck=(k,l,on,x)=>'<div class="f"><label><input type="checkbox" id="'+k+'"'+(on?' checked':'')+'>'+l+'</label>'+(x?'<div class="mu">'+x+'</div>':'')+'</div>';
 async function init(){
 if(!CL.base){$('dev').innerHTML='<span class="er">Open this page through the ChargeLens Installer script on the plug (see the documentation).</span>';return}
@@ -152,6 +154,7 @@ f+='<div class="c"><div class="lab">Setup</div>'+ck('o_tz','Set the time zone fr
 (n.cloud===true?ck('h_cloud','<span class="wn">&#9888;</span> Turn the Shelly cloud off',true,'No Shelly app access from outside the plug\'s networks.'):'')+
 (bleOn(n.ble)?ck('h_ble','<span class="wn">&#9888;</span> Turn Bluetooth off',true):'')+
 (n.mqtt===true?ck('h_mqtt','<span class="wn">&#9888;</span> Turn MQTT off',true):'')+
+(n.dbg===true?ck('h_dbg','<span class="wn">&#9888;</span> Turn the websocket debug logs off',true,'The installer turned them on to show its address in the plug's script console. ChargeLens does not need them.'):'')+
 (n.in_mode&&n.in_mode!=='detached'?ck('h_button','<span class="wn">&#9888;</span> Make the button do nothing (it toggles the relay)',true):'')+
 ck('h_forget','Forget the home Wi-Fi at the end (recommended)',false,'Only with the access point set up. Nobody on your network can then reach the plug, but the plug has no internet clock and the next update needs it joined to a Wi-Fi again. You will have to connect to the access point to use it.')+'</div>'}
 f+='<div class="c"><button id="go" disabled>'+(upd?'Update':'Install')+'</button><div class="er" id="e_go"></div><div id="busy" class="mu" style="display:none;margin-top:8px"><progress style="width:100%"></progress><div>Working&hellip; keep this page open. This takes about a minute; the steps are listed below.</div></div><button id="back">Leave without changes</button><div class="mu" style="margin-top:8px">Nothing here switches the relay.</div></div>';
@@ -176,7 +179,8 @@ for(const n of PLAN.write){log('Writing '+esc(n)+' ('+files[n].length+' bytes)&h
 try{await rpc('KVS.Get',{key:'cc:cfg'})}catch(e){if(e.code!==-105)throw e;await rpc('KVS.Set',{key:'cc:cfg',value:DEF_CFG});log('Default settings stored.')}
 const tz=$('o_tz')&&$('o_tz').checked&&TZ;
 if(tz){await rpc('Sys.SetConfig',{config:{location:{tz:TZ}}});log('Time zone set to '+esc(TZ))}
-if(!upd){const on=k=>!!($(k)&&$(k).checked),b={cloud:on('h_cloud'),ble:on('h_ble'),mqtt:on('h_mqtt'),button:on('h_button')};
+if(upd){const cd=await g('/rpc/Sys.GetConfig').then(dbgOn).catch(()=>null);for(const p of hardenPlan({dbg:cd},{dbg:true})){try{await rpc(p.rpc,p.params);log(esc(p.label),'ok')}catch(e){log(esc(p.label)+' failed: '+esc(e.message),'er')}}}
+if(!upd){const on=k=>!!($(k)&&$(k).checked),b={cloud:on('h_cloud'),ble:on('h_ble'),mqtt:on('h_mqtt'),button:on('h_button'),dbg:on('h_dbg')};
 for(const p of hardenPlan(CUR,b)){try{await rpc(p.rpc,p.params);log(esc(p.label),'ok')}catch(e){log(esc(p.label)+' failed: '+esc(e.message),'er')}}}
 log('Stopping the installer (3 scripts is the limit)&hellip;');
 if(SELF)await rpc('Script.Stop',{id:Number(SELF)}).catch(()=>{});

@@ -27,13 +27,23 @@ file from the tag you install. Raw link pattern:
 | `MailTpl` | `MailTpl.json` | no | never (data) |
 | `Installer` (optional) | `installer.js` | no | only to update |
 
-For each script:
+For each script in the table:
 
-1. Web UI -> **Scripts** -> **Create script**, set the name from the table, open the raw link in another tab,
-   select all, copy, paste into the editor, **Save**.
-2. Only `Meter` gets **Run on startup**. Never start the data scripts (`PageHtml`, `SetupHtml`, `MailTpl`): they
-   only hold text.
-3. `Installer` is optional. Do not start it while `Meter`, `Led` and `Page` run (three scripts is the limit).
+1. Open `http://<plug-ip>` in the browser.
+2. Press **Scripts** in the menu.
+3. Press **Create script**.
+4. Type the script name from the table in *Script name*.
+5. Open the raw link of its file in another browser tab.
+6. Select all the text in that tab.
+7. Copy it.
+8. Go back to the script editor and paste it.
+9. Press **Save**.
+
+Then:
+
+1. In the *Scripts* list, turn on **Run on startup** (the *enable* switch) for `Meter` only.
+2. Leave the data scripts (`PageHtml`, `SetupHtml`, `MailTpl`) stopped: they only hold text and must never run.
+3. Leave `Installer` stopped. Do not start it while `Meter`, `Led` and `Page` run (three scripts is the limit).
 
 `dist/install.html` is not a script on the plug: the `Installer` script fetches that page from GitHub every time
 it runs, and the installer page never stores it. The manual install and `tools/shelly.py install` skip it too.
@@ -42,17 +52,26 @@ To check a script, compare its size with `dist/release.json` (it also lists a `c
 
 ## Start
 
-1. Start **Meter**. Within a few seconds it starts `Led` and `Page`; the Scripts list then shows three running.
-2. Note the id of the `Page` script and open `http://<plug-ip>/script/<id>/ui`. The setup page is
-   `http://<plug-ip>/script/<id>/ui?p=setup`.
-3. On the setup page set the time zone, the thresholds and the access point. Without a saved configuration
-   ChargeLens uses its defaults ([configuration.md](configuration.md)).
-4. Hardening (cloud, Bluetooth, MQTT off, button does nothing) is on the setup page under *Hardening*.
+1. In the *Scripts* list, press **Start** for `Meter`. Within a few seconds it starts `Led` and `Page`; the list
+   then shows three running.
+2. Note the id of the `Page` script (shown as `script:<id>`).
+3. Open the setup page: `http://<plug-ip>/script/<id>/ui?p=setup`.
+4. Set your settings there ([configuration.md](configuration.md)). Without a saved configuration ChargeLens uses
+   its defaults.
+5. In *Hardening* on the same page, press **Fix** (cloud, Bluetooth, MQTT and websocket debug logs off, button
+   does nothing).
+
+The daily page is `http://<plug-ip>/script/<id>/ui`.
 
 ## Updating by hand
 
-Never while the plug is charging. Stop `Led`, `Page`, then `Meter`; replace the code of each script with the new
-files; start `Meter`. The energy log lives in the plug's key-value store and is not touched. Keep `MailTpl` as it
-is unless you want the default template back.
+Never while the plug is charging. The energy log lives in the plug's key-value store and is not touched.
+
+1. Stop `Led`.
+2. Stop `Page`.
+3. Stop `Meter`.
+4. Replace the code of each script with the new file (as in *The scripts*, steps 5 to 9). Keep `MailTpl` as it is
+   unless you want the default template back.
+5. Start `Meter`. It starts `Led` and `Page`.
 
 For developers: `tools/shelly.py install` does the same from a PC ([development.md](development.md)).

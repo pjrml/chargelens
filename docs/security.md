@@ -33,6 +33,7 @@ The pages are served over plain HTTP, so anything on the same network can also r
 | Bluetooth off | removes a second way to reconfigure the plug | Shelly app Bluetooth setup. |
 | MQTT off | not needed | MQTT integrations. |
 | Button does nothing | a press cannot switch the relay by accident | The plug's button no longer toggles the relay (the page's relay toggle still does). |
+| Websocket debug logs off | the `Installer` script turns them on to print its address; ChargeLens does not need them | Script output in the console of the Shelly web UI. An update turns them off by itself. |
 
 You can change them any time on the setup page, under *Hardening*.
 

@@ -178,10 +178,12 @@ MAILK.forEach(k=>{if(String(om[k]||'')!==String(nm[k]||''))ch.push({field:k,from
 return{ok:true,errors:er,changes:ch,next:next}}
 const bleState=c=>{if(!c)return null;const en=typeof c.enable==='boolean'?c.enable:null,rp=c.rpc&&typeof c.rpc.enable==='boolean'?c.rpc.enable:null;return en===null&&rp===null?null:{en:en,rpc:rp}};
 const bleOn=b=>b?(b.en===true||b.rpc===true):null;
+const dbgOn=c=>{const w=c&&c.debug&&c.debug.websocket;return w&&typeof w.enable==='boolean'?w.enable:null};
 function hardenPlan(cur,b){const P=[];
 [['cloud','Cloud','Cloud'],['mqtt','MQTT','MQTT']].forEach(x=>{if(b[x[0]]&&cur[x[0]]===true)P.push({rpc:x[1]+'.SetConfig',params:{config:{enable:false}},label:x[2]+' off'})});
 if(b.ble&&bleOn(cur.ble)){const k={};if(cur.ble.en===true)k.enable=false;if(cur.ble.rpc===true)k.rpc={enable:false};P.push({rpc:'BLE.SetConfig',params:{config:k},label:'Bluetooth off'})}
 if(b.button&&cur.in_mode&&cur.in_mode!=='detached')P.push({rpc:'PLUGS_UI.SetConfig',params:{config:{controls:{'switch:0':{in_mode:'detached'}}}},label:'Button does nothing'});
+if(b.dbg&&cur.dbg===true)P.push({rpc:'Sys.SetConfig',params:{config:{debug:{websocket:{enable:false}}}},label:'Websocket debug logs off'});
 return P}
 const $=i=>document.getElementById(i),esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const B=location.pathname.replace(/\/ui$/,'/');
@@ -226,18 +228,18 @@ const c=cfgParse(raw);let mt=null;try{mt=JSON.parse(mc)}catch(e){}if(!mt||typeof
 const n={current_limit:sw.current_limit,power_limit:sw.power_limit,in_mode:((ui.controls||{})['switch:0']||{}).in_mode||'detached',tz:(sy.location||{}).tz||'',name:String((sy.device||{}).name||'')};
 const m={to:mt.to,cc:mt.cc,bcc:mt.bcc,subject:mt.subject===undefined?MAILD.subject:mt.subject,body:mt.body===undefined?MAILD.body:mt.body};
 const ex=await Promise.all(['WiFi','Cloud','BLE','MQTT'].map(x=>g('/rpc/'+x+'.GetConfig').catch(e=>null)));
-const ap=(ex[0]||{}).ap;n.ap=ap?{ssid:ap.ssid,enable:!!ap.enable}:null;n.cloud=ex[1]?!!ex[1].enable:null;n.ble=bleState(ex[2]);n.mqtt=ex[3]?!!ex[3].enable:null;
+const ap=(ex[0]||{}).ap;n.ap=ap?{ssid:ap.ssid,enable:!!ap.enable}:null;n.cloud=ex[1]?!!ex[1].enable:null;n.ble=bleState(ex[2]);n.mqtt=ex[3]?!!ex[3].enable:null;n.dbg=dbgOn(sy);
 OLD={cfg:storedCfg(c),mail:mailText(m),native:n,name:n.name};DI=di;
 $('dev').textContent=(n.name?n.name+' - ':'')+di.model+' (gen '+di.gen+')';
 draw(c,n,m);more();clock();$('save').disabled=false}
 const ck=(k,l,on)=>'<div class="f"><label><input type="checkbox" id="'+k+'"'+(on?' checked':'')+'>'+l+'</label></div>';
-function more(){const n=OLD.native,ap=n.ap||{},hs=[['cloud','Cloud',"Cloud off: no Shelly app access from outside the plug's networks."],['ble','Bluetooth',''],['mqtt','MQTT','']];
+function more(){const n=OLD.native,ap=n.ap||{},hs=[['cloud','Cloud',"Cloud off: no Shelly app access from outside the plug's networks."],['ble','Bluetooth',''],['mqtt','MQTT',''],['dbg','websocket debug logs','Only needed to see script output in the console of the Shelly web UI.']];
 $('more').innerHTML=
 '<div class="c"><div class="lab">Wi-Fi access point</div><div class="mu">The plug\'s own network, for use without a router. WPA2 only; connecting the plug to your Wi-Fi is not affected.</div>'+
 tx('ap_ssid','Network name (SSID)',ap.ssid||apSsid(DI.mac))+
 '<div class="f"><label for="ap_pass">Password (at least 8 characters)</label><input id="ap_pass" type="password" autocomplete="new-password"><div class="er" id="e_ap_pass"></div></div>'+
 ck('ap_on','Access point on',ap.enable)+'<button id="apx">Apply access point</button><div id="ap_res"></div></div>'+
-'<div class="c"><div class="lab">Hardening</div>'+hs.map(x=>{const on=x[0]==='ble'?bleOn(n.ble):n[x[0]];return on===null?'<div class="f">'+x[1]+': <span class="mu">unknown</span></div>':'<div class="f"><label>'+(on?'<input type="checkbox" id="hb_'+x[0]+'" checked><span style="color:var(--warn)">&#9888;</span> Turn '+x[1]+' off (it is on)':'<span class="ok">&#10003;</span> '+x[1]+' is off')+'</label>'+(x[2]&&on?'<div class="mu">'+x[2]+'</div>':'')+'</div>'}).join('')+
+'<div class="c"><div class="lab">Hardening</div>'+hs.map(x=>{const on=x[0]==='ble'?bleOn(n.ble):n[x[0]];return on===null?'<div class="f">'+x[1]+': <span class="mu">unknown</span></div>':'<div class="f"><label>'+(on?'<input type="checkbox" id="hb_'+x[0]+'" checked><span style="color:var(--warn)">&#9888;</span> Turn '+x[1]+' off (on now)':'<span class="ok">&#10003;</span> '+x[1]+': off')+'</label>'+(x[2]&&on?'<div class="mu">'+x[2]+'</div>':'')+'</div>'}).join('')+
 '<div class="f"><label>'+(n.in_mode==='detached'?'<span class="ok">&#10003;</span> The button does nothing':'<input type="checkbox" id="hb_button" checked><span style="color:var(--warn)">&#9888;</span> Make the button do nothing (it toggles the relay)')+'</label></div>'+
 '<div class="mu" style="margin-top:8px">Fix applies the ticked items.</div><button id="hf">Fix</button><div id="hr_res"></div></div>'+
 '<div class="c"><div class="lab">Backup</div><div class="mu">Settings, mail template and device options. No passwords and no energy data.</div>'+
@@ -272,7 +274,7 @@ if(id==='tzp')$('f_tz').value=Intl.DateTimeFormat().resolvedOptions().timeZone||
 if(id==='ts'){try{await g(B+'time?set='+Math.floor(Date.now()/1000));clock()}catch(x){$('clk').textContent='Could not set the clock'}}
 if(id==='save')save();
 if(id==='apx')apApply();
-if(id==='hf'){const P=hardenPlan({cloud:OLD.native.cloud,ble:OLD.native.ble,mqtt:OLD.native.mqtt,in_mode:OLD.native.in_mode},['cloud','ble','mqtt','button'].reduce((a,k)=>{const x=$('hb_'+k);a[k]=!!(x&&x.checked);return a},{}));if(!P.length){$('hr_res').innerHTML='<div class="mu">Nothing to fix.</div>';return}await runPlan(P,'hr_res','Done.');try{await load()}catch(x){}}
+if(id==='hf'){const P=hardenPlan({cloud:OLD.native.cloud,ble:OLD.native.ble,mqtt:OLD.native.mqtt,in_mode:OLD.native.in_mode,dbg:OLD.native.dbg},['cloud','ble','mqtt','button','dbg'].reduce((a,k)=>{const x=$('hb_'+k);a[k]=!!(x&&x.checked);return a},{}));if(!P.length){$('hr_res').innerHTML='<div class="mu">Nothing to fix.</div>';return}await runPlan(P,'hr_res','Done.');try{await load()}catch(x){}}
 if(id==='ex')exportNow();
 if(id==='im')$('imf').click();
 if(id==='ia'&&IMP){$('ia').disabled=true;await runPlan(writePlan(OLD,IMP),'im_res','Imported. Live within about a minute.');IMP=null;$('im_go').innerHTML='';try{await load()}catch(x){}}

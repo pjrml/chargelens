@@ -142,6 +142,8 @@ t("ap_and_harden_reused", function () {
   eq("ble", bleState({rpc: {enable: false}}), {en: null, rpc: false});
   eq("harden", hardenPlan({cloud: true, mqtt: false, ble: null, in_mode: "momentary"}, {cloud: true, button: true}).map(function (p) { return p.rpc; }),
     ["Cloud.SetConfig", "PLUGS_UI.SetConfig"]);
+  eq("debug logs off", hardenPlan({dbg: true}, {dbg: true}), [{rpc: "Sys.SetConfig", params: {config: {debug: {websocket: {enable: false}}}}, label: "Websocket debug logs off"}]);
+  eq("debug already off", hardenPlan({dbg: false}, {dbg: true}), []);
 });
 t("default_cfg", function () {
   eq("cfg", DEF_CFG, cfgJson(cfgParse(null)));

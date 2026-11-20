@@ -103,6 +103,13 @@ node tools/puretest.js src/meter.js tests/meter_test.js     # see .github/workfl
 Without Node installed, VS Code's bundled one works:
 `ELECTRON_RUN_AS_NODE=1 "<VS Code>/Code.exe" tools/puretest.js <src> <test>`.
 
+The `Installer` loader (in `src/installer.js`) fetches `dist/install.html` from `main` while `main/dist/release.json`
+has its own tag, otherwise from its tag, and falls back to `main` when that tag has no `install.html` (an
+`Installer` imported from `main` carries a `-dev` tag that is never published). An explicit `?tag=` or `?base=`
+never falls back; a failed load names the URL.
+
+Manual checks with a phone and a plug (install, setup page, daily page, update): [manual-tests.md](manual-tests.md).
+
 ### Release checklist (design B2)
 
 Versions are semver. Between releases `src/version.txt` holds the next version with a pre-release suffix,
@@ -112,7 +119,8 @@ be a release. A test release uses `X.Y.Z-rc.N` and tag `vX.Y.Z-rc.N`. Precedence
 cleaned before a `1.0.0-dev` build can be installed on it. After a release, set `src/version.txt` to the next
 `X.Y.Z-dev`.
 
-1. Everything committed; device tests and page tests pass; `python tools/check_private.py` has no hits.
+1. Everything committed; device tests and page tests pass; [manual-tests.md](manual-tests.md) passed on a plug;
+   `python tools/check_private.py` has no hits.
 2. Set `src/version.txt` to `X.Y.Z` (drop the `-dev` suffix) and add the `CHANGELOG.md` entry.
 3. `python tools/build.py`; check `git diff dist/` (version headers, sizes in `dist/release.json`).
 4. Commit on `main`: `Release vX.Y.Z`.

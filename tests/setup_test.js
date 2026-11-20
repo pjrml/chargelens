@@ -262,6 +262,16 @@ t("harden_plan_ble_shapes", function () {
   eq("gen2 rpc only", hardenPlan({ble: {en: false, rpc: true}}, {ble: true})[0].params, {config: {rpc: {enable: false}}});
   eq("unchecked", hardenPlan({ble: {en: true, rpc: true}}, {ble: false}), []);
 });
+t("harden_plan_debug_logs", function () {
+  eq("on", hardenPlan({dbg: true}, {dbg: true}), [{rpc: "Sys.SetConfig", params: {config: {debug: {websocket: {enable: false}}}}, label: "Websocket debug logs off"}]);
+  eq("already off", hardenPlan({dbg: false}, {dbg: true}), []);
+  eq("unknown", hardenPlan({dbg: null}, {dbg: true}), []);
+  eq("unchecked", hardenPlan({dbg: true}, {dbg: false}), []);
+  eq("read on", dbgOn({debug: {websocket: {enable: true}}}), true);
+  eq("read off", dbgOn({debug: {websocket: {enable: false}}}), false);
+  eq("read absent", dbgOn({debug: {}}), null);
+  eq("read null", dbgOn(null), null);
+});
 // ---- final review: update gate copied from install.html (build.py checks both copies are identical) ----
 t("idle_gate", function () {
   eq("idle", idleOk(null, null, 0, {r: 0.1}), true);

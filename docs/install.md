@@ -25,18 +25,21 @@ This installs everything from your phone or computer, with no tools. If it fails
 
 ## Step 1: add the ChargeLens library
 
-1. Open `http://<plug-ip>` -> **Scripts**.
-2. Press **Library** (the list of ready-made scripts) and open **Configure URL**.
+1. Open `http://<plug-ip>` in the browser.
+2. Press **Scripts** in the menu.
 
    <img src="assets/screenshots/shelly-scripts.png" alt="Scripts page of the Shelly web UI on a new plug: no scripts yet, with the Create script and Library buttons" width="600">
 
-3. Replace the URL with this one and press **Save**:
+3. Press **Library** (the list of ready-made scripts).
+4. Press **Configure URL**.
+5. Replace the URL with this one:
 
    ```
    https://raw.githubusercontent.com/pjrml/chargelens/main/library/manifest.json
    ```
 
-4. The list now shows **ChargeLens Installer**: press **Import code**.
+6. Press **Save**. The list now shows **ChargeLens Installer**.
+7. Press **Import code**.
 
    <img src="assets/screenshots/shelly-library-url.png" alt="Library dialog with the ChargeLens library URL and the ChargeLens Installer entry" width="420">
 
@@ -51,6 +54,9 @@ code.
 1. Press **Save** (above the code). **Start** and **Delete** appear next to it.
 2. Look at the *Console* below the code. If it says *Websocket debug logs are disabled*, press **Enable**.
    Without this the console stays empty and you do not see the address.
+
+   <img src="assets/screenshots/shelly-installer-saved.png" alt="Script editor after Save: Save, Start and Delete above the code, and the console saying that websocket debug logs are disabled, with the Enable button" width="600">
+
 3. Press **Start**.
 4. Wait a second or two. The console prints the address of the install page, like
    `http://<plug-ip>/script/<id>/install`. It repeats it every 3 seconds for 30 seconds.
@@ -68,7 +74,8 @@ not notice. Then:
 
 1. Reload the page in your browser.
 2. Read the address in the console (it is repeated for 30 seconds after **Start**).
-3. If the 30 seconds have passed, press **Stop** and then **Start**.
+3. If the 30 seconds have passed, press **Stop**.
+4. Press **Start**. The address is printed again.
 
 Or type the address yourself: `http://<plug-ip>/script/<id>/install`, where `<id>` is the number shown as
 `script:<id>` in the *Scripts* list (`1` on a new or freshly reset plug). If the plug refuses to start the script
@@ -86,7 +93,7 @@ GitHub, so the browser needs internet. The page then runs these checks and scree
 | Charger | Tick the box to confirm the charger draws at most 10 A. |
 | Other scripts | Lists scripts that must be stopped or disabled to fit the 3-script limit. Nothing is deleted. |
 | Setup | Optional: time zone from this phone, the plug's access point (SSID and a WPA2 password of at least 8 characters). |
-| Hardening | Cloud, Bluetooth and MQTT off, button does nothing (all ticked by default; each says what you lose), and an optional "Forget the home Wi-Fi at the end (recommended)" (off by default). |
+| Hardening | Cloud, Bluetooth and MQTT off, button does nothing, websocket debug logs off (all ticked by default; each says what you lose), and an optional "Forget the home Wi-Fi at the end (recommended)" (off by default). |
 | Progress | Downloads each file, checks size and checksum, writes the scripts, reads them back, starts the meter and waits for the page. |
 
 When it finishes it shows **Installed** with a link to the setup page and opens it a few seconds later; the
@@ -100,14 +107,18 @@ hardening screen only offers to forget the home Wi-Fi.
 
 ## Updating
 
-Open the setup page (`http://<plug-ip>/script/<PageId>/ui?p=setup`) and press **Check for updates** in *About*.
-It stops `Led` and `Page` (the plug cannot run four scripts) and opens the install page, which shows the new
-version and a link to what changed. An update:
+1. Open the setup page: `http://<plug-ip>/script/<PageId>/ui?p=setup`.
+2. Press **Check for updates** in *About*. It stops `Led` and `Page` (the plug cannot run four scripts) and opens
+   the install page, which shows the new version and a link to what changed.
+3. Press **Update**. When it finishes, the install page opens the daily page.
+
+An update:
 
 - is refused while the plug is charging or a session is open (it restarts the meter), and when the firmware is not
   up to date;
 - keeps your settings, the mail template, the device settings and the whole energy log;
-- never rewrites the `Installer` script itself (that only changes through the Library).
+- never rewrites the `Installer` script itself (that only changes through the Library);
+- turns the websocket debug logs off again at the end (the `Installer` script turns them on when it starts).
 
 If you leave the page without installing, press **Leave without changes**: it restarts `Led` and `Page`.
 

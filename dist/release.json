@@ -40,8 +40,8 @@
       "path": "dist/SetupHtml.html",
       "kind": "data",
       "enable": false,
-      "size": 32022,
-      "crc32": 622305341
+      "size": 32410,
+      "crc32": 3876331706
     },
     {
       "name": "MailTpl",
@@ -56,16 +56,16 @@
       "path": "dist/installer.js",
       "kind": "code",
       "enable": false,
-      "size": 3081,
-      "crc32": 3286670503
+      "size": 3221,
+      "crc32": 2133859797
     },
     {
       "name": "InstallHtml",
       "path": "dist/install.html",
       "kind": "data",
       "enable": false,
-      "size": 24164,
-      "crc32": 2877341847
+      "size": 24904,
+      "crc32": 1114288795
     }
   ]
 }

@@ -127,8 +127,10 @@ new network. See [security.md](security.md).
 
 ## Hardening
 
-Shows whether the cloud, Bluetooth and MQTT are on and whether the button toggles the relay; *Fix* turns off the
-ticked items. Cloud off means no Shelly app access from outside the plug's networks.
+Shows whether the cloud, Bluetooth, MQTT and the websocket debug logs are on and whether the button toggles the
+relay; *Fix* turns off the ticked items. Cloud off means no Shelly app access from outside the plug's networks.
+The websocket debug logs are only needed to see script output in the console of the Shelly web UI; the
+`Installer` script turns them on when it starts.
 
 ## Export and import
 

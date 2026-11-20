@@ -66,14 +66,14 @@ not about safety (see the caution at the top). Other Shelly devices with meterin
 
 ## Quick start
 
-1. Set the charger to at most 10 A, power the plug, join it to your Wi-Fi and update its firmware:
-   [docs/shelly-setup.md](docs/shelly-setup.md).
-2. In the plug's web UI add the Library URL
-   `https://raw.githubusercontent.com/pjrml/chargelens/main/library/manifest.json`, start the *ChargeLens
-   Installer* script and open its install page: [docs/install.md](docs/install.md) (or the
+Each guide below has numbered steps, one action per step.
+
+1. Set the charger to draw at most 10 A.
+2. Prepare the plug (power, Wi-Fi, firmware): [docs/shelly-setup.md](docs/shelly-setup.md).
+3. Install ChargeLens from the plug's web UI through the Shelly Library: [docs/install.md](docs/install.md) (or the
    [manual path](docs/install-manual.md)).
-3. Open the setup page and set your thresholds, price and mail: [docs/configuration.md](docs/configuration.md).
-4. Use it: [docs/usage.md](docs/usage.md).
+4. Set your thresholds, price and mail on the setup page: [docs/configuration.md](docs/configuration.md).
+5. Use it: [docs/usage.md](docs/usage.md).
 
 ## Documentation
 
@@ -88,6 +88,7 @@ not about safety (see the caution at the top). Other Shelly devices with meterin
 | [docs/troubleshooting.md](docs/troubleshooting.md) | Common problems |
 | [docs/how-it-works.md](docs/how-it-works.md) | Scripts, key-value map, clock, limits |
 | [docs/development.md](docs/development.md) | Build, tests, release checklist |
+| [docs/manual-tests.md](docs/manual-tests.md) | Manual test checklist: install, setup page, daily page, update |
 | [CHANGELOG.md](CHANGELOG.md) | Changes |
 
 ## Layout

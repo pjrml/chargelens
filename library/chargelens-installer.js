@@ -8,7 +8,9 @@ let BOOT = "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"utf-8\">" +
 "g='https://raw.githubusercontent.com/" + REPO + "/',d=g+tg+'/',b=m?decodeURIComponent(m[1]):'';if(b&&b.slice(-1)!='/')b+='/';" +
 "if(!b&&!t){try{var q=await fetch(g+'main/dist/release.json',{cache:'no-store'});if(q.ok&&(await q.json()).tag==tg)d=g+'main/'}catch(e){}}if(!b)b=d;" +
 "if(b!=d&&!confirm('This link installs ChargeLens from a test source ('+b+') instead of the official release. Continue only if you are testing ChargeLens yourself.'))throw new Error('cancelled');" +
-"var r=await fetch(b+'dist/install.html',{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);var h=await r.text();" +
+"var r=await fetch(b+'dist/install.html',{cache:'no-store'});" +
+"if(!r.ok&&!m&&!t&&b!=g+'main/'){b=g+'main/';r=await fetch(b+'dist/install.html',{cache:'no-store'})}" +
+"if(!r.ok)throw new Error('HTTP '+r.status+' for '+b+'dist/install.html');var h=await r.text();" +
 "window.CL={repo:'" + REPO + "',tag:tg,base:b};document.open();document.write(h);document.close()})()" +
 ".catch(function(e){document.getElementById('m').innerHTML='Could not load the install page: '+e+'<br><button onclick=\"bk()\">Back</button>'});" +
 "async function bk(){var g=function(u){return fetch(u).then(function(r){return r.json()})},L=(await g('/rpc/Script.List')).scripts,i,j,p=null,n=['Meter','Led','Page'];" +
