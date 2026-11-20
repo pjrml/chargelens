@@ -142,3 +142,11 @@ t("mail_too_long", function () {
   for (i = 0; i < 20000; i++) b += "a";
   eq("refused", typeof validateForm(form({mail: {to: "", cc: "", bcc: "", subject: "s", body: b}}), M2).errors.body, "string");
 });
+t("mail_default_single_source", function () {
+  eq("MAILD matches src/mail-default.json", {subject: MAILD.subject, body: MAILD.body}, {subject: JSON.parse(MAIL_DEFAULT_JSON).subject, body: JSON.parse(MAIL_DEFAULT_JSON).body});
+});
+t("skip_after_failed_chunk", function () {
+  eq("putcode skipped", skipItem({rpc: "Script.PutCode"}, ["Script.PutCode"]), true);
+  eq("other continues", skipItem({rpc: "Switch.SetConfig"}, ["Script.PutCode"]), false);
+  eq("nothing failed", skipItem({rpc: "Script.PutCode"}, []), false);
+});

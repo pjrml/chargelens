@@ -42,7 +42,7 @@ const name=String(f.name||'').trim();if(name.length>64)e.name='At most 64 charac
 if(f.ap&&f.ap.on&&String(f.ap.pass||'').length<8)e.ap_pass='At least 8 characters';
 let cfg=null,mail=null;
 if(!CFG_ORD.some(k=>e[k])){cfg=storedCfg(cfgFix(raw));if(cfg===null||cfg.length>253){e.cfg='The settings do not fit the 253 byte limit (shorten the currency)';cfg=null}}
-if(f.mail){mail=mailText(f.mail);if(mail.length>16000){e.body='Too long (about 15000 characters at most)';mail=null}}
+if(f.mail){mail=mailText(f.mail);if(mail.length>16000){e.body='Mail template too long';mail=null}}
 return{cfg:cfg,mail:mail,native:{current_limit:cl,power_limit:pl,in_mode:f.in_mode,tz:tz,name:name},errors:e}}
 /* only what changed, in a fixed order; never Switch.Set. States: {cfg, mail, native} as returned by validateForm */
 function writePlan(o,n){const P=[],a=o.native,b=n.native;
@@ -54,6 +54,9 @@ if(b.in_mode!==a.in_mode)P.push({rpc:'PLUGS_UI.SetConfig',params:{config:{contro
 const sy={};if(b.tz!==a.tz)sy.location={tz:b.tz};if(b.name!==a.name)sy.device={name:b.name};
 if(Object.keys(sy).length)P.push({rpc:'Sys.SetConfig',params:{config:sy},label:'Time zone / name'});
 return P}
+const MAILD={subject:'Charging report | {month_name} {year}',body:'Hello,\n\nHere is the charging report for {month_name} {year}.\n\nTotal: {total_kwh} kWh in {session_count} session(s).\n\nSessions:\n{sessions_table}\n\nEnergy outside sessions: {outside_kwh} kWh\n\nPlease confirm that you received this report.\n\nSignature: replace this line\n'};
+/* after a failed write, later chunks of the mail template are skipped (a partial MailTpl is already stored); failed = rpc names that failed */
+const skipItem=(p,failed)=>p.rpc==='Script.PutCode'&&failed.indexOf('Script.PutCode')>=0;
 /* ==== END PURE ==== */
 const $=i=>document.getElementById(i),esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const B=location.pathname.replace(/\/ui$/,'/');
@@ -61,7 +64,6 @@ const g=u=>fetch(u).then(r=>r.json());
 async function rpc(m,p){const r=await(await fetch('/rpc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:1,method:m,params:p||{}})})).json();if(r.error)throw new Error(r.error.message||('error '+r.error.code));return r.result}
 async function scode(n){const L=await g('/rpc/Script.List'),s=L.scripts.find(x=>x.name===n);if(!s)return null;let h='',o=0,r;
 do{r=await g('/rpc/Script.GetCode?id='+s.id+'&offset='+o);h+=r.data;o+=r.data.length}while(r.left>0&&r.data.length);return h}
-const MAILD={subject:'Charging report | {month_name} {year}',body:'Hello,\n\nHere is the charging report for {month_name} {year}.\n\nTotal: {total_kwh} kWh in {session_count} session(s).\n\nSessions:\n{sessions_table}\n\nEnergy outside sessions: {outside_kwh} kWh\n\nPlease confirm that you received this report.\n\nSignature: replace this line\n'};
 let MODEL={gen:0,maxA:12,maxW:2500},OLD=null;
 const fl=(k,l,h,v,x)=>'<div class="f"><label for="f_'+k+'">'+l+'</label><input id="f_'+k+'" value="'+esc(v)+'" '+(x||'inputmode="decimal" autocomplete="off"')+'>'+(h?'<div class="mu">'+h+'</div>':'')+'<div class="er" id="e_'+k+'"></div></div>';
 const sl=(k,l,o,v)=>'<div class="f"><label for="f_'+k+'">'+l+'</label><select id="f_'+k+'">'+o.map(x=>'<option value="'+x[0]+'"'+(x[0]===v?' selected':'')+'>'+x[1]+'</option>').join('')+'</select><div class="er" id="e_'+k+'"></div></div>';
@@ -89,7 +91,7 @@ f.mail={to:v('to').trim(),cc:v('cc').trim(),bcc:v('bcc').trim(),subject:v('subje
 function bands(){const f=readForm(),r=f.r,a=f.g,y=f.y,m=Math.max(f.current_limit||MODEL.maxA,y||0,1),s=[[r,'#3b82f6'],[a-r,'#ef4444'],[y-a,'#10b981'],[m-y,'#f59e0b']],ok=s.every(x=>x[0]>=0);
 $('bar').innerHTML=ok?s.map(x=>'<div style="flex:'+x[0]+';background:'+x[1]+'"></div>').join(''):'';
 $('leg').textContent=ok?'0 A to '+m+' A':'Check the three thresholds.'}
-function clock(){return g('/rpc/Sys.GetStatus').then(s=>{$('clk').innerHTML=s.unixtime>1.7e9?'Clock: '+new Date((s.unixtime+(s.utc_offset||0))*1000).toISOString().slice(0,16).replace('T',' ')+' <span class="ok">&#10003;</span>':'<span style="color:var(--warn)">&#9888; Clock unknown.</span>'}).catch(e=>{})}
+function clock(){return g('/rpc/Sys.GetStatus').then(s=>{$('clk').innerHTML=s.unixtime>1.7e9?'Clock: '+new Date((s.unixtime+(s.utc_offset||0))*1000).toISOString().slice(0,16).replace('T',' ')+(s.utc_offset===undefined?' (UTC)':'')+' <span class="ok">&#10003;</span>':'<span style="color:var(--warn)">&#9888; Clock unknown.</span>'}).catch(e=>{})}
 async function load(){
 const raw=await g('/rpc/KVS.Get?key=cc:cfg').then(r=>r.value).catch(e=>null);
 const [mc,sw,ui,sy,di]=await Promise.all([scode('MailTpl').catch(e=>null),g('/rpc/Switch.GetConfig?id=0'),g('/rpc/PLUGS_UI.GetConfig'),g('/rpc/Sys.GetConfig'),g('/rpc/Shelly.GetDeviceInfo')]);
@@ -110,8 +112,9 @@ document.querySelectorAll('.er').forEach(x=>x.textContent='');Object.keys(v.erro
 if(Object.keys(v.errors).length){$('res').textContent='Not saved: fix the marked fields.';return}
 const P=writePlan(OLD,v);if(!P.length){$('res').textContent='Nothing changed.';return}
 $('save').disabled=true;let h='',bad=0;$('res').innerHTML='';
-for(const p of P){try{if(p.params.name==='MailTpl'){const L=await g('/rpc/Script.List'),s=L.scripts.find(x=>x.name==='MailTpl');p.params.id=s?s.id:(await rpc('Script.Create',{name:'MailTpl'})).id;delete p.params.name}
-const r=await rpc(p.rpc,p.params);h+='<div class="ok">&#10003; '+esc(p.label)+(r&&r.restart_required?' (restart needed)':'')+'</div>'}catch(x){bad++;h+='<div class="er">&#10007; '+esc(p.label)+': '+esc(x.message)+'</div>'}$('res').innerHTML=h}
+const fails=[];for(const p of P){if(skipItem(p,fails)){if(fails.indexOf('skip')<0){fails.push('skip');bad++;h+='<div class="er">&#10007; Mail template not saved; the stored one may be damaged - save again</div>';$('res').innerHTML=h}continue}
+try{if(p.params.name==='MailTpl'){const L=await g('/rpc/Script.List'),s=L.scripts.find(x=>x.name==='MailTpl');p.params.id=s?s.id:(await rpc('Script.Create',{name:'MailTpl'})).id;delete p.params.name}
+const r=await rpc(p.rpc,p.params);h+='<div class="ok">&#10003; '+esc(p.label)+(r&&r.restart_required?' (restart needed)':'')+'</div>'}catch(x){fails.push(p.rpc);bad++;h+='<div class="er">&#10007; '+esc(p.label)+': '+esc(x.message)+'</div>'}$('res').innerHTML=h}
 $('res').innerHTML=h+'<div class="mu">'+(bad?'Some changes failed.':'Saved. Live within about a minute.')+'</div>';
 try{await load()}catch(x){}$('save').disabled=false}
 load().catch(e=>{$('dev').textContent='Could not read the plug ('+e+'). Reload the page.'});
