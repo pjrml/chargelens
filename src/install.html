@@ -37,7 +37,7 @@ function planInstall(scripts,headers,release){
 const files=release.files.filter(f=>OWN.indexOf(f.name)<0),names=files.map(f=>f.name),have=n=>scripts.some(s=>s.name===n);
 const P={mode:'fresh',write:[],create:[],stop:[],disable:[],reason:''};
 const ex=names.filter(have);
-if(ex.some(n=>n!=='MailTpl'&&!HDR.test(headers[n]||''))){P.mode='legacy';P.reason='Scripts with the ChargeLens names exist but were not installed by this installer (an older private build?). Nothing was changed. See the documentation for how to migrate.';return P}
+if(ex.some(n=>n!=='MailTpl'&&headers[n]!==''&&!HDR.test(headers[n]||''))){P.mode='legacy';P.reason='Scripts with the ChargeLens names exist but were not installed by this installer (an older private build?). Nothing was changed. See the documentation for how to migrate.';return P}
 P.create=names.filter(n=>!have(n));
 const over=scripts.length+P.create.length-SLOTS;
 if(over>0){P.mode='blocked';P.create=[];P.reason='The plug stores at most '+SLOTS+' scripts and ChargeLens needs room for '+over+' more. Delete scripts you do not need in the plug web UI (Scripts), then try again.';return P}
@@ -54,6 +54,12 @@ const isDefaultBase=(b,repo,tag)=>b===baseUrl('',repo,tag);
 function verifyFile(f,text){if(/[^\x00-\x7f]/.test(text))return f.name+': contains non-ASCII characters';
 if(text.length!==f.size)return f.name+': size '+text.length+' instead of '+f.size;
 if(crc32(text)!==f.crc32)return f.name+': checksum differs';return null}
+/* tags the loader accepts (?tag=) and links worth showing; ss = parsed cc:ss, code -105 = no such key = no session, any other failure = unknown = busy */
+const TAGRE=/^v\d+\.\d+\.\d+$/,tagOk=t=>TAGRE.test(String(t));
+const safeLink=u=>/^https:\/\/github\.com\//.test(String(u))?u:null;
+function ssState(code,value){if(code)return code===-105?null:'?';try{return JSON.parse(value)}catch(e){return '?'}}
+/* restart order after a stop: Meter, Led, Page, then the rest as stopped */
+const restoreList=n=>['Meter','Led','Page'].filter(x=>n.indexOf(x)>=0).concat(n.filter(x=>['Meter','Led','Page'].indexOf(x)<0));
 const chunks=(s,n)=>{const o=[];for(let i=0;i<Math.max(s.length,1);i+=n)o.push(s.slice(i,i+n));return o};
 /* ---- access point, hardening (same as the setup page) ---- */
 const apSsid=m=>'chargelens-'+String(m||'').replace(/[^0-9a-fA-F]/g,'').slice(-4).toLowerCase();
@@ -80,16 +86,16 @@ const row=(ok,t)=>'<div class="r">'+(ok===true?'<span class="ok">&#10003;</span>
 function log(t,c){$('logc').style.display='';const d=document.createElement('div');d.className='r'+(c?' '+c:'');d.innerHTML=t;$('log').appendChild(d)}
 /* the installer runs as the 4th script: stopping Led and Page made room for it (setup page, Check for updates); leaving restarts them */
 const halt=h=>{$('app').innerHTML='<div class="c">'+h+'</div><div class="c"><button id="back">Leave without changes</button><div class="mu" style="margin-top:6px">Restarts the Led and Page scripts if they were stopped to make room for this installer.</div></div>'};
-async function leave(){$('back').disabled=true;try{const L=await list();if(SELF)await rpc('Script.Stop',{id:Number(SELF)}).catch(()=>{});let pid=null;
-for(const n of ['Led','Page']){const s=L.find(x=>x.name===n);if(s){if(!s.running)await rpc('Script.Start',{id:s.id}).catch(()=>{});if(n==='Page')pid=s.id}}
-$('app').innerHTML='<div class="c">Left without changes.'+(pid!==null?' <a href="/script/'+pid+'/ui">Open the daily page</a>':'')+'</div>'}catch(e){$('back').disabled=false;log('Could not leave cleanly: '+esc(e.message),'er')}}
+async function restore(names){const L=await list();for(const n of restoreList(names)){const x=L.find(y=>y.name===n);if(x&&!x.running)await rpc('Script.Start',{id:x.id}).catch(()=>{})}return L}
+async function leave(){$('back').disabled=true;try{if(SELF)await rpc('Script.Stop',{id:Number(SELF)}).catch(()=>{});const L=await restore(['Meter','Led','Page']),p=L.find(x=>x.name==='Page');
+$('app').innerHTML='<div class="c">Left without changes.'+(p?' <a href="/script/'+p.id+'/ui">Open the daily page</a>':'')+'</div>'}catch(e){$('back').disabled=false;log('Could not leave cleanly: '+esc(e.message),'er')}}
 let DI={},MODEL=null,REL=null,PLAN=null,LAT=null,CUR={},BASE=CL.base,TZ='',BUSY=false;
-async function loadTag(tag){const b=baseUrl('',CL.repo,tag),h=await ftxt(b+'dist/install.html');window.CL={repo:CL.repo,tag:tag,base:b};document.open();document.write(h);document.close()}
-async function idle(){const ss=await g('/rpc/KVS.Get?key=cc:ss').then(r=>{try{return JSON.parse(r.value)}catch(e){return '?'}}).catch(()=>null);
+function loadTag(tag){if(!tagOk(tag)||!SELF)throw new Error('bad tag');location.href='/script/'+SELF+'/install?tag='+tag}
+async function idle(){const ss=await rpc('KVS.Get',{key:'cc:ss'}).then(r=>ssState(0,r.value),e=>ssState(e.code||-1,''));
 const sw=await g('/rpc/Switch.GetStatus?id=0'),raw=await g('/rpc/KVS.Get?key=cc:cfg').then(r=>r.value).catch(()=>null);
 return idleOk(null,ss,sw.current,cfgParse(raw))}
 async function gather(){const L=await list(),H={};
-for(const f of REL.files)if(OWN.indexOf(f.name)<0&&f.name!=='MailTpl'){const id=idOf(L,f.name);if(id!==null)H[f.name]=(await g('/rpc/Script.GetCode?id='+id+'&offset=0&len=80').catch(()=>({data:''}))).data.split('\n')[0]}
+for(const f of REL.files)if(OWN.indexOf(f.name)<0&&f.name!=='MailTpl'){const id=idOf(L,f.name);if(id!==null)H[f.name]=(await g('/rpc/Script.GetCode?id='+id+'&offset=0&len=80').then(r=>r.data.split('\n')[0],()=>undefined))}
 return{L:L,H:H}}
 async function curState(){const x=await Promise.all(['Cloud','MQTT','BLE'].map(n=>g('/rpc/'+n+'.GetConfig').catch(()=>null))),ui=await g('/rpc/PLUGS_UI.GetConfig').catch(()=>null);
 const sw=ui&&ui.controls&&ui.controls['switch:0'];
@@ -112,7 +118,7 @@ REL=JSON.parse(await ftxt(BASE+'dist/release.json'));
 if(isDefaultBase(BASE,CL.repo,CL.tag)){try{LAT=JSON.parse(await ftxt('https://raw.githubusercontent.com/'+CL.repo+'/main/dist/latest.json'))}catch(e){LAT=null}}
 else h+=row(null,'<b>Developer base:</b> files come from '+esc(BASE)+' instead of GitHub. Continue only if you started this yourself.');
 const o=await gather();PLAN=planInstall(o.L,o.H,REL);
-if(LAT&&semverGt(LAT.version,REL.version)){h+=row(null,'A newer version is available: '+esc(LAT.version)+' (you have '+esc(REL.version)+'). <a href="'+esc(LAT.changelog)+'" target="_blank" rel="noopener">What changed</a><button id="newer">Use version '+esc(LAT.version)+'</button>')}
+if(LAT&&semverGt(LAT.version,REL.version)&&tagOk(LAT.tag)){h+=row(null,'A newer version is available: '+esc(LAT.version)+' (you have '+esc(REL.version)+'). '+(safeLink(LAT.changelog)?'<a href="'+esc(LAT.changelog)+'" target="_blank" rel="noopener">What changed</a>':'')+'<button id="newer">Use version '+esc(LAT.version)+'</button>')}
 }catch(e){halt(h+row(false,'Could not check the plug: '+esc(e.message))+'<div class="mu">Reload the page to try again.</div>');return}
 if(PLAN.mode==='legacy'||PLAN.mode==='blocked'){halt(h+row(false,esc(PLAN.reason)));return}
 const upd=PLAN.mode==='update';
@@ -153,7 +159,7 @@ if(upd&&!await idle())throw new Error('The plug started charging. Nothing was ch
 const L=await list(),own=['Led','Page','Meter'];
 for(const n of PLAN.stop){log('Stopping '+esc(n));await stopS(L,n);stopped.push(n)}
 for(const n of PLAN.disable){const id=idOf(L,n);if(id!==null)await rpc('Script.SetConfig',{id:id,config:{enable:false}})}
-wrote=true;
+wrote=true;$('back').style.display='none';
 for(const n of PLAN.write){log('Writing '+esc(n)+' ('+files[n].length+' bytes)&hellip;');await putScript(L,n,files[n],REL.files.find(x=>x.name===n))}
 try{await rpc('KVS.Get',{key:'cc:cfg'})}catch(e){if(e.code!==-105)throw e;await rpc('KVS.Set',{key:'cc:cfg',value:DEF_CFG});log('Default settings stored.')}
 const tz=$('o_tz')&&$('o_tz').checked&&TZ;
@@ -162,7 +168,8 @@ if(!upd){const on=k=>!!($(k)&&$(k).checked),b={cloud:on('h_cloud'),ble:on('h_ble
 for(const p of hardenPlan(CUR,b)){try{await rpc(p.rpc,p.params);log(esc(p.label),'ok')}catch(e){log(esc(p.label)+' failed: '+esc(e.message),'er')}}}
 log('Stopping the installer (3 scripts is the limit)&hellip;');
 if(SELF)await rpc('Script.Stop',{id:Number(SELF)}).catch(()=>{});
-const mid=idOf(L,'Meter');log('Starting the meter&hellip;');await rpc('Script.Start',{id:mid});
+const mid=idOf(L,'Meter');log('Starting the meter&hellip;');
+try{await rpc('Script.Start',{id:mid})}catch(e){throw new Error('the meter did not start ('+e.message+'). The installer has stopped itself to make room')}
 let pid=null,up=false;
 for(let i=0;i<60&&!up;i++){await sleep(2000);const L2=await list().catch(()=>[]),p=L2.find(s=>s.name==='Page'&&s.running);if(p){pid=p.id;up=await g('/script/'+pid+'/data').then(d=>d&&d.w!==undefined).catch(()=>false)}}
 if(!up)log('The page did not answer within two minutes. The meter may still be starting: reload this address in a minute.','wn');else log('The page answers.','ok');
@@ -175,15 +182,16 @@ if($('h_forget').checked){await rpc('WiFi.SetConfig',{config:{sta:{enable:false}
 catch(e){log('Access point failed: '+esc(e.message),'er')}}
 else if(pw)log('The access point password must have at least 8 characters: skipped.','wn')}
 if(pid!==null&&tail!=='ap'){const u='/script/'+pid+'/ui'+(upd?'':'?p=setup');log((upd?'Updated. ':'Installed. ')+'<a href="'+u+'">Open '+(upd?'the daily page':'the setup page')+'</a>','ok');
-if(up)setTimeout(()=>{location.href=u},2500)}
-}catch(e){log('Stopped: '+esc(e.message)+(wrote?' Some scripts may be half written: run the installer again (nothing is deleted).':''),'er');
-if(!wrote&&stopped.length){try{const L=await list(),id=idOf(L,'Meter');if(id!==null)await rpc('Script.Start',{id:id});log('The meter was started again.')}catch(x){log('Start the meter by hand in the plug web UI (Scripts).','er')}}
+$('back').style.display='none';if(up)setTimeout(()=>{location.href=u},2500)}
+}catch(e){log('Stopped: '+esc(e.message)+'.','er');
+if(wrote)log('The meter is stopped: energy is not counted. Press '+(upd?'Update':'Install')+' again; if that fails, restart the plug (the meter starts at power-up).','er');
+else if(stopped.length){try{await restore(stopped);log('The scripts that were stopped were started again.')}catch(x){log('Start the meter by hand in the plug web UI (Scripts) or restart the plug.','er')}}
 BUSY=false;sync()}}
 document.addEventListener('click',e=>{const id=e.target.id;
 if(id==='go'){BUSY=true;$('go').disabled=true;$('e_go').textContent='';run()}
 if(id==='again')init();
 if(id==='back')leave();
-if(id==='newer')loadTag(LAT.tag).catch(x=>{$('e_go').textContent='Could not load '+LAT.tag+': '+x.message})});
+if(id==='newer')try{loadTag(LAT.tag)}catch(x){}});
 document.addEventListener('input',sync);document.addEventListener('change',sync);
 init();
 </script></body></html>

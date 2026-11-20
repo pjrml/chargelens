@@ -155,3 +155,38 @@ t("chunks", function () {
   eq("split", chunks("abcdefghij", 4), ["abcd", "efgh", "ij"]);
   eq("exact", chunks("abcd", 4), ["abcd"]);
 });
+t("tag_regex", function () {
+  eq("ok", tagOk("v1.0.0"), true);
+  eq("big", tagOk("v10.20.300"), true);
+  eq("no v", tagOk("1.0.0"), false);
+  eq("branch", tagOk("main"), false);
+  eq("suffix", tagOk("v1.0.0-x"), false);
+  eq("path", tagOk("v1.0.0/../x"), false);
+  eq("undefined", tagOk(undefined), false);
+});
+t("plan_half_written", function () {
+  let p = planInstall(ours(false), {Meter: "", Led: "// ChargeLens Led v1.0.0", Page: "// ChargeLens Page v1.0.0", PageHtml: "<!-- ChargeLens PageHtml v1.0.0 -->", SetupHtml: ""}, REL);
+  eq("empty first line is ours", p.mode, "update");
+  eq("rewritten", p.write.indexOf("Meter") >= 0, true);
+  eq("private build still legacy", planInstall(ours(false), {Meter: "let x;", Led: ""}, REL).mode, "legacy");
+});
+t("idle_ss_state", function () {
+  eq("missing key", ssState(-105, ""), null);
+  eq("other error", ssState(-114, ""), "?");
+  eq("null value", ssState(0, "null"), null);
+  eq("session", ssState(0, '{"s":1}'), {s: 1});
+  eq("garbage", ssState(0, "{x"), "?");
+  eq("busy on unknown", idleOk(null, ssState(-114, ""), 0, {r: 0.1}), false);
+  eq("idle when absent", idleOk(null, ssState(-105, ""), 0, {r: 0.1}), true);
+});
+t("restore_list", function () {
+  eq("order", restoreList(["Page", "Led", "Meter"]), ["Meter", "Led", "Page"]);
+  eq("user scripts last", restoreList(["mine", "Meter", "Page"]), ["Meter", "Page", "mine"]);
+  eq("empty", restoreList([]), []);
+});
+t("safe_link", function () {
+  eq("github", safeLink("https://github.com/a/b/blob/v1/CHANGELOG.md"), "https://github.com/a/b/blob/v1/CHANGELOG.md");
+  eq("other", safeLink("https://evil.example.com/"), null);
+  eq("js", safeLink("javascript:alert(1)"), null);
+  eq("lookalike", safeLink("https://github.com.evil.example/x"), null);
+});

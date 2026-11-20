@@ -13,12 +13,17 @@ let TAG = "@TAG@";
 
 let BOOT = "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"utf-8\">" +
   "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>ChargeLens installer</title></head>" +
-  "<body style=\"background:#0b1221;color:#94a3b8;font-family:sans-serif;padding:16px\">Loading the installer...<script>" +
-  "(async function(){var m=/[?&]base=([^&]*)/.exec(location.search),b=m?decodeURIComponent(m[1]):'';" +
-  "if(b&&b.slice(-1)!='/')b+='/';if(!b)b='https://raw.githubusercontent.com/" + REPO + "/" + TAG + "/';" +
+  "<body style=\"background:#0b1221;color:#94a3b8;font-family:sans-serif;padding:16px\"><div id=\"m\">Loading the installer...</div><script>" +
+  "(async function(){var s=location.search,m=/[?&]base=([^&]*)/.exec(s),t=/[?&]tag=(v[0-9]+[.][0-9]+[.][0-9]+)(&|$)/.exec(s),tg=t?t[1]:'" + TAG + "'," +
+  "d='https://raw.githubusercontent.com/" + REPO + "/'+tg+'/',b=m?decodeURIComponent(m[1]):'';if(b&&b.slice(-1)!='/')b+='/';if(!b)b=d;" +
+  "if(b!=d&&!confirm('Load the installer from '+b+'? Only continue if you started this yourself.'))throw new Error('cancelled');" +
   "var r=await fetch(b+'dist/install.html',{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);var h=await r.text();" +
-  "window.CL={repo:'" + REPO + "',tag:'" + TAG + "',base:b};document.open();document.write(h);document.close()})()" +
-  ".catch(function(e){document.body.textContent='Could not load the install page: '+e})</script></body></html>";
+  "window.CL={repo:'" + REPO + "',tag:tg,base:b};document.open();document.write(h);document.close()})()" +
+  ".catch(function(e){document.getElementById('m').innerHTML='Could not load the install page: '+e+'<br><button onclick=\"bk()\">Back</button>'});" +
+  "async function bk(){var g=function(u){return fetch(u).then(function(r){return r.json()})},L=(await g('/rpc/Script.List')).scripts,i,j,p=null,n=['Meter','Led','Page'];" +
+  "await g('/rpc/Script.Stop?id='+/[/]script[/]([0-9]+)[/]/.exec(location.pathname)[1]);" +
+  "for(j=0;j<3;j++)for(i=0;i<L.length;i++)if(L[i].name==n[j]){if(!L[i].running)await g('/rpc/Script.Start?id='+L[i].id);if(j==2)p=L[i].id}" +
+  "location.href=p===null?'/':'/script/'+p+'/ui'}</script></body></html>";
 
 HTTPServer.registerEndpoint("install", function (req, res) {
   res.code = 200;
