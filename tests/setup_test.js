@@ -150,3 +150,95 @@ t("skip_after_failed_chunk", function () {
   eq("other continues", skipItem({rpc: "Switch.SetConfig"}, ["Script.PutCode"]), false);
   eq("nothing failed", skipItem({rpc: "Script.PutCode"}, []), false);
 });
+// ---- Task 7: access point, hardening, export/import ----
+function cur(o) {
+  let s = {model: "SNPL-00112EU", cfg: '{"v":1,"p":0.3}', mail: JSON.stringify({v: 1, to: "a@b", cc: "", bcc: "", subject: "S", body: "B"}),
+    native: {current_limit: 12, power_limit: 2500, in_mode: "detached", tz: "Europe/Lisbon", name: "My plug",
+      ap: {ssid: "chargelens-ab12", enable: true}, cloud: false, ble: false, mqtt: false}};
+  for (let k in o) s[k] = o[k];
+  return s;
+}
+let NOW = new Date(2026, 10, 20, 12, 0, 0);
+t("ap_ssid", function () {
+  eq("plain", apSsid("A0B1C2D3E4F5"), "chargelens-e4f5");
+  eq("lower", apSsid("AABBCCDDEEFF"), "chargelens-eeff");
+  eq("colons", apSsid("a0-b1.c2d3E4F5"), "chargelens-e4f5");
+  eq("via ap", viaAp("192.168.33.1"), true);
+  eq("via sta", viaAp("localhost"), false);
+  eq("not prefix", viaAp("192.168.33.1x"), false);
+});
+t("export_no_password", function () {
+  let s = cur({}), d = exportDoc(s, "1.0.0", NOW), j = JSON.stringify(d);
+  eq("app", d.app, "chargelens");
+  eq("fv", d.fv, 1);
+  eq("version", d.version, "1.0.0");
+  eq("model", d.model, "SNPL-00112EU");
+  eq("native keys", Object.keys(d.native).sort ? d.native.ap : 0, {ssid: "chargelens-ab12", enable: true});
+  eq("cfg obj", d.cfg, {v: 1, p: 0.3});
+  eq("mail to", d.mail.to, "a@b");
+  eq("no pass", j.toLowerCase().indexOf("pass"), -1);
+  eq("file name", exportFile(s, NOW), "chargelens-config-My-plug-20261120.json");
+  eq("file name model", exportFile(cur({native: {name: ""}}), NOW), "chargelens-config-SNPL-00112EU-20261120.json");
+});
+t("export_import_roundtrip", function () {
+  let s = cur({}), d = JSON.parse(JSON.stringify(exportDoc(s, "dev", NOW))), r = importCheck(d, MODELS["SNPL-00112EU"], s);
+  eq("errors", r.errors, []);
+  eq("ok", r.ok, true);
+  eq("no changes", r.changes, []);
+  eq("empty plan", writePlan({cfg: s.cfg, mail: s.mail, native: s.native}, r.next).length, 0);
+});
+t("import_changes_listed", function () {
+  let s = cur({}), d = JSON.parse(JSON.stringify(exportDoc(s, "dev", NOW)));
+  d.cfg.p = 0.5; d.native.power_limit = 2000; d.native.name = "Other"; d.mail.subject = "T";
+  let r = importCheck(d, MODELS["SNPL-00112EU"], s), f = r.changes.map(function (c) { return c.field; });
+  eq("ok", r.ok, true);
+  eq("fields", f, ["p", "power_limit", "name", "subject"]);
+  eq("from/to", r.changes[1], {field: "power_limit", from: 2500, to: 2000});
+  let pl = writePlan({cfg: s.cfg, mail: s.mail, native: s.native}, r.next), n = pl.map(function (x) { return x.rpc; });
+  eq("plan", n, ["KVS.Set", "Script.PutCode", "Switch.SetConfig", "Sys.SetConfig"]);
+});
+t("import_wrong_app", function () {
+  let d = exportDoc(cur({}), "dev", NOW);
+  d.app = "other";
+  let r = importCheck(d, MODELS["SNPL-00112EU"], cur({}));
+  eq("not ok", r.ok, false);
+  eq("has error", r.errors.length > 0, true);
+  eq("garbage", importCheck(null, M2).ok, false);
+  eq("array", importCheck([], M2).ok, false);
+});
+t("import_other_fv", function () {
+  let d = exportDoc(cur({}), "dev", NOW);
+  d.fv = 2;
+  eq("not ok", importCheck(d, M2, cur({})).ok, false);
+  d.fv = undefined;
+  eq("missing", importCheck(d, M2, cur({})).ok, false);
+});
+t("import_out_of_range", function () {
+  let d = exportDoc(cur({}), "dev", NOW);
+  d.native.current_limit = 20; d.cfg.r = 5;
+  let r = importCheck(d, M2, cur({}));
+  eq("not ok", r.ok, false);
+  eq("two errors", r.errors.length >= 2, true);
+  let e = exportDoc(cur({}), "dev", NOW);
+  e.model = "OTHER-1";
+  eq("unknown model ok if values fit", importCheck(e, M2, cur({})).ok, true);
+  let o = {"SNPL-00112EU": MODELS["SNPL-00112EU"]};
+  eq("other family limits", importCheck(exportDoc(cur({}), "dev", NOW), {gen: 2, maxA: 16, maxW: 3500}, cur({})).ok, false);
+});
+t("import_unknown_fields_ignored", function () {
+  let d = exportDoc(cur({}), "dev", NOW);
+  d.extra = 1; d.native.zzz = 2; d.cfg.zzz = 3;
+  let r = importCheck(d, M2, cur({}));
+  eq("ok", r.ok, true);
+  eq("no changes", r.changes, []);
+});
+t("harden_plan_only_needed", function () {
+  let c = {cloud: true, ble: false, mqtt: true, in_mode: "momentary"};
+  eq("all boxes", hardenPlan(c, {cloud: true, ble: true, mqtt: true, button: true}).map(function (p) { return p.rpc; }),
+    ["Cloud.SetConfig", "MQTT.SetConfig", "PLUGS_UI.SetConfig"]);
+  eq("cloud params", hardenPlan(c, {cloud: true})[0].params, {config: {enable: false}});
+  eq("button params", hardenPlan(c, {button: true})[0].params, {config: {controls: {"switch:0": {in_mode: "detached"}}}});
+  eq("unchecked skipped", hardenPlan(c, {ble: true, mqtt: false}), []);
+  eq("already ok", hardenPlan({cloud: false, ble: false, mqtt: false, in_mode: "detached"}, {cloud: true, ble: true, mqtt: true, button: true}), []);
+  eq("unknown state skipped", hardenPlan({cloud: null}, {cloud: true}), []);
+});
