@@ -93,7 +93,7 @@ There is one price, applied to everything shown.
 Use the ring on or off, and brightness 5 to 100. With the ring off, ChargeLens writes "off" to it once and then
 leaves it alone. Colours: dark relay off; blue idle; green charging; yellow above the maximum; red anything else
 while the relay is on. Purple (where blue, green or off would show) and orange (where red or yellow would show)
-mean the clock is unknown.
+mean the clock is unknown. Table with what to do for each colour: [usage.md](usage.md#the-led-ring).
 
 ## Mail
 

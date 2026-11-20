@@ -30,6 +30,24 @@ them on a phone page served by the plug, and prepares a monthly report by e-mail
 
 <p align="center"><sub>Example data: the numbers in the screenshots are random.</sub></p>
 
+## Use cases
+
+Anywhere you charge from a socket that someone else pays for, or where you want to know exactly what a charge
+cost:
+
+- **A shared garage or condominium**: report your monthly kWh to the administration or your neighbours.
+- **A few days at a friend's or family member's house**: plug it in on arrival, and before you leave show them
+  the total (or send the report) and pay for what you used.
+- **A rented flat, a holiday rental or a second home**: settle with the landlord or the owner by the real
+  consumption instead of a guess.
+- **At work**: show the employer how much you charged, for reimbursement or for a benefit-in-kind calculation.
+- **A guest charging at your place**: the reverse case; ask for the right amount.
+- **A campsite or marina pitch** that bills electricity separately: know your car's share before the bill comes.
+- **Your own car's real consumption**: kWh taken from the socket per charge (charger losses included), next to
+  what the car reports.
+
+The plug works without any network, so it suits places where you have no access to the owner's Wi-Fi.
+
 ## Why it exists
 
 I charge my car from a shared socket and have to report, every month, how much energy I used so it can be billed

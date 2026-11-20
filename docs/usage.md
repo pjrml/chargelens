@@ -4,7 +4,7 @@
 
 1. Plug the ChargeLens plug into the socket.
 2. Plug the charger's cable into the ChargeLens plug. The ring shows the state (see
-   [configuration.md](configuration.md#led-ring)).
+   [The LED ring](#the-led-ring)).
 3. Start charging. The plug counts the energy; a session starts when the current is at or above the minimum
    charging current and ends when it has been below it for the session gap (10 minutes by default).
 
@@ -19,6 +19,24 @@ Once, on the phone, **add the page to the home screen** (share menu -> Add to Ho
 app, with the ChargeLens icon.
 
 The plug keeps working with no phone connected and with no internet. Power cuts do not lose the totals.
+
+## The LED ring
+
+The ring shows what the socket is doing at a glance. The currents below are the defaults; you can change them on
+the setup page ([configuration.md](configuration.md#thresholds)). A new colour shows only after the current has stayed
+in its band for 10 seconds (the band hold time), so short spikes do not make it flicker.
+
+| Ring | When | What it means | What to do |
+|---|---|---|---|
+| ⚫ Dark | Relay off | The socket is switched off. | Turn it on from the daily page if you want to charge. |
+| 🔵 Blue | Relay on, current at or below 0.1 A | Nothing is drawing power. | Nothing: normal when the car is not charging. |
+| 🔴 Red | Relay on, above 0.1 A and below 5 A | Something draws a little, but it is not charging: a charger in standby, a finished or paused charge, or another small load. | Check the car and the charger if you expected it to charge. |
+| 🟢 Green | 5 A to 11 A | Charging normally. | Nothing. |
+| 🟡 Yellow | Above 11 A | More current than a 10 A charger should draw. | Check the charger setting (at most 10 A). |
+| 🟣 Purple | Clock unknown (instead of dark, blue or green) | The plug does not know the time. Energy is still counted. | Set the clock ([below](#the-clock-and-undated-charges)). |
+| 🟠 Orange | Clock unknown (instead of red or yellow) | As purple, and the current needs a look. | Set the clock, then check the charger as for red or yellow. |
+
+The ring can be dimmed or turned off on the setup page; the plug keeps counting either way.
 
 ## The daily page
 
