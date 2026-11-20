@@ -15,7 +15,7 @@ backup    : full dump (device info, config, status, scripts with code, KVS, sche
 rpc       : calls any RPC method (POST /rpc) and prints the JSON result.
 put       : creates/replaces script NAME from FILE (--temp: not enabled at boot; --store: data only).
 test      : runs LIBFILE's LIB section plus TESTFILE on the device as a temporary script "Test".
-testpage  : runs the PURE block of an HTML page plus TESTFILE in headless Edge (no device needed).
+testpage  : runs the PURE block of an HTML page (or the LIB region of a .js file) plus TESTFILE in headless Edge (no device needed).
 
 Stdlib only. ASCII only.
 """
@@ -193,11 +193,28 @@ def delscript(ip, name_or_id):
 
 
 def lib_section(path):
+    """LIB region of PATH (between the LIB markers), with //@lib includes expanded. '' when there is none."""
     src = open(path, encoding="utf-8").read()
     a, b = src.find("// ==== LIB ===="), src.find("// ==== END LIB ====")
     if a < 0 or b < a:
         return ""  # no LIB yet: tests must fail
-    return src[a:b]
+    return expand_libs(path, src[a:b])
+
+
+LIB_MARK = re.compile(r"^[ 	]*(?://@lib[ 	]+(\S+)|/\*@lib[ 	]+(\S+?)\*/)[ 	]*$", re.M)
+
+
+def expand_libs(path, code):
+    """Replace a line '//@lib NAME' or '/*@lib NAME*/' with the LIB region of NAME (a file next to PATH),
+    without its marker lines. Also used by tools/build.py."""
+    base = os.path.dirname(os.path.abspath(path))
+
+    def repl(m):
+        lib = lib_section(os.path.join(base, m.group(1) or m.group(2)))
+        if not lib:
+            raise RuntimeError("@lib %s: no LIB region" % (m.group(1) or m.group(2)))
+        return lib.split(chr(10), 1)[1].rstrip(chr(10))
+    return LIB_MARK.sub(repl, code)
 
 
 TEST_PRELUDE = """
@@ -297,8 +314,11 @@ def run_page_tests(htmlfile, testfile, browser=None):
     import html as htmlmod
     import tempfile
     src = open(htmlfile, encoding="utf-8").read()
-    a, b = src.find("/* ==== PURE ==== */"), src.find("/* ==== END PURE ==== */")
-    pure = src[a:b] if a >= 0 and b > a else ""
+    if htmlfile.endswith(".js"):  # a plain .js library: its LIB region is the PURE region
+        pure = lib_section(htmlfile)
+    else:
+        a, b = src.find("/* ==== PURE ==== */"), src.find("/* ==== END PURE ==== */")
+        pure = expand_libs(htmlfile, src[a:b]) if a >= 0 and b > a else ""
     prelude = TEST_PRELUDE.split("HTTPServer.registerEndpoint")[0].replace("Timer.set(200, false, __next);", "")
     prelude = prelude.replace("Timer.set(50, false, __next);", "__next();")
     nl = chr(10)
@@ -348,7 +368,7 @@ def main():
     elif a.cmd == "put":  # put NAME FILE
         if not a.method or not a.params:
             sys.exit("put needs NAME FILE")
-        code = expand_includes(a.params, open(a.params, encoding="utf-8").read())
+        code = expand_libs(a.params, expand_includes(a.params, open(a.params, encoding="utf-8").read()))
         if a.store:  # data stored as a script (e.g. PageHtml): never enabled or started, not minified
             print("stored %s id=%d" % (a.method, put(ip, a.method, code, start=False, enable=False, mini=False)))
         else:
