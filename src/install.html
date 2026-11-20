@@ -87,6 +87,10 @@ if(b.ble&&bleOn(cur.ble)){const k={};if(cur.ble.en===true)k.enable=false;if(cur.
 if(b.button&&cur.in_mode&&cur.in_mode!=='detached')P.push({rpc:'PLUGS_UI.SetConfig',params:{config:{controls:{'switch:0':{in_mode:'detached'}}}},label:'Button does nothing'});
 if(b.dbg&&cur.dbg===true)P.push({rpc:'Sys.SetConfig',params:{config:{debug:{websocket:{enable:false}}}},label:'Websocket debug logs off'});
 return P}
+/* the plan summary line: ok true = check mark, null = warning; the caller passes escaped strings */
+function planLine(mode,inst,ver,files){if(mode!=='update')return{ok:true,btn:'Install',t:'First installation of ChargeLens '+ver+': '+files+'.'};
+if(inst===ver)return{ok:true,btn:'Reinstall',t:'ChargeLens '+ver+' is installed and up to date. Reinstall writes the same version again (repair): '+files+'.'};
+return{ok:null,btn:'Update',t:'Update of ChargeLens '+(inst||'?')+' to '+ver+': '+files+'.'}}
 /* ==== END PURE ==== */
 const $=i=>document.getElementById(i),esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const CL=window.CL||{repo:'',tag:'',base:''},SELF=(/\/script\/(\d+)\//.exec(location.pathname)||[])[1];
@@ -141,7 +145,7 @@ const upd=PLAN.mode==='update';
 if(upd&&downgradeBlocked(hdrVer(HM),REL.version)){halt(h+row(false,'The plug has ChargeLens '+esc(hdrVer(HM))+', which is newer than the version of this installer ('+esc(REL.version)+'). Going back to an older version is not supported. Nothing was changed.'));return}
 if(upd){try{if(!await idle()){halt(h+row(false,'The plug is charging or a session is open. Updating restarts the meter, so try again when the car is unplugged.')+'<button id="again">Check again</button>');return}}catch(e){halt(h+row(false,'Could not read the plug state: '+esc(e.message)));return}h+=row(true,'No charging in progress.')}
 CUR=await curState();TZ=(()=>{try{return Intl.DateTimeFormat().resolvedOptions().timeZone||''}catch(e){return ''}})();
-h+=row(upd?null:true,(upd?'Update of ChargeLens '+esc(hdrVer(HM)||'?')+' to '+esc(REL.version):'First installation of ChargeLens '+esc(REL.version))+': '+PLAN.write.map(esc).join(', ')+'.');
+const PL=planLine(PLAN.mode,hdrVer(HM)===null?null:esc(hdrVer(HM)),esc(REL.version),PLAN.write.map(esc).join(', '));h+=row(PL.ok,PL.t);
 if(upd)h+='<div class="mu">Your settings, mail template and energy log are kept.</div>';
 let f='<div class="c">'+h+'</div>';
 f+='<div class="c"><div class="lab">Charger</div>'+ck('c_ok','My charger is set to draw at most '+CHARGER_A+' A.',false,'The plug is rated '+MODEL.maxA+' A. A charger that draws more can overheat the plug or the socket: set the current in the car or charger first.')+'</div>';
@@ -160,7 +164,7 @@ f+='<div class="c"><div class="lab">Setup</div>'+ck('o_tz','Set the time zone fr
 (n.dbg===true?ck('h_dbg','<span class="wn">&#9888;</span> Turn the websocket debug logs off',true,'The installer turned them on to show its address in the plug&#39;s script console. ChargeLens does not need them.'):'')+
 (n.in_mode&&n.in_mode!=='detached'?ck('h_button','<span class="wn">&#9888;</span> Make the button do nothing (it toggles the relay)',true):'')+
 ck('h_forget','Forget the home Wi-Fi at the end (recommended)',false,'Only with the access point set up. Nobody on your network can then reach the plug, but the plug has no internet clock and the next update needs it joined to a Wi-Fi again. You will have to connect to the access point to use it.')+'</div>'}
-f+='<div class="c"><button id="go" disabled>'+(upd?'Update':'Install')+'</button><div class="er" id="e_go"></div><div id="busy" class="mu" style="display:none;margin-top:8px"><progress style="width:100%"></progress><div>Working&hellip; keep this page open. This takes about a minute; the steps are listed below.</div></div><button id="back">Leave without changes</button><div class="mu" style="margin-top:8px">Nothing here switches the relay.</div></div>';
+f+='<div class="c"><button id="go" disabled>'+PL.btn+'</button><div class="er" id="e_go"></div><div id="busy" class="mu" style="display:none;margin-top:8px"><progress style="width:100%"></progress><div>Working&hellip; keep this page open. This takes about a minute; the steps are listed below.</div></div><button id="back">Leave without changes</button><div class="mu" style="margin-top:8px">Nothing here switches the relay.</div></div>';
 $('app').innerHTML=f;sync()}
 function sync(){const need=['c_ok','c_stop'].every(k=>!$(k)||$(k).checked);if($('go'))$('go').disabled=BUSY||!need;
 if($('h_forget')){const ok=($('ap_pass').value||'').length>=8;$('h_forget').disabled=!ok;if(!ok)$('h_forget').checked=false}}
@@ -203,7 +207,7 @@ else if(pw)log('The access point password must have at least 8 characters: skipp
 if(pid!==null&&tail!=='ap'){const u='/script/'+pid+'/ui'+(upd?'':'?p=setup');log((upd?'Updated. ':'Installed. ')+'<a href="'+u+'">Open '+(upd?'the daily page':'the setup page')+'</a>','ok');
 $('back').style.display='none';if(up)setTimeout(()=>{location.href=u},2500)}
 }catch(e){log('Stopped: '+esc(e.message)+'.','er');
-if(wrote)log('The meter is stopped: energy is not counted. Press '+(upd?'Update':'Install')+' again; if that fails, restart the plug (the meter starts at power-up).','er');
+if(wrote)log('The meter is stopped: energy is not counted. Press '+$('go').textContent+' again; if that fails, restart the plug (the meter starts at power-up).','er');
 else if(stopped.length){try{await restore(stopped);log('The scripts that were stopped were started again.')}catch(x){log('Start the meter by hand in the plug web UI (Scripts) or restart the plug.','er')}}
 BUSY=false;sync()}finally{const b=$('busy');if(b)b.style.display='none'}}
 document.addEventListener('click',e=>{const id=e.target.id;

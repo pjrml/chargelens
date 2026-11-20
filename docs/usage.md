@@ -12,7 +12,8 @@ When you want the numbers:
 
 1. Connect your phone to the plug's network (its access point, or the Wi-Fi it is on).
 2. Open `http://<plug-ip>/script/<PageId>/ui`. With the access point the address is
-   `http://192.168.33.1/script/<PageId>/ui`.
+   `http://192.168.33.1/script/<PageId>/ui`. The *About* card at the bottom of the daily page shows that address
+   (and the access point's network name), so you can note it while the phone is still on the home Wi-Fi.
 
 Once, on the phone, **add the page to the home screen** (share menu -> Add to Home Screen). It then opens like an
 app, with the ChargeLens icon.
@@ -28,6 +29,7 @@ The plug keeps working with no phone connected and with no internet. Power cuts 
 - **Sessions** of the chosen month, with start, duration, energy and cost.
 - **Send the monthly report by mail** and **Download CSV** for the chosen month.
 - **Events**: relay changes with their source, boots, script restarts (updates).
+- **About**: the installed ChargeLens version, and the access point with the page address on it.
 - **Daily** / **Setup** at the top switch between this page and the setup page.
 - **Set the clock from this phone**.
 
@@ -39,6 +41,20 @@ Turning the relay off from the page asks for confirmation, because charging stop
 switches the relay.
 
 ## The clock and undated charges
+
+> [!WARNING]
+> **The plug has no battery-backed clock.** It knows the time only from the internet (while it is on a Wi-Fi with
+> internet) or from your phone. Used offline, without the home Wi-Fi, **it loses the clock at every power-up**:
+> when you move it to the charging socket, unplug it, or after a power cut. The LED ring then shows **purple**
+> instead of blue, green or off, and **orange** instead of yellow or red. To set the clock:
+>
+> 1. Connect the phone to the plug's access point (its network name and address are in the *About* card at the
+>    bottom of the daily page; note them while you are still on the home Wi-Fi).
+> 2. Open the daily page.
+> 3. Press **Set the clock from this phone**.
+>
+> Energy counted while the clock was unknown is not lost: it is dated automatically if you set the clock before
+> the plug powers up again, and otherwise listed as **Undated** charges for you to date by hand.
 
 The plug has no battery-backed clock. It gets the time from the internet (only when it is online) or from your
 phone. Until the time is known the ring shows purple/orange. Energy used in that time is not lost: it is kept
@@ -64,6 +80,6 @@ clock from this phone* (or leave the plug on a Wi-Fi with internet).
 
 ## Travelling or unplugging
 
-Unplug the plug and the charger as you like; the log stays on the plug. If the plug stays unplugged for a long
-time the clock will be unknown at the next power-up: set it from your phone. Do not update ChargeLens while a
+Unplug the plug and the charger as you like; the log stays on the plug. Without internet the clock is unknown
+after every power-up (purple/orange ring): set it from your phone (see [The clock](#the-clock-and-undated-charges)). Do not update ChargeLens while a
 charge is running; the installer refuses.

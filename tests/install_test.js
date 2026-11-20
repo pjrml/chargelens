@@ -235,3 +235,16 @@ t("safe_link", function () {
   eq("js", safeLink("javascript:alert(1)"), null);
   eq("lookalike", safeLink("https://github.com.evil.example/x"), null);
 });
+
+t("planLine", function () {
+  let f = planLine("fresh", null, "1.0.0-rc.2", "Meter, Led");
+  eq("fresh ok", f.ok, true); eq("fresh btn", f.btn, "Install");
+  eq("fresh text", f.t, "First installation of ChargeLens 1.0.0-rc.2: Meter, Led.");
+  let u = planLine("update", "1.0.0-rc.1", "1.0.0-rc.2", "Meter");
+  eq("update warn", u.ok, null); eq("update btn", u.btn, "Update");
+  eq("update text", u.t, "Update of ChargeLens 1.0.0-rc.1 to 1.0.0-rc.2: Meter.");
+  let s = planLine("update", "1.0.0-rc.2", "1.0.0-rc.2", "Meter");
+  eq("same ok", s.ok, true); eq("same btn", s.btn, "Reinstall");
+  eq("same text", s.t, "ChargeLens 1.0.0-rc.2 is installed and up to date. Reinstall writes the same version again (repair): Meter.");
+  eq("unknown installed", planLine("update", null, "1.0.0", "Meter").t, "Update of ChargeLens ? to 1.0.0: Meter.");
+});

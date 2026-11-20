@@ -51,3 +51,16 @@ t("formats", function () {
   eq("report always kWh", fmtKwh(12.5), "0.01 kWh");
   eq("report kWh", fmtKwh(86900), "86.90 kWh");
 });
+
+t("aboutHtml", function () {
+  let h = aboutHtml("1.0.0-rc.1", {enable: true, ssid: "chargelens-ab12"}, "/script/4/ui");
+  eq("version", h.indexOf("ChargeLens 1.0.0-rc.1") >= 0, true);
+  eq("ssid", h.indexOf("<b>chargelens-ab12</b>") >= 0, true);
+  eq("ap url link", h.indexOf('<a href="http://192.168.33.1/script/4/ui">http://192.168.33.1/script/4/ui</a>') >= 0, true);
+  let off = aboutHtml("1.0.0-rc.1", {enable: false, ssid: "x"}, "/script/4/ui");
+  eq("ap off", off.indexOf("Access point: off") >= 0, true);
+  eq("ap off no link", off.indexOf("192.168.33.1") < 0, true);
+  eq("unknown version", aboutHtml(null, null, "/script/4/ui").indexOf("ChargeLens (version unknown)") >= 0, true);
+  eq("unknown ap", aboutHtml("1", null, "/script/4/ui").indexOf("Access point: unknown") >= 0, true);
+  eq("escaped", aboutHtml("1", {enable: true, ssid: "<x>"}, "/script/4/ui").indexOf("&lt;x&gt;") >= 0, true);
+});

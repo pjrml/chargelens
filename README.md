@@ -15,6 +15,12 @@
 > **Status: release candidate.** ChargeLens v1 is being validated (`v1.0.0-rc.N` tags); there is no final `v1.0.0`
 > yet. Do not use it on a plug you rely on.
 
+> [!WARNING]
+> **No battery-backed clock.** Used offline (no home Wi-Fi), the plug loses the time at every power-up: moving it
+> to another socket, unplugging it, a power cut. The LED ring turns **purple** or **orange** until you connect the
+> phone to the plug's access point and press **Set the clock from this phone** on the daily page. Energy is kept
+> meanwhile. Details: [docs/usage.md](docs/usage.md#the-clock-and-undated-charges).
+
 Offline energy logger for charging an electric car from a socket someone else pays for (a condominium, an
 employer, a landlord, family). ChargeLens runs as scripts on a **Shelly Plus Plug S**: it keeps daily and monthly
 totals and charging sessions on the plug itself (no cloud, no hub, no internet needed, survives power cuts), shows

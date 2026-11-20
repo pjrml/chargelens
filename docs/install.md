@@ -16,6 +16,20 @@ This installs everything from your phone or computer, with no tools. If it fails
 
 ## Before you start
 
+> [!WARNING]
+> **The plug has no battery-backed clock.** It knows the time only from the internet (while it is on a Wi-Fi with
+> internet) or from your phone. Used offline, without the home Wi-Fi, **it loses the clock at every power-up**:
+> when you move it to the charging socket, unplug it, or after a power cut. The LED ring then shows **purple**
+> instead of blue, green or off, and **orange** instead of yellow or red. To set the clock:
+>
+> 1. Connect the phone to the plug's access point (its network name and address are in the *About* card at the
+>    bottom of the daily page; note them while you are still on the home Wi-Fi).
+> 2. Open the daily page.
+> 3. Press **Set the clock from this phone**.
+>
+> Energy counted while the clock was unknown is not lost: it is dated automatically if you set the clock before
+> the plug powers up again, and otherwise listed as **Undated** charges for you to date by hand. Details: [usage.md](usage.md#the-clock-and-undated-charges).
+
 - A tested plug model (see [Tested hardware](../README.md#tested-hardware)) on up-to-date firmware, joined to a Wi-Fi network with internet: see
   [shelly-setup.md](shelly-setup.md).
 - The plug's address (`<plug-ip>`) and a browser on the same network.
@@ -111,6 +125,9 @@ hardening screen only offers to forget the home Wi-Fi.
 2. Press **Check for updates** in *About*. It stops `Led` and `Page` (the plug cannot run four scripts) and opens
    the install page, which shows the new version and a link to what changed.
 3. Press **Update**. When it finishes, the install page opens the daily page.
+
+If the plug already has the newest version, the install page says *installed and up to date* and the button is
+**Reinstall**: it writes the same version again (a repair), with the same safeguards as an update.
 
 An update:
 

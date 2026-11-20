@@ -98,22 +98,26 @@ maintainer publishes it when the test is due). Start from a plug installed by te
 
   Expected: *The plug is charging or a session is open*; nothing is written (the *About* version and the
   energy log are unchanged).
-- [ ] **4.3 Leave without changes.**
+- [ ] **4.3 Same version.** Open the install page again after the update.
+
+  Expected: *ChargeLens X is installed and up to date* with a check mark; the button says **Reinstall**.
+- [ ] **4.4 Leave without changes.**
   1. Press **Leave without changes**.
 
   Expected: `Led` and `Page` run again and the daily page works.
-- [ ] **4.4 Update when idle.**
+- [ ] **4.5 Update when idle.**
   1. Unplug the load.
   2. Press **Check for updates** again.
   3. Press **Update**.
 
   Expected: progress, *Updated*, the daily page opens. Then check:
+  - *About* on the daily page shows the new version and the access point address;
   - *About* on the setup page shows the new version;
   - the settings, the mail template and the energy history are unchanged;
   - *Events* on the daily page has a restart (`U`) event;
   - `Meter`, `Led`, `Page` run; `Installer` is stopped;
   - **Settings -> Debug** in the Shelly web UI: *Websocket debug* is off.
-- [ ] **4.5 No downgrade.** Open the install page with `?tag=` set to an older published tag
+- [ ] **4.6 No downgrade.** Open the install page with `?tag=` set to an older published tag
       (`http://<plug-ip>/script/<InstallerId>/install?tag=vX.Y.Z-rc.N`). Expected: it refuses (*going back to an
       older version is not supported*) and changes nothing.
 

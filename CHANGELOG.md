@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 1.0.0-rc.2 (2026-11-20)
+
+- Daily page: *About* card with the installed version and the access point (network name and the page address on
+  it, `http://192.168.33.1/script/<id>/ui`).
+- Daily and setup pages: logo in the header and a *Daily | Setup* switch.
+- Install page: the same version shows *installed and up to date* and a **Reinstall** button; an update shows
+  the installed and the new version with a warning sign; fixed a syntax error that stopped the page.
+- Installer script prints the install address 4 times (0, 3, 10, 30 s) instead of every 3 s.
+
 ## 1.0.0-rc.1 (2026-11-20)
 
 First release candidate of v1 (first public version; evolved from a private build).

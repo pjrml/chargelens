@@ -30,6 +30,7 @@ input[type=checkbox]{width:20px;height:20px;margin:0 10px 0 0;padding:0;vertical
 <button id="mail">&#9993; Send the monthly report by mail</button><button id="csv">&#11015; Download CSV</button></div>
 <div class="c" id="undc" hidden><div class="lab">Undated</div><div class="mu">Charges without a time: pick the charges and the day (between the last known date before and the next one).</div><div id="und"></div><select id="udd"></select><button id="uda" disabled>Assign</button><div class="mu" id="udr"></div></div>
 <div class="c"><div class="lab">Events</div><div id="evs" class="mu">&hellip;</div></div>
+<div class="c"><div class="lab">About</div><div id="abt" class="mu">&hellip;</div></div>
 </div><script>
 document.querySelector('img.lg').src=document.querySelector('link[rel=icon]').href;
 
@@ -106,6 +107,9 @@ function bootsOf(s){const b={};(s||'').split(';').forEach(x=>{const p=x.split(':
 function resolveSt(st,b){if(st&&st[0]==='~'){const p=st.slice(1).split('.');return b[p[0]]!==undefined?b[p[0]]+ +p[1]:null}return st?+st:null}
 function evLines(ev,ei,bs){const b=bootsOf(bs),out=[];for(let k=1;k<=3;k++){const v=ev[(ei+k)%3];if(!v)continue;v.split(';').forEach(l=>{const p=l.split(','),x=(p[2]||'').split('/');
 const o={when:resolveSt(p[1],b),text:evText(l)};if(p[0]==='B')o.loss=resolveSt(x[1],b);out.push(o)})}return out}
+/* about card: version from the Meter header, the access point and the page address on it (the AP is always 192.168.33.1) */
+const aboutHtml=(v,ap,path)=>{const u='http://192.168.33.1'+path;return '<div>ChargeLens '+(v?esc(v):'(version unknown)')+'</div><div>'+
+(!ap?'Access point: unknown':ap.enable?'Access point <b>'+esc(ap.ssid||'')+'</b>: <a href="'+esc(u)+'">'+esc(u)+'</a><div class="mu">Join that Wi-Fi network, then open this address.</div>':'Access point: off (Setup, Wi-Fi access point)')+'</div>'};
 /* ==== END PURE ==== */
 const B=location.pathname.replace(/\/ui$/,'/');
 const AJ={u:'undated energy (assigned to the day the clock was set)',m:'energy of the previous month added to day 1',s:'counter jump ignored',b:'counter went back (energy lost)'};
@@ -173,6 +177,8 @@ Object.keys(LOGS).sort().forEach(k=>sessOf(k).forEach(s=>{s.end=endHm(s);s.cost=
 const L=LOGS[$('sel').value];if(L)evLines(L.ev,L.ei,L.boot).forEach(x=>{const d=x.when?new Date((x.when+D.off)*1000).toISOString():'';ev.push({date:d.slice(0,10),time:d.slice(11,16),text:x.text+(x.loss?' (no power since ~'+tms(x.loss)+')':'')})});
 const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csvText(days,mos,ss,ev)],{type:'text/csv;charset=utf-8'}));a.download='chargelens-'+tk+'.csv';document.body.appendChild(a);a.click();a.remove()};
 $('sel').onchange=showLog;
+async function about(){let v=null,ap=null;try{const m=(await g('/rpc/Script.List')).scripts.find(x=>x.name==='Meter');if(m){const q=/^\/\/ ChargeLens Meter v(\S+)/.exec((await g('/rpc/Script.GetCode?id='+m.id+'&offset=0&len=64')).data);if(q)v=q[1]}}catch(e){}
+try{ap=(await g('/rpc/WiFi.GetConfig')).ap||null}catch(e){}$('abt').innerHTML=aboutHtml(v,ap,location.pathname)}
 $('uda').onclick=async()=>{const sel=selU(),v=$('udd').value,r=rangeOf(sel.map(x=>x.r));
 if(!sel.length||!v||v<r.lo||v>r.hi){$('udr').textContent='Pick the day from the list.';return}
 $('uda').disabled=true;$('udr').textContent='assigning...';
@@ -182,5 +188,5 @@ $('rel').onclick=async()=>{if(!D)return;const on=!D.on;if(!on&&!confirm('Turn th
 $('ts').onclick=async()=>{const now=Math.floor(Date.now()/1000);try{const r=await j('time?set='+now);$('tsr').textContent='Clock set'+(r.prev>1.7e9?' (difference: '+(now-r.prev)+' s)':'');tick()}catch(e){$('tsr').textContent='Could not set the clock'}};
 (async()=>{try{CFG=cfgParse((await g('/rpc/KVS.Get?key=cc:cfg')).value)}catch(e){}
 scode('MailTpl').then(c=>{try{MT=JSON.parse(c)}catch(e){}}).catch(e=>{});g('/rpc/Shelly.GetDeviceInfo').then(r=>{DN=r.name||''}).catch(e=>{});
-await tick();if(D){await sync();show();hist()}setInterval(tick,5000)})();
+await tick();if(D){await sync();show();hist()}setInterval(tick,5000);about()})();
 </script></body></html>
