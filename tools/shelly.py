@@ -8,6 +8,8 @@ Usage (from the repo root; --ip is required for every device command):
   python tools/shelly.py --ip IP delscript NAME
   python tools/shelly.py --ip IP test LIBFILE TESTFILE
   python tools/shelly.py testpage HTMLFILE TESTFILE [--browser PATH]
+  python tools/shelly.py --ip IP install [--dist dist]
+  python tools/shelly.py serve [--port 8000]
 
 info      : device info, free RAM (Sys.GetStatus ram_free) and the script list.
 backup    : full dump (device info, config, status, scripts with code, KVS, schedules, webhooks) to
@@ -15,6 +17,9 @@ backup    : full dump (device info, config, status, scripts with code, KVS, sche
 rpc       : calls any RPC method (POST /rpc) and prints the JSON result.
 put       : creates/replaces script NAME from FILE (--temp: not enabled at boot; --store: data only).
 test      : runs LIBFILE's LIB section plus TESTFILE on the device as a temporary script "Test".
+install   : writes the built files of DIST (release.json) like the installer page: scripts created by name,
+            chunks of 4000 + read back, only Meter enabled, an existing MailTpl is never overwritten, Meter started.
+serve     : serves the repo root on 0.0.0.0:PORT with CORS (install page: ?base=http://<pc-ip>:PORT/).
 testpage  : runs the PURE block of an HTML page (or the LIB region of a .js file) plus TESTFILE in headless Edge (no device needed).
 
 Stdlib only. ASCII only.
@@ -386,14 +391,61 @@ def run_page_tests(htmlfile, testfile, browser=None):
     return not fails and bool(res)
 
 
+def install(ip, dist):
+    """Same writes as the installer page, from a PC. Never overwrites an existing MailTpl; enables only Meter."""
+    import zlib
+    rel = json.load(open(os.path.join(dist, "release.json"), encoding="ascii"))
+    files = []
+    for f in rel["files"]:
+        data = open(os.path.join(os.path.dirname(os.path.abspath(dist)), f["path"]), "rb").read()
+        if len(data) != f["size"] or (zlib.crc32(data) & 0xFFFFFFFF) != f["crc32"]:
+            sys.exit("%s: size/crc32 differ from release.json (run tools/build.py)" % f["path"])
+        files.append((f, data.decode("ascii")))
+    for name in ("Led", "Page", "Meter"):  # update path: stop Led, Page, then Meter
+        sid = script_id(ip, name)
+        if sid is not None:
+            try:
+                rpc(ip, "Script.Stop", {"id": sid})
+            except RuntimeError:
+                pass
+    for f, code in files:
+        if f["name"] == "MailTpl" and script_id(ip, "MailTpl") is not None:
+            print("kept existing MailTpl")
+            continue
+        sid = put(ip, f["name"], code, start=False, enable=bool(f["enable"]), mini=False)
+        if not f["enable"]:  # an existing script may have been enabled by an older install
+            rpc(ip, "Script.SetConfig", {"id": sid, "config": {"enable": False}})
+        print("%-10s id=%d %6d B%s" % (f["name"], sid, len(code), " enabled" if f["enable"] else ""))
+    meter = script_id(ip, "Meter")
+    rpc(ip, "Script.Start", {"id": meter})
+    print("started Meter id=%d (it starts Led and Page)" % meter)
+
+
+def serve(port):
+    import http.server
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+    class H(http.server.SimpleHTTPRequestHandler):
+        def __init__(self, *a, **k):
+            super().__init__(*a, directory=root, **k)
+
+        def end_headers(self):
+            self.send_header("Access-Control-Allow-Origin", "*")
+            super().end_headers()
+    print("serving %s on http://0.0.0.0:%d/ (Ctrl+C stops)" % (root, port))
+    http.server.ThreadingHTTPServer(("0.0.0.0", port), H).serve_forever()
+
+
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("cmd", choices=["info", "backup", "rpc", "put", "delscript", "test", "testpage"])
+    ap.add_argument("cmd", choices=["info", "backup", "rpc", "put", "delscript", "test", "testpage", "install", "serve"])
     ap.add_argument("method", nargs="?")
     ap.add_argument("params", nargs="?")
     ap.add_argument("--ip", help="device IP (required for every device command)")
     ap.add_argument("--out", help="backup: output directory (default ~/.config/chargelens/backups/)")
     ap.add_argument("--browser", help="testpage: path of msedge.exe")
+    ap.add_argument("--dist", default="dist", help="install: directory with release.json (default dist)")
+    ap.add_argument("--port", type=int, default=8000, help="serve: port (default 8000)")
     ap.add_argument("--temp", action="store_true", help="put: do not enable (start at boot)")
     ap.add_argument("--store", action="store_true", help="put: store as data, never enable/start")
     a = ap.parse_args()
@@ -401,6 +453,9 @@ def main():
         if not a.method or not a.params:
             sys.exit("testpage needs HTMLFILE TESTFILE")
         sys.exit(0 if run_page_tests(a.method, a.params, a.browser) else 1)
+    if a.cmd == "serve":
+        serve(a.port)
+        return
     if not a.ip:
         sys.exit("--ip is required for '%s'" % a.cmd)
     ip = a.ip
@@ -408,6 +463,8 @@ def main():
         info(ip)
     elif a.cmd == "backup":
         backup(ip, a.out)
+    elif a.cmd == "install":
+        install(ip, a.dist)
     elif a.cmd == "put":  # put NAME FILE
         if not a.method or not a.params:
             sys.exit("put needs NAME FILE")

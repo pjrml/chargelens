@@ -1,0 +1,285 @@
+<!-- ChargeLens SetupHtml v1.0.0 -->
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="ChargeLens"><meta name="theme-color" content="#0b1221">
+<title>ChargeLens setup</title>
+<style>
+*{box-sizing:border-box}:root{--bg:#0b1221;--card:#131c2e;--line:#1f2a44;--tx:#e5e7eb;--mu:#94a3b8;--ok:#10b981;--warn:#f59e0b;--bad:#ef4444}
+body{margin:0;padding:16px;padding-top:max(16px,env(safe-area-inset-top));font:16px -apple-system,system-ui,sans-serif;background:var(--bg);color:var(--tx)}
+.w{max-width:480px;margin:0 auto}.c{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:12px}
+h1{font-size:18px;margin:0 0 4px}.mu{color:var(--mu);font-size:14px}.lab{color:var(--mu);font-size:13px;letter-spacing:.05em;text-transform:uppercase}
+button,select,input,textarea{width:100%;padding:11px;margin-top:6px;border-radius:10px;border:1px solid var(--line);background:#1d2a45;color:var(--tx);font:16px -apple-system,system-ui,sans-serif}
+textarea{min-height:130px}.sm{font-size:14px;padding:9px}.f{margin-top:12px}.f>label{font-size:15px}.er{color:var(--bad);font-size:13px}.ok{color:var(--ok)}
+input[type=checkbox]{width:20px;height:20px;margin:0 10px 0 0;padding:0;vertical-align:middle}a{color:var(--warn)}button:disabled{opacity:.4}
+.bar{display:flex;height:16px;border-radius:8px;overflow:hidden;margin:10px 0 4px}.bar div{min-width:2px}summary{cursor:pointer;margin-top:12px;color:var(--mu)}
+.dt{display:inline-block;width:10px;height:10px;border-radius:50%;margin:0 4px 0 8px}
+</style></head><body><div class="w">
+<div class="c"><h1>&#9889; ChargeLens setup</h1><div class="mu" id="dev">&hellip;</div><div class="mu" style="margin-top:8px"><a href="ui">Back to the daily page</a></div></div>
+<div id="app"></div>
+<div class="c"><button id="save" disabled>Save</button><div class="er" id="e_cfg"></div><div id="res" class="mu"></div>
+<div class="mu" style="margin-top:8px">Changes are live within about a minute (the meter reads the settings once a minute). Nothing on this page switches the relay.</div></div>
+<div id="more"></div>
+</div><script>
+function cfgNum() {
+let t = "r,0.1,0.02,1;g,5,1,11;y,11,1,12;h,0.3,0.05,1;hr,0.05,0.01,0.5;hs,10,2,60;sg,600,60,3600;p,0,0,10;lo,1,0,1;lb,50,5,100".split(";");
+let out = [], i, p;
+for (i = 0; i < t.length; i++) { p = t[i].split(","); out.push([p[0], Number(p[1]), Number(p[2]), Number(p[3])]); }
+return out;
+}
+let cfgX = null;
+function cfgFix(o) {
+let T = cfgNum(), c = {v: 1}, i, a, x;
+if (typeof o !== "object" || o === null) o = {};
+for (i = 0; i < T.length; i++) {
+a = T[i]; x = o[a[0]];
+c[a[0]] = (typeof x === "number" && x >= a[2] && x <= a[3]) ? x : a[1];
+}
+if (!(c.r < c.g && c.g < c.y)) { c.r = T[0][1]; c.g = T[1][1]; c.y = T[2][1]; }
+return cfgX ? cfgX(c, o) : c;
+}
+function cfgParse(text) {
+let o = null;
+try { o = JSON.parse(text); } catch (e) { o = null; }
+return cfgFix(o);
+}
+let CFG_NUM = cfgNum();
+let CFG_ORD = ["r", "g", "y", "h", "hr", "hs", "sg", "p", "cu", "ds", "df", "lo", "lb"];
+let U8B = JSON.parse('"' + String.fromCharCode(92) + 'u00e9"').length === 2;
+function u8len(s) {
+if (U8B) return s.length;
+let n = 0, i, c;
+for (i = 0; i < s.length; i++) {
+c = s.charCodeAt(i);
+if (c < 128) n += 1; else if (c < 2048) n += 2; else if (c >= 55296 && c < 56320) { n += 4; i++; } else n += 3;
+}
+return n;
+}
+function u8chars(s) {
+let n = 0, i, c;
+for (i = 0; i < s.length; i++) {
+c = s.charCodeAt(i);
+if (U8B ? (c & 192) !== 128 : (c < 56320 || c > 57343)) n++;
+}
+return n;
+}
+function cfgDef(k) {
+let i;
+for (i = 0; i < CFG_NUM.length; i++) if (CFG_NUM[i][0] === k) return CFG_NUM[i][1];
+return k === "cu" ? "EUR" : k === "ds" ? "." : "YMD";
+}
+function cfgStrOk(k, v) {
+if (k === "cu") { let n; if (typeof v !== "string") return false; n = u8chars(v); return n >= 1 && n <= 4; }
+if (k === "ds") return v === "." || v === ",";
+return v === "YMD" || v === "DMY" || v === "MDY";
+}
+cfgX = function (c, o) {
+let n = {v: 1}, i, k;
+for (i = 0; i < CFG_ORD.length; i++) {
+k = CFG_ORD[i];
+n[k] = typeof c[k] === "number" ? c[k] : (cfgStrOk(k, o[k]) ? o[k] : cfgDef(k));
+}
+return n;
+};
+function cfgBad(o) {
+let bad = [], c = cfgFix(o), i, k;
+if (typeof o !== "object" || o === null) return bad;
+for (i = 0; i < CFG_ORD.length; i++) {
+k = CFG_ORD[i];
+if (typeof o[k] !== "undefined" && JSON.stringify(o[k]) !== JSON.stringify(c[k])) bad.push(k);
+}
+return bad;
+}
+function cfgDiff(a, b) {
+let d = [], i, k;
+for (i = 0; i < CFG_ORD.length; i++) {
+k = CFG_ORD[i];
+if (JSON.stringify(a[k]) !== JSON.stringify(b[k])) d.push(k);
+}
+return d;
+}
+function cfgJson(cfg) {
+let s = '{"v":1', i, k;
+for (i = 0; i < CFG_ORD.length; i++) {
+k = CFG_ORD[i];
+if (JSON.stringify(cfg[k]) !== JSON.stringify(cfgDef(k))) s += ',"' + k + '":' + JSON.stringify(cfg[k]);
+}
+s += "}";
+return u8len(s) > 253 ? null : s;
+}
+const MODELS={"SNPL-00112EU":{gen:2,maxA:12,maxW:2500},"EF3PL-00112EU":{gen:3,maxA:12,maxW:2500}};
+const BSU=String.fromCharCode(92)+'u';
+function asciiEsc(s){let o='',i,c;for(i=0;i<s.length;i++){c=s.charCodeAt(i);o+=c>126?BSU+('0000'+c.toString(16)).slice(-4):s.charAt(i)}return o}
+const asciiJson=o=>asciiEsc(JSON.stringify(o));
+const storedCfg=c=>{const s=cfgJson(c);return s===null?null:asciiEsc(s)};
+const mailText=m=>asciiJson({v:1,to:String(m.to||''),cc:String(m.cc||''),bcc:String(m.bcc||''),subject:String(m.subject||''),body:String(m.body||'')});
+const RNG=k=>{const a=CFG_NUM.find(x=>x[0]===k);return a?'Between '+a[2]+' and '+a[3]+(k==='r'||k==='g'||k==='y'?', and residual < minimum < maximum':''):k==='cu'?'1 to 4 characters':k==='ds'?'Dot or comma':'Pick one'};
+function validateForm(f,model){
+const e={},raw={};CFG_ORD.forEach(k=>{raw[k]=f[k]});
+cfgBad(raw).forEach(k=>{e[k]=RNG(k)});
+const y=typeof raw.y==='number'&&!e.y?raw.y:cfgDef('y'),cl=f.current_limit,pl=f.power_limit;
+if(!(typeof cl==='number'&&cl>y&&cl<=model.maxA))e.current_limit='Above the maximum normal current ('+y+' A) and at most '+model.maxA+' A';
+if(!(typeof pl==='number'&&pl>0&&pl<=model.maxW))e.power_limit='Above 0 and at most '+model.maxW+' W';
+const tz=String(f.tz||'').trim();if(!tz)e.tz='Enter a time zone, e.g. Europe/Lisbon';
+if(f.in_mode!=='detached'&&f.in_mode!=='momentary')e.in_mode='Pick one';
+const name=String(f.name||'').trim();if(name.length>64)e.name='At most 64 characters';
+if(f.ap&&f.ap.on&&String(f.ap.pass||'').length<8)e.ap_pass='At least 8 characters';
+let cfg=null,mail=null;
+if(!CFG_ORD.some(k=>e[k])){cfg=storedCfg(cfgFix(raw));if(cfg===null||cfg.length>253){e.cfg='The settings do not fit the 253 byte limit (shorten the currency)';cfg=null}}
+if(f.mail){mail=mailText(f.mail);if(mail.length>16000){e.body='Mail template too long';mail=null}}
+return{cfg:cfg,mail:mail,native:{current_limit:cl,power_limit:pl,in_mode:f.in_mode,tz:tz,name:name},errors:e}}
+function writePlan(o,n){const P=[],a=o.native,b=n.native;
+if(n.cfg!==null&&n.cfg!==o.cfg)P.push({rpc:'KVS.Set',params:{key:'cc:cfg',value:n.cfg},label:'Settings (cc:cfg)'});
+if(n.mail!==null&&n.mail!==o.mail)for(let i=0;i<n.mail.length;i+=4000){const p={name:'MailTpl',code:n.mail.slice(i,i+4000)};if(i>0)p.append=true;P.push({rpc:'Script.PutCode',params:p,label:'Mail template'+(n.mail.length>4000?' ('+(i/4000+1)+'/'+Math.ceil(n.mail.length/4000)+')':'')})}
+const sw={};['current_limit','power_limit'].forEach(k=>{if(b[k]!==a[k])sw[k]=b[k]});
+if(Object.keys(sw).length)P.push({rpc:'Switch.SetConfig',params:{id:0,config:sw},label:'Relay protection'});
+if(b.in_mode!==a.in_mode)P.push({rpc:'PLUGS_UI.SetConfig',params:{config:{controls:{'switch:0':{in_mode:b.in_mode}}}},label:'Button'});
+const sy={};if(b.tz!==a.tz)sy.location={tz:b.tz};if(b.name!==a.name)sy.device={name:b.name};
+if(Object.keys(sy).length)P.push({rpc:'Sys.SetConfig',params:{config:sy},label:'Time zone / name'});
+return P}
+const MAILD={subject:'Charging report | {month_name} {year}',body:'Hello,\n\nHere is the charging report for {month_name} {year}.\n\nTotal: {total_kwh} kWh in {session_count} session(s).\n\nSessions:\n{sessions_table}\n\nEnergy outside sessions: {outside_kwh} kWh\n\nPlease confirm that you received this report.\n\nSignature: replace this line\n'};
+const skipItem=(p,failed)=>p.rpc==='Script.PutCode'&&failed.indexOf('Script.PutCode')>=0;
+const apSsid=m=>'chargelens-'+String(m||'').replace(/[^0-9a-fA-F]/g,'').slice(-4).toLowerCase();
+const viaAp=h=>h==='192.168.33.1';
+function exportDoc(s,version,now){const n=s.native,m=JSON.parse(s.mail||'{}');delete m.v;
+return{app:'chargelens',fv:1,version:version||'dev',exported:now.toISOString().slice(0,10),model:s.model,cfg:JSON.parse(s.cfg||'{"v":1}'),mail:m,
+native:{current_limit:n.current_limit,power_limit:n.power_limit,in_mode:n.in_mode,tz:n.tz,name:n.name,ap:{ssid:(n.ap||{}).ssid,enable:(n.ap||{}).enable},cloud:n.cloud,ble:n.ble,mqtt:n.mqtt}}}
+const exportFile=(s,now)=>'chargelens-config-'+String(s.native.name||s.model).replace(/[^A-Za-z0-9_-]+/g,'-').replace(/^-+|-+$/g,'')+'-'+now.getFullYear()+('0'+(now.getMonth()+1)).slice(-2)+('0'+now.getDate()).slice(-2)+'.json';
+const NATK=['current_limit','power_limit','in_mode','tz','name'],MAILK=['to','cc','bcc','subject','body'];
+function importCheck(doc,model,c){const er=[],ch=[];let next=null;
+if(!doc||typeof doc!=='object'||Array.isArray(doc))return{ok:false,errors:['Not a ChargeLens configuration file'],changes:ch,next:null};
+if(doc.app!=='chargelens')er.push('Not a ChargeLens configuration file');
+if(doc.fv!==1)er.push('Unsupported file version ('+doc.fv+')');
+const dm=MODELS[doc.model];if(dm&&(dm.maxA!==model.maxA||dm.maxW!==model.maxW))er.push('The file is from a different plug family ('+doc.model+')');
+const cf=doc.cfg,nt=doc.native;
+if(!cf||typeof cf!=='object'||Array.isArray(cf))er.push('Settings (cfg) missing');
+if(!nt||typeof nt!=='object')er.push('Device settings (native) missing');
+if(doc.mail!==undefined&&(!doc.mail||typeof doc.mail!=='object'||MAILK.some(k=>doc.mail[k]!==undefined&&typeof doc.mail[k]!=='string')))er.push('Mail template invalid');
+if(er.length)return{ok:false,errors:er,changes:ch,next:null};
+const f={},cc=cfgParse(JSON.stringify(cf));CFG_ORD.forEach(k=>{f[k]=cf[k]===undefined?cc[k]:cf[k]});
+NATK.forEach(k=>{f[k]=nt[k]});
+if(doc.mail)f.mail=doc.mail;
+const v=validateForm(f,model);
+Object.keys(v.errors).forEach(k=>er.push(k+': '+v.errors[k]));
+if(er.length)return{ok:false,errors:er,changes:ch,next:null};
+next={cfg:v.cfg,mail:v.mail,native:v.native};
+if(c){const o=cfgParse(c.cfg),p=cfgParse(v.cfg),on=c.native,om=JSON.parse(c.mail||'{}'),nm=doc.mail||om;
+CFG_ORD.forEach(k=>{if(o[k]!==p[k])ch.push({field:k,from:o[k],to:p[k]})});
+NATK.forEach(k=>{if(on[k]!==v.native[k])ch.push({field:k,from:on[k],to:v.native[k]})});
+MAILK.forEach(k=>{if(String(om[k]||'')!==String(nm[k]||''))ch.push({field:k,from:String(om[k]||''),to:String(nm[k]||'')})})}
+return{ok:true,errors:er,changes:ch,next:next}}
+const bleState=c=>{if(!c)return null;const en=typeof c.enable==='boolean'?c.enable:null,rp=c.rpc&&typeof c.rpc.enable==='boolean'?c.rpc.enable:null;return en===null&&rp===null?null:{en:en,rpc:rp}};
+const bleOn=b=>b?(b.en===true||b.rpc===true):null;
+function hardenPlan(cur,b){const P=[];
+[['cloud','Cloud','Cloud'],['mqtt','MQTT','MQTT']].forEach(x=>{if(b[x[0]]&&cur[x[0]]===true)P.push({rpc:x[1]+'.SetConfig',params:{config:{enable:false}},label:x[2]+' off'})});
+if(b.ble&&bleOn(cur.ble)){const k={};if(cur.ble.en===true)k.enable=false;if(cur.ble.rpc===true)k.rpc={enable:false};P.push({rpc:'BLE.SetConfig',params:{config:k},label:'Bluetooth off'})}
+if(b.button&&cur.in_mode&&cur.in_mode!=='detached')P.push({rpc:'PLUGS_UI.SetConfig',params:{config:{controls:{'switch:0':{in_mode:'detached'}}}},label:'Button does nothing'});
+return P}
+const $=i=>document.getElementById(i),esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const B=location.pathname.replace(/\/ui$/,'/');
+const g=u=>fetch(u).then(r=>r.json());
+async function rpc(m,p){const r=await(await fetch('/rpc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:1,method:m,params:p||{}})})).json();if(r.error)throw new Error(r.error.message||('error '+r.error.code));return r.result}
+async function scode(n){const L=await g('/rpc/Script.List'),s=L.scripts.find(x=>x.name===n);if(!s)return null;let h='',o=0,r;
+do{r=await g('/rpc/Script.GetCode?id='+s.id+'&offset='+o);h+=r.data;o+=r.data.length}while(r.left>0&&r.data.length);return h}
+let MODEL={gen:0,maxA:12,maxW:2500},OLD=null,DI={},IMP=null;
+const fl=(k,l,h,v,x)=>'<div class="f"><label for="f_'+k+'">'+l+'</label><input id="f_'+k+'" value="'+esc(v)+'" '+(x||'inputmode="decimal" autocomplete="off"')+'>'+(h?'<div class="mu">'+h+'</div>':'')+'<div class="er" id="e_'+k+'"></div></div>';
+const sl=(k,l,o,v)=>'<div class="f"><label for="f_'+k+'">'+l+'</label><select id="f_'+k+'">'+o.map(x=>'<option value="'+x[0]+'"'+(x[0]===v?' selected':'')+'>'+x[1]+'</option>').join('')+'</select><div class="er" id="e_'+k+'"></div></div>';
+const tx=(k,l,v)=>fl(k,l,'',v,'autocomplete="off" autocapitalize="off"');
+function draw(c,n,mt){
+$('app').innerHTML=
+'<div class="c"><div class="lab">Thresholds</div><div class="bar" id="bar"></div><div class="mu" id="leg"></div>'+
+fl('r','Residual current (A)','At or below this the socket counts as idle.',c.r)+fl('g','Minimum charging current (A)','A charging session starts above this.',c.g)+fl('y','Maximum normal current (A)','Above this the ring turns yellow.',c.y)+
+'<details><summary>Advanced</summary>'+fl('h','Hysteresis (A)','',c.h)+fl('hr','Residual hysteresis (A)','',c.hr)+fl('hs','Band hold time (s)','',c.hs)+fl('sg','Session gap (s)','A session ends after this long without charging current.',c.sg)+'</details></div>'+
+'<div class="c"><div class="lab">Relay protection</div>'+fl('current_limit','Current limit (A)','The relay cuts above this (device maximum '+MODEL.maxA+' A).',n.current_limit)+fl('power_limit','Power limit (W)','The relay cuts above this (device maximum '+MODEL.maxW+' W).',n.power_limit)+'</div>'+
+'<div class="c"><div class="lab">Device</div>'+tx('name','Device name (optional, up to 64 characters)',n.name)+'</div>'+
+'<div class="c"><div class="lab">Button</div>'+sl('in_mode','The button',[['detached','does nothing'],['momentary','toggles the relay']],n.in_mode)+'</div>'+
+'<div class="c"><div class="lab">Price</div>'+fl('p','Price per kWh (0 = not set)','',c.p)+tx('cu','Currency label (1 to 4 characters)',c.cu)+sl('ds','Decimal separator',[['.','Dot (1.50)'],[',','Comma (1,50)']],c.ds)+sl('df','Date format',[['YMD','2026-11-20'],['DMY','20/11/2026'],['MDY','11/20/2026']],c.df)+'</div>'+
+'<div class="c"><div class="lab">Time</div>'+tx('tz','Time zone (e.g. Europe/Lisbon)',n.tz)+'<button id="tzp" class="sm">Use this phone\'s time zone</button><div class="mu" id="clk" style="margin-top:10px"></div><button id="ts" class="sm">Set clock from this phone</button></div>'+
+'<div class="c"><div class="lab">LED ring</div><div class="f"><label><input type="checkbox" id="f_lo"'+(c.lo?' checked':'')+'>Use the LED ring</label></div>'+fl('lb','Brightness (5 to 100)','',c.lb)+
+'<div class="mu" style="margin-top:10px"><span class="dt" style="background:#3b82f6;margin-left:0"></span>idle<span class="dt" style="background:#ef4444"></span>on, not charging<span class="dt" style="background:#10b981"></span>charging<span class="dt" style="background:#f59e0b"></span>above normal<br><span class="dt" style="background:#a855f7;margin-left:0"></span>purple / <span class="dt" style="background:#f97316;margin-left:0"></span>orange: the clock is unknown, set it.</div></div>'+
+'<div class="c"><div class="lab">Mail</div>'+tx('to','To',mt.to)+tx('cc','Cc',mt.cc)+tx('bcc','Bcc',mt.bcc)+tx('subject','Subject',mt.subject)+
+'<div class="f"><label for="f_body">Body</label><textarea id="f_body" autocapitalize="sentences">'+esc(mt.body)+'</textarea><div class="er" id="e_body"></div></div>'+
+'<div class="mu" style="margin-top:8px">Placeholders: {month_name} {month} {year} {total_kwh} {total_cost} {currency} {price} {outside_kwh} {session_count} {sessions_table} {device_name}</div></div>';
+bands()}
+const num=k=>{const s=$('f_'+k).value.trim().replace(',','.');return s===''?NaN:Number(s)};
+function readForm(){const f={},v=k=>$('f_'+k).value;
+['r','g','y','h','hr','hs','sg','p','lb','current_limit','power_limit'].forEach(k=>f[k]=num(k));
+f.cu=v('cu').trim();f.ds=v('ds');f.df=v('df');f.lo=$('f_lo').checked?1:0;f.in_mode=v('in_mode');f.tz=v('tz');f.name=v('name');
+f.mail={to:v('to').trim(),cc:v('cc').trim(),bcc:v('bcc').trim(),subject:v('subject'),body:v('body').replace(/\r\n?/g,'\n')};return f}
+function bands(){const f=readForm(),r=f.r,a=f.g,y=f.y,m=Math.max(f.current_limit||MODEL.maxA,y||0,1),s=[[r,'#3b82f6'],[a-r,'#ef4444'],[y-a,'#10b981'],[m-y,'#f59e0b']],ok=s.every(x=>x[0]>=0);
+$('bar').innerHTML=ok?s.map(x=>'<div style="flex:'+x[0]+';background:'+x[1]+'"></div>').join(''):'';
+$('leg').textContent=ok?'0 A to '+m+' A':'Check the three thresholds.'}
+function clock(){return g('/rpc/Sys.GetStatus').then(s=>{$('clk').innerHTML=s.unixtime>1.7e9?'Clock: '+new Date((s.unixtime+(s.utc_offset||0))*1000).toISOString().slice(0,16).replace('T',' ')+(s.utc_offset===undefined?' (UTC)':'')+' <span class="ok">&#10003;</span>':'<span style="color:var(--warn)">&#9888; Clock unknown.</span>'}).catch(e=>{})}
+async function load(){
+const raw=await g('/rpc/KVS.Get?key=cc:cfg').then(r=>r.value).catch(e=>null);
+const [mc,sw,ui,sy,di]=await Promise.all([scode('MailTpl').catch(e=>null),g('/rpc/Switch.GetConfig?id=0'),g('/rpc/PLUGS_UI.GetConfig'),g('/rpc/Sys.GetConfig'),g('/rpc/Shelly.GetDeviceInfo')]);
+MODEL=MODELS[di.model]||MODEL;
+const c=cfgParse(raw);let mt=null;try{mt=JSON.parse(mc)}catch(e){}if(!mt||typeof mt!=='object')mt=MAILD;
+const n={current_limit:sw.current_limit,power_limit:sw.power_limit,in_mode:((ui.controls||{})['switch:0']||{}).in_mode||'detached',tz:(sy.location||{}).tz||'',name:String((sy.device||{}).name||'')};
+const m={to:mt.to,cc:mt.cc,bcc:mt.bcc,subject:mt.subject===undefined?MAILD.subject:mt.subject,body:mt.body===undefined?MAILD.body:mt.body};
+const ex=await Promise.all(['WiFi','Cloud','BLE','MQTT'].map(x=>g('/rpc/'+x+'.GetConfig').catch(e=>null)));
+const ap=(ex[0]||{}).ap;n.ap=ap?{ssid:ap.ssid,enable:!!ap.enable}:null;n.cloud=ex[1]?!!ex[1].enable:null;n.ble=bleState(ex[2]);n.mqtt=ex[3]?!!ex[3].enable:null;
+OLD={cfg:storedCfg(c),mail:mailText(m),native:n,name:n.name};DI=di;
+$('dev').textContent=(n.name?n.name+' - ':'')+di.model+' (gen '+di.gen+')';
+draw(c,n,m);more();clock();$('save').disabled=false}
+const ck=(k,l,on)=>'<div class="f"><label><input type="checkbox" id="'+k+'"'+(on?' checked':'')+'>'+l+'</label></div>';
+function more(){const n=OLD.native,ap=n.ap||{},hs=[['cloud','Cloud',"Cloud off: no Shelly app access from outside the plug's networks."],['ble','Bluetooth',''],['mqtt','MQTT','']];
+$('more').innerHTML=
+'<div class="c"><div class="lab">Wi-Fi access point</div><div class="mu">The plug\'s own network, for use without a router. WPA2 only; connecting the plug to your Wi-Fi is not affected.</div>'+
+tx('ap_ssid','Network name (SSID)',ap.ssid||apSsid(DI.mac))+
+'<div class="f"><label for="ap_pass">Password (at least 8 characters)</label><input id="ap_pass" type="password" autocomplete="new-password"><div class="er" id="e_ap_pass"></div></div>'+
+ck('ap_on','Access point on',ap.enable)+'<button id="apx">Apply access point</button><div id="ap_res"></div></div>'+
+'<div class="c"><div class="lab">Hardening</div>'+hs.map(x=>{const on=x[0]==='ble'?bleOn(n.ble):n[x[0]];return on===null?'<div class="f">'+x[1]+': <span class="mu">unknown</span></div>':'<div class="f"><label>'+(on?'<input type="checkbox" id="hb_'+x[0]+'" checked><span style="color:var(--warn)">&#9888;</span> Turn '+x[1]+' off (it is on)':'<span class="ok">&#10003;</span> '+x[1]+' is off')+'</label>'+(x[2]&&on?'<div class="mu">'+x[2]+'</div>':'')+'</div>'}).join('')+
+'<div class="f"><label>'+(n.in_mode==='detached'?'<span class="ok">&#10003;</span> The button does nothing':'<input type="checkbox" id="hb_button" checked><span style="color:var(--warn)">&#9888;</span> Make the button do nothing (it toggles the relay)')+'</label></div>'+
+'<div class="mu" style="margin-top:8px">Fix applies the ticked items.</div><button id="hf">Fix</button><div id="hr_res"></div></div>'+
+'<div class="c"><div class="lab">Backup</div><div class="mu">Settings, mail template and device options. No passwords and no energy data.</div>'+
+'<button id="ex">Export configuration</button><button id="im">Import configuration</button><input type="file" id="imf" accept=".json,application/json" style="display:none"><div id="im_res"></div><div id="im_go"></div></div>'+
+'<div class="c"><div class="lab">About</div><div class="mu" id="ab">&hellip;</div><div style="margin-top:8px"><a href="https://github.com/pjrml/chargelens#readme" target="_blank" rel="noopener">Documentation</a></div><button id="up">Check for updates</button><div id="up_res" class="mu"></div></div>';
+about()}
+let VER='dev';
+async function about(){let k='?',r='?';VER='dev';
+try{const L=await g('/rpc/Script.List'),m=L.scripts.find(x=>x.name==='Meter');if(m){const c=await g('/rpc/Script.GetCode?id='+m.id+'&offset=0'),q=/^\/\/ ChargeLens Meter v(\S+)/.exec(c.data);if(q)VER=q[1]}}catch(e){}
+try{let o=0,t=1,c=0,z,d;while(o<t){z=await g('/rpc/KVS.List?offset='+o);t=z.total;d=Object.keys(z.keys).length;if(!d)break;c+=d;o+=d}k=c+'/50'}catch(e){}
+try{r=Math.round((await g('/rpc/Sys.GetStatus')).ram_free/1024)+' KB'}catch(e){}
+$('ab').innerHTML='Version: '+esc(VER)+'<br>Firmware: '+esc(DI.fw_id||DI.ver||'?')+'<br>Free memory: '+r+'<br>KVS keys: '+k}
+async function apApply(){const on=$('ap_on').checked,pass=$('ap_pass').value,ssid=$('ap_ssid').value.trim();$('e_ap_pass').textContent='';
+const e=validateForm(Object.assign(readForm(),{ap:{on:on,pass:pass}}),MODEL).errors;
+if(on&&e.ap_pass){$('e_ap_pass').textContent=e.ap_pass;return}
+if(on&&(!ssid||ssid.length>32)){$('e_ap_pass').textContent='The network name must be 1 to 32 characters';return}
+if(viaAp(location.hostname)&&!confirm('You are connected through this access point. Applying the change will disconnect you; reconnect to the new network afterwards. Continue?'))return;
+const bad=await runPlan([{rpc:'WiFi.SetConfig',params:{config:{ap:on?{ssid:ssid,pass:pass,is_open:false,enable:true}:{enable:false}}},label:'Access point'}],'ap_res','Done.');
+if(!bad)$('ap_pass').value='';try{await load()}catch(x){}}
+function exportNow(){const s={model:DI.model,cfg:OLD.cfg,mail:OLD.mail,native:OLD.native},now=new Date(),b=new Blob([JSON.stringify(exportDoc(s,VER,now),null,1)],{type:'application/json'}),a=document.createElement('a');
+a.href=URL.createObjectURL(b);a.download=exportFile(s,now);document.body.appendChild(a);a.click();a.remove()}
+async function importFile(f){IMP=null;$('im_go').innerHTML='';let d;
+try{d=JSON.parse(await f.text())}catch(e){$('im_res').innerHTML='<div class="er">Not a valid file.</div>';return}
+const r=importCheck(d,MODEL,{model:DI.model,cfg:OLD.cfg,mail:OLD.mail,native:OLD.native});
+if(!r.ok){$('im_res').innerHTML=r.errors.map(x=>'<div class="er">'+esc(x)+'</div>').join('');return}
+IMP=r.next;$('im_res').innerHTML=r.changes.length?'<div class="mu">Will change:</div>'+r.changes.map(c=>'<div>'+esc(c.field)+': '+esc(c.from)+' &rarr; '+esc(c.to)+'</div>').join(''):'<div class="mu">Nothing differs.</div>';
+if(r.changes.length)$('im_go').innerHTML='<button id="ia">Apply import</button>'}
+document.addEventListener('input',e=>{if(OLD&&e.target.id&&e.target.id.charAt(0)==='f')bands()});
+document.addEventListener('click',async e=>{const id=e.target.id;
+if(id==='tzp')$('f_tz').value=Intl.DateTimeFormat().resolvedOptions().timeZone||'';
+if(id==='ts'){try{await g(B+'time?set='+Math.floor(Date.now()/1000));clock()}catch(x){$('clk').textContent='Could not set the clock'}}
+if(id==='save')save();
+if(id==='apx')apApply();
+if(id==='hf'){const P=hardenPlan({cloud:OLD.native.cloud,ble:OLD.native.ble,mqtt:OLD.native.mqtt,in_mode:OLD.native.in_mode},['cloud','ble','mqtt','button'].reduce((a,k)=>{const x=$('hb_'+k);a[k]=!!(x&&x.checked);return a},{}));if(!P.length){$('hr_res').innerHTML='<div class="mu">Nothing to fix.</div>';return}await runPlan(P,'hr_res','Done.');try{await load()}catch(x){}}
+if(id==='ex')exportNow();
+if(id==='im')$('imf').click();
+if(id==='ia'&&IMP){$('ia').disabled=true;await runPlan(writePlan(OLD,IMP),'im_res','Imported. Live within about a minute.');IMP=null;$('im_go').innerHTML='';try{await load()}catch(x){}}
+if(id==='up'){$('up_res').textContent='';try{const L=await g('/rpc/Script.List'),s=L.scripts.find(x=>x.name==='Installer');if(!s){$('up_res').textContent='The installer is not on this plug yet. See the documentation for how to update.';return}
+await rpc('Script.Start',{id:s.id}).catch(x=>{});location.href='/script/'+s.id+'/install'}catch(x){$('up_res').textContent='Could not start the installer: '+x.message}}});
+document.addEventListener('change',e=>{if(e.target.id==='imf'&&e.target.files[0])importFile(e.target.files[0])});
+async function save(){const f=readForm(),v=validateForm(f,MODEL);
+document.querySelectorAll('.er').forEach(x=>x.textContent='');Object.keys(v.errors).forEach(k=>{const x=$('e_'+k);if(x)x.textContent=v.errors[k];else $('e_cfg').textContent=v.errors[k]});
+if(Object.keys(v.errors).length){$('res').textContent='Not saved: fix the marked fields.';return}
+const P=writePlan(OLD,v);if(!P.length){$('res').textContent='Nothing changed.';return}
+$('save').disabled=true;await runPlan(P,'res','Saved. Live within about a minute.');
+try{await load()}catch(x){}$('save').disabled=false}
+async function runPlan(P,o,okMsg){let h='',bad=0;$(o).innerHTML='';
+const fails=[];for(const p of P){if(skipItem(p,fails)){if(fails.indexOf('skip')<0){fails.push('skip');bad++;h+='<div class="er">&#10007; Mail template not saved; the stored one may be damaged - save again</div>';$(o).innerHTML=h}continue}
+try{if(p.params.name==='MailTpl'){const L=await g('/rpc/Script.List'),s=L.scripts.find(x=>x.name==='MailTpl');p.params.id=s?s.id:(await rpc('Script.Create',{name:'MailTpl'})).id;delete p.params.name}
+const r=await rpc(p.rpc,p.params);h+='<div class="ok">&#10003; '+esc(p.label)+(r&&r.restart_required?' (restart needed)':'')+'</div>'}catch(x){fails.push(p.rpc);bad++;h+='<div class="er">&#10007; '+esc(p.label)+': '+esc(x.message)+'</div>'}$(o).innerHTML=h}
+$(o).innerHTML=h+'<div class="mu">'+(bad?'Some changes failed.':okMsg)+'</div>';return bad}
+load().catch(e=>{$('dev').textContent='Could not read the plug ('+e+'). Reload the page.'});
+</script></body></html>

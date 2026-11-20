@@ -1,6 +1,7 @@
 """Fail if the repo text leaks anything private (public repo rule, see CLAUDE.md).
 
-Usage: python tools/check_private.py [paths...]
+Usage: python tools/check_private.py [--generic-only] [paths...]
+--generic-only: skip the private terms file (CI, where it does not exist; no warning).
 Exit 1 and print `file:line: term` for every hit. Default scope: `git ls-files` plus untracked,
 non-ignored files. Generic patterns always apply; private terms are read, one per line (# = comment,
 case-insensitive), from ~/.config/chargelens/private-terms.txt (outside the repo; a missing file is only
@@ -79,8 +80,10 @@ def scan(paths, terms):
 
 
 def main():
+    args = sys.argv[1:]
+    generic_only = "--generic-only" in args
     paths = []
-    for a in sys.argv[1:]:
+    for a in [x for x in args if x != "--generic-only"]:
         if os.path.isdir(a):
             for d, _, fs in os.walk(a):
                 if "__pycache__" not in d and ".git" not in d.split(os.sep):
@@ -88,7 +91,7 @@ def main():
         else:
             paths.append(a)
     paths = paths or default_files()
-    found = scan(paths, load_terms())
+    found = scan(paths, [] if generic_only else load_terms())
     for h in found:
         print(h)
     if found:

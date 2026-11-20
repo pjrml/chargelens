@@ -1,0 +1,31 @@
+name: CI
+on:
+  push:
+  pull_request:
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "lts/*"
+      - name: dist/ and library/ are up to date
+        run: python tools/build.py --check
+      - name: no private or personal data
+        run: python tools/check_private.py --generic-only
+      - name: pure logic tests (Node)
+        run: |
+          set -e
+          node tools/puretest.js src/cfg_lib.js tests/cfg_test.js
+          for t in meter meter_review stamp session session2 session3 event meter_cfg; do
+            node tools/puretest.js src/meter.js tests/${t}_test.js
+          done
+          node tools/puretest.js src/led.js tests/led_test.js
+          for t in page page2 page3 page_mail; do
+            node tools/puretest.js src/page.html tests/${t}_test.js
+          done
+          node tools/puretest.js src/setup.html tests/setup_test.js

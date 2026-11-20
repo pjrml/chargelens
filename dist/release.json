@@ -1,0 +1,55 @@
+{
+  "version": "1.0.0",
+  "tag": "v1.0.0",
+  "repo": "pjrml/chargelens",
+  "files": [
+    {
+      "name": "Meter",
+      "path": "dist/Meter.js",
+      "kind": "code",
+      "enable": true,
+      "size": 24117,
+      "crc32": 1809727775
+    },
+    {
+      "name": "Led",
+      "path": "dist/Led.js",
+      "kind": "code",
+      "enable": false,
+      "size": 3080,
+      "crc32": 2532695111
+    },
+    {
+      "name": "Page",
+      "path": "dist/Page.js",
+      "kind": "code",
+      "enable": false,
+      "size": 4966,
+      "crc32": 693930185
+    },
+    {
+      "name": "PageHtml",
+      "path": "dist/PageHtml.html",
+      "kind": "data",
+      "enable": false,
+      "size": 23221,
+      "crc32": 2466000070
+    },
+    {
+      "name": "SetupHtml",
+      "path": "dist/SetupHtml.html",
+      "kind": "data",
+      "enable": false,
+      "size": 26813,
+      "crc32": 2467089322
+    },
+    {
+      "name": "MailTpl",
+      "path": "dist/MailTpl.json",
+      "kind": "data",
+      "enable": false,
+      "size": 371,
+      "crc32": 768663793
+    }
+  ]
+}
