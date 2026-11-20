@@ -154,7 +154,7 @@ t("skip_after_failed_chunk", function () {
 function cur(o) {
   let s = {model: "SNPL-00112EU", cfg: '{"v":1,"p":0.3}', mail: JSON.stringify({v: 1, to: "a@b", cc: "", bcc: "", subject: "S", body: "B"}),
     native: {current_limit: 12, power_limit: 2500, in_mode: "detached", tz: "Europe/Lisbon", name: "My plug",
-      ap: {ssid: "chargelens-ab12", enable: true}, cloud: false, ble: false, mqtt: false}};
+      ap: {ssid: "chargelens-ab12", enable: true}, cloud: false, ble: {en: false, rpc: false}, mqtt: false}};
   for (let k in o) s[k] = o[k];
   return s;
 }
@@ -173,10 +173,12 @@ t("export_no_password", function () {
   eq("fv", d.fv, 1);
   eq("version", d.version, "1.0.0");
   eq("model", d.model, "SNPL-00112EU");
-  eq("native keys", Object.keys(d.native).sort ? d.native.ap : 0, {ssid: "chargelens-ab12", enable: true});
+  eq("native keys", Object.keys(d.native), ["current_limit", "power_limit", "in_mode", "tz", "name", "ap", "cloud", "ble", "mqtt"]);
+  eq("ap keys", Object.keys(d.native.ap), ["ssid", "enable"]);
+  eq("ble kept", d.native.ble, {en: false, rpc: false});
   eq("cfg obj", d.cfg, {v: 1, p: 0.3});
   eq("mail to", d.mail.to, "a@b");
-  eq("no pass", j.toLowerCase().indexOf("pass"), -1);
+  eq("top keys", Object.keys(d), ["app", "fv", "version", "exported", "model", "cfg", "mail", "native"]);
   eq("file name", exportFile(s, NOW), "chargelens-config-My-plug-20261120.json");
   eq("file name model", exportFile(cur({native: {name: ""}}), NOW), "chargelens-config-SNPL-00112EU-20261120.json");
 });
@@ -232,13 +234,31 @@ t("import_unknown_fields_ignored", function () {
   eq("ok", r.ok, true);
   eq("no changes", r.changes, []);
 });
+t("ble_state", function () {
+  eq("gen3", bleState({rpc: {enable: false}}), {en: null, rpc: false});
+  eq("gen2 en on", bleState({enable: true, rpc: {enable: false}}), {en: true, rpc: false});
+  eq("gen2 rpc on", bleState({enable: false, rpc: {enable: true}}), {en: false, rpc: true});
+  eq("none", bleState({}), null);
+  eq("null", bleState(null), null);
+  eq("on gen3", bleOn({en: null, rpc: true}), true);
+  eq("off gen3", bleOn({en: null, rpc: false}), false);
+  eq("on gen2", bleOn({en: false, rpc: true}), true);
+  eq("unknown", bleOn(null), null);
+});
 t("harden_plan_only_needed", function () {
-  let c = {cloud: true, ble: false, mqtt: true, in_mode: "momentary"};
+  let c = {cloud: true, ble: {en: null, rpc: false}, mqtt: true, in_mode: "momentary"};
   eq("all boxes", hardenPlan(c, {cloud: true, ble: true, mqtt: true, button: true}).map(function (p) { return p.rpc; }),
     ["Cloud.SetConfig", "MQTT.SetConfig", "PLUGS_UI.SetConfig"]);
   eq("cloud params", hardenPlan(c, {cloud: true})[0].params, {config: {enable: false}});
   eq("button params", hardenPlan(c, {button: true})[0].params, {config: {controls: {"switch:0": {in_mode: "detached"}}}});
   eq("unchecked skipped", hardenPlan(c, {ble: true, mqtt: false}), []);
-  eq("already ok", hardenPlan({cloud: false, ble: false, mqtt: false, in_mode: "detached"}, {cloud: true, ble: true, mqtt: true, button: true}), []);
-  eq("unknown state skipped", hardenPlan({cloud: null}, {cloud: true}), []);
+  eq("already ok", hardenPlan({cloud: false, ble: {en: false, rpc: false}, mqtt: false, in_mode: "detached"}, {cloud: true, ble: true, mqtt: true, button: true}), []);
+  eq("unknown state skipped", hardenPlan({cloud: null, ble: null}, {cloud: true, ble: true}), []);
+});
+t("harden_plan_ble_shapes", function () {
+  eq("gen3 rpc on", hardenPlan({ble: {en: null, rpc: true}}, {ble: true}), [{rpc: "BLE.SetConfig", params: {config: {rpc: {enable: false}}}, label: "Bluetooth off"}]);
+  eq("gen2 both on", hardenPlan({ble: {en: true, rpc: true}}, {ble: true})[0].params, {config: {enable: false, rpc: {enable: false}}});
+  eq("gen2 en only", hardenPlan({ble: {en: true, rpc: false}}, {ble: true})[0].params, {config: {enable: false}});
+  eq("gen2 rpc only", hardenPlan({ble: {en: false, rpc: true}}, {ble: true})[0].params, {config: {rpc: {enable: false}}});
+  eq("unchecked", hardenPlan({ble: {en: true, rpc: true}}, {ble: false}), []);
 });

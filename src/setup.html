@@ -91,9 +91,13 @@ CFG_ORD.forEach(k=>{if(o[k]!==p[k])ch.push({field:k,from:o[k],to:p[k]})});
 NATK.forEach(k=>{if(on[k]!==v.native[k])ch.push({field:k,from:on[k],to:v.native[k]})});
 MAILK.forEach(k=>{if(String(om[k]||'')!==String(nm[k]||''))ch.push({field:k,from:String(om[k]||''),to:String(nm[k]||'')})})}
 return{ok:true,errors:er,changes:ch,next:next}}
-/* cur = {cloud, ble, mqtt (enabled booleans, null = unknown), in_mode}; boxes = {cloud, ble, mqtt, button}; only checked items that differ */
+/* BLE differs by generation: Gen3 {rpc:{enable}}, Gen2 {enable, rpc:{enable}}; state = {en, rpc} (null = field absent) or null */
+const bleState=c=>{if(!c)return null;const en=typeof c.enable==='boolean'?c.enable:null,rp=c.rpc&&typeof c.rpc.enable==='boolean'?c.rpc.enable:null;return en===null&&rp===null?null:{en:en,rpc:rp}};
+const bleOn=b=>b?(b.en===true||b.rpc===true):null;
+/* cur = {cloud, mqtt (enabled booleans, null = unknown), ble (bleState), in_mode}; boxes = {cloud, ble, mqtt, button}; only checked items that differ */
 function hardenPlan(cur,b){const P=[];
-[['cloud','Cloud','Cloud'],['ble','BLE','Bluetooth'],['mqtt','MQTT','MQTT']].forEach(x=>{if(b[x[0]]&&cur[x[0]]===true)P.push({rpc:x[1]+'.SetConfig',params:{config:{enable:false}},label:x[2]+' off'})});
+[['cloud','Cloud','Cloud'],['mqtt','MQTT','MQTT']].forEach(x=>{if(b[x[0]]&&cur[x[0]]===true)P.push({rpc:x[1]+'.SetConfig',params:{config:{enable:false}},label:x[2]+' off'})});
+if(b.ble&&bleOn(cur.ble)){const k={};if(cur.ble.en===true)k.enable=false;if(cur.ble.rpc===true)k.rpc={enable:false};P.push({rpc:'BLE.SetConfig',params:{config:k},label:'Bluetooth off'})}
 if(b.button&&cur.in_mode&&cur.in_mode!=='detached')P.push({rpc:'PLUGS_UI.SetConfig',params:{config:{controls:{'switch:0':{in_mode:'detached'}}}},label:'Button does nothing'});
 return P}
 /* ==== END PURE ==== */
@@ -140,7 +144,7 @@ const c=cfgParse(raw);let mt=null;try{mt=JSON.parse(mc)}catch(e){}if(!mt||typeof
 const n={current_limit:sw.current_limit,power_limit:sw.power_limit,in_mode:((ui.controls||{})['switch:0']||{}).in_mode||'detached',tz:(sy.location||{}).tz||'',name:String((sy.device||{}).name||'')};
 const m={to:mt.to,cc:mt.cc,bcc:mt.bcc,subject:mt.subject===undefined?MAILD.subject:mt.subject,body:mt.body===undefined?MAILD.body:mt.body};
 const ex=await Promise.all(['WiFi','Cloud','BLE','MQTT'].map(x=>g('/rpc/'+x+'.GetConfig').catch(e=>null)));
-const ap=(ex[0]||{}).ap;n.ap=ap?{ssid:ap.ssid,enable:!!ap.enable}:null;n.cloud=ex[1]?!!ex[1].enable:null;n.ble=ex[2]&&ex[2].enable!==undefined?!!ex[2].enable:null;n.mqtt=ex[3]?!!ex[3].enable:null;
+const ap=(ex[0]||{}).ap;n.ap=ap?{ssid:ap.ssid,enable:!!ap.enable}:null;n.cloud=ex[1]?!!ex[1].enable:null;n.ble=bleState(ex[2]);n.mqtt=ex[3]?!!ex[3].enable:null;
 OLD={cfg:storedCfg(c),mail:mailText(m),native:n,name:n.name};DI=di;
 $('dev').textContent=(n.name?n.name+' - ':'')+di.model+' (gen '+di.gen+')';
 draw(c,n,m);more();clock();$('save').disabled=false}
@@ -152,9 +156,9 @@ $('more').innerHTML=
 tx('ap_ssid','Network name (SSID)',ap.ssid||apSsid(DI.mac))+
 '<div class="f"><label for="ap_pass">Password (at least 8 characters)</label><input id="ap_pass" type="password" autocomplete="new-password"><div class="er" id="e_ap_pass"></div></div>'+
 ck('ap_on','Access point on',ap.enable)+'<button id="apx">Apply access point</button><div id="ap_res"></div></div>'+
-'<div class="c"><div class="lab">Hardening</div>'+hs.map(x=>'<div class="f">'+(n[x[0]]===null?x[1]+': <span class="mu">unknown</span>':n[x[0]]?'<span style="color:var(--warn)">&#9888;</span> '+x[1]+' is on':'<span class="ok">&#10003;</span> '+x[1]+' is off')+(x[2]?'<div class="mu">'+x[2]+'</div>':'')+'</div>').join('')+
-'<div class="f">'+(n.in_mode==='detached'?'<span class="ok">&#10003;</span> The button does nothing':'<span style="color:var(--warn)">&#9888;</span> The button toggles the relay')+'</div>'+
-'<div class="mu" style="margin-top:8px">Fix turns off what is on and sets the button to do nothing.</div><button id="hf">Fix</button><div id="hr_res"></div></div>'+
+'<div class="c"><div class="lab">Hardening</div>'+hs.map(x=>{const on=x[0]==='ble'?bleOn(n.ble):n[x[0]];return on===null?'<div class="f">'+x[1]+': <span class="mu">unknown</span></div>':'<div class="f"><label>'+(on?'<input type="checkbox" id="hb_'+x[0]+'" checked><span style="color:var(--warn)">&#9888;</span> Turn '+x[1]+' off (it is on)':'<span class="ok">&#10003;</span> '+x[1]+' is off')+'</label>'+(x[2]&&on?'<div class="mu">'+x[2]+'</div>':'')+'</div>'}).join('')+
+'<div class="f"><label>'+(n.in_mode==='detached'?'<span class="ok">&#10003;</span> The button does nothing':'<input type="checkbox" id="hb_button" checked><span style="color:var(--warn)">&#9888;</span> Make the button do nothing (it toggles the relay)')+'</label></div>'+
+'<div class="mu" style="margin-top:8px">Fix applies the ticked items.</div><button id="hf">Fix</button><div id="hr_res"></div></div>'+
 '<div class="c"><div class="lab">Backup</div><div class="mu">Settings, mail template and device options. No passwords and no energy data.</div>'+
 '<button id="ex">Export configuration</button><button id="im">Import configuration</button><input type="file" id="imf" accept=".json,application/json" style="display:none"><div id="im_res"></div><div id="im_go"></div></div>'+
 '<div class="c"><div class="lab">About</div><div class="mu" id="ab">&hellip;</div><div style="margin-top:8px"><a href="https://github.com/pjrml/chargelens#readme" target="_blank" rel="noopener">Documentation</a></div><button id="up">Check for updates</button><div id="up_res" class="mu"></div></div>';
@@ -170,8 +174,8 @@ const e=validateForm(Object.assign(readForm(),{ap:{on:on,pass:pass}}),MODEL).err
 if(on&&e.ap_pass){$('e_ap_pass').textContent=e.ap_pass;return}
 if(on&&(!ssid||ssid.length>32)){$('e_ap_pass').textContent='The network name must be 1 to 32 characters';return}
 if(viaAp(location.hostname)&&!confirm('You are connected through this access point. Applying the change will disconnect you; reconnect to the new network afterwards. Continue?'))return;
-await runPlan([{rpc:'WiFi.SetConfig',params:{config:{ap:on?{ssid:ssid,pass:pass,is_open:false,enable:true}:{enable:false}}},label:'Access point'}],'ap_res','Done.');
-try{await load()}catch(x){}}
+const bad=await runPlan([{rpc:'WiFi.SetConfig',params:{config:{ap:on?{ssid:ssid,pass:pass,is_open:false,enable:true}:{enable:false}}},label:'Access point'}],'ap_res','Done.');
+if(!bad)$('ap_pass').value='';try{await load()}catch(x){}}
 function exportNow(){const s={model:DI.model,cfg:OLD.cfg,mail:OLD.mail,native:OLD.native},now=new Date(),b=new Blob([JSON.stringify(exportDoc(s,VER,now),null,1)],{type:'application/json'}),a=document.createElement('a');
 a.href=URL.createObjectURL(b);a.download=exportFile(s,now);document.body.appendChild(a);a.click();a.remove()}
 async function importFile(f){IMP=null;$('im_go').innerHTML='';let d;
@@ -186,7 +190,7 @@ if(id==='tzp')$('f_tz').value=Intl.DateTimeFormat().resolvedOptions().timeZone||
 if(id==='ts'){try{await g(B+'time?set='+Math.floor(Date.now()/1000));clock()}catch(x){$('clk').textContent='Could not set the clock'}}
 if(id==='save')save();
 if(id==='apx')apApply();
-if(id==='hf'){const P=hardenPlan({cloud:OLD.native.cloud,ble:OLD.native.ble,mqtt:OLD.native.mqtt,in_mode:OLD.native.in_mode},{cloud:1,ble:1,mqtt:1,button:1});if(!P.length){$('hr_res').innerHTML='<div class="mu">Nothing to fix.</div>';return}await runPlan(P,'hr_res','Done.');try{await load()}catch(x){}}
+if(id==='hf'){const P=hardenPlan({cloud:OLD.native.cloud,ble:OLD.native.ble,mqtt:OLD.native.mqtt,in_mode:OLD.native.in_mode},['cloud','ble','mqtt','button'].reduce((a,k)=>{const x=$('hb_'+k);a[k]=!!(x&&x.checked);return a},{}));if(!P.length){$('hr_res').innerHTML='<div class="mu">Nothing to fix.</div>';return}await runPlan(P,'hr_res','Done.');try{await load()}catch(x){}}
 if(id==='ex')exportNow();
 if(id==='im')$('imf').click();
 if(id==='ia'&&IMP){$('ia').disabled=true;await runPlan(writePlan(OLD,IMP),'im_res','Imported. Live within about a minute.');IMP=null;$('im_go').innerHTML='';try{await load()}catch(x){}}
