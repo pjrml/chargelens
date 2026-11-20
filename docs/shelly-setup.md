@@ -13,6 +13,8 @@ installer.
 
 ## 1. Power it and join its own network
 
+Menu names and labels vary by firmware version; the paths below are a guide.
+
 1. Plug it into a mains socket. A new plug starts its own Wi-Fi access point (a name like `ShellyPlusPlugS-XXXXXX`
    or `ShellyPlugSG3-XXXXXX`), open, without a password.
 2. Connect your phone or computer to that network and open `http://192.168.33.1`. This is the plug's web UI.

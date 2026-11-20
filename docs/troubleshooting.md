@@ -54,7 +54,7 @@ or charger (at most 10 A), unplug, and turn the relay on from the page.
 (shorten the currency label).
 
 **I lost the access point password.** Open the setup page through the home Wi-Fi if the plug is still on it, or
-factory-reset the plug (hold its button for about 10 seconds) and install again. A factory reset erases the plug's
+factory-reset the plug (a long press of the button, about 10 s on most models; check Shelly's guide for your model) and install again. A factory reset erases the plug's
 settings and scripts; the energy log is lost with it.
 
 **The mail button does nothing or the body is empty.** Long reports are copied to the clipboard and a short mail

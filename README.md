@@ -10,7 +10,7 @@ employer, a landlord, family). ChargeLens runs as scripts on a **Shelly Plus Plu
 totals and charging sessions on the plug itself (no cloud, no hub, no internet needed, survives power cuts), shows
 them on a phone page served by the plug, and prepares a monthly report by e-mail or CSV.
 
-![Screenshot placeholder: daily page](docs/assets/screenshots/daily-page.png)
+_Screenshot: daily page (added before v1.0.0)._
 
 ## Why it exists
 

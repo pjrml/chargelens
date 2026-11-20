@@ -54,7 +54,8 @@ Device settings, kept in the plug itself:
 ## Button
 
 *Button does nothing* (default, `detached`) or *toggles the relay*. In the default mode only the page's relay
-toggle switches the relay. Button presses are not logged in the detached mode.
+toggle switches the relay, and button presses leave no trace (the plug emits no event for them). In the toggle mode
+the relay change is logged as an event with its source like any other.
 
 ## Price
 

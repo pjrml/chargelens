@@ -29,11 +29,11 @@ This installs everything from your phone or computer, with no tools. If it fails
    https://raw.githubusercontent.com/pjrml/chargelens/main/library/manifest.json
    ```
 
-   ![Screenshot placeholder: library URL dialog](assets/screenshots/install-1-library-url.png)
+   _Screenshot: library URL dialog (added before v1.0.0)._
 
 4. Pick **ChargeLens Installer** from the list and save.
 
-   ![Screenshot placeholder: ChargeLens Installer in the library](assets/screenshots/install-2-pick.png)
+   _Screenshot: ChargeLens Installer in the library (added before v1.0.0)._
 
 The exact menu labels depend on the firmware version; look for "Library" in the script editor.
 
@@ -44,7 +44,7 @@ The exact menu labels depend on the firmware version; look for "Library" in the 
 2. Press **Start**. The script's console prints the address of the install page, like
    `http://<plug-ip>/script/<id>/install`.
 
-   ![Screenshot placeholder: Installer started, console line](assets/screenshots/install-3-start.png)
+   _Screenshot: Installer started, console line (added before v1.0.0)._
 
 If the plug refuses to start it ("too many scripts"), stop another running script first.
 
@@ -66,8 +66,8 @@ GitHub, so the browser needs internet. The page then runs these checks and scree
 When it finishes it links to the daily page and the setup page. If you set an access point it also tells you how
 to reconnect: the plug's network changes, so your phone may lose it.
 
-![Screenshot placeholder: install page checks](assets/screenshots/install-4-checks.png)
-![Screenshot placeholder: install finished](assets/screenshots/install-5-done.png)
+_Screenshot: install page checks (added before v1.0.0)._
+_Screenshot: install finished (added before v1.0.0)._
 
 ## Updating
 
