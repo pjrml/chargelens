@@ -136,9 +136,12 @@ Publishing checklist (every rc and every release):
    For a release (not an rc), [manual-tests.md](manual-tests.md) also passed on a plug.
 2. Set `src/version.txt` to the new number and move the `CHANGELOG.md` "Unreleased" items under it.
 3. `python tools/build.py`; check `git diff dist/` (version headers, sizes in `dist/release.json`).
-4. Commit on `dev`: `Release vX.Y.Z[-rc.N]`; push `dev`.
-5. Fast-forward `main` to it: `git push origin dev:main`.
-6. Tag that commit and push the tag: `git tag vX.Y.Z[-rc.N]` and `git push origin vX.Y.Z[-rc.N]`.
-7. GitHub release from the tag with the changelog entry (`gh release create vX.Y.Z-rc.N --prerelease` for an rc).
-8. CI must be green on both (dist up to date, privacy check, Node tests). Installers read every file from their
+4. Screenshots: retake every screenshot in `docs/assets/screenshots/` whose page changed visibly since the last
+   publication (header, wording, layout, icons; method under [Documentation](#documentation)), so the docs on
+   `main` always show what a plug installed from `main` shows.
+5. Commit on `dev`: `Release vX.Y.Z[-rc.N]`; push `dev`.
+6. Fast-forward `main` to it: `git push origin dev:main`.
+7. Tag that commit and push the tag: `git tag vX.Y.Z[-rc.N]` and `git push origin vX.Y.Z[-rc.N]`.
+8. GitHub release from the tag with the changelog entry (`gh release create vX.Y.Z-rc.N --prerelease` for an rc).
+9. CI must be green on both (dist up to date, privacy check, Node tests). Installers read every file from their
    baked tag, so never move or re-create a pushed tag.
