@@ -46,7 +46,14 @@ and run the build. iOS ignores SVG icons, which is why the PNG exists.
 ## Documentation
 
 User docs are in `docs/*.md` (en-US, for non-developers) and are linked from `README.md`. Screenshots live in
-`docs/assets/screenshots/` and must not show personal data (addresses, Wi-Fi names, device locations). Document
+`docs/assets/screenshots/` and must not show personal data (addresses, Wi-Fi names, device locations, MAC
+addresses: the Shelly web UI, the default AP name and the installer's SSID field all contain the MAC).
+The current set was taken on the Gen2 dev plug (fw 1.7.6, 2026-11-20) with headless Edge driven over the
+DevTools protocol: phone viewport 390 px at 2x for the ChargeLens pages, 1280 px for the Shelly web UI; six
+months of random energy and sessions written into the KVS with `Meter` stopped; the live power on the daily
+page faked by rewriting the `data` response in the browser; the MAC (and the dev plug's address) replaced in
+the DOM before each capture; the install page loaded with `?base=` on `main` (the developer-base notice
+hidden, since no tag existed). Retake them when a page changes visibly. Document
 what the code does; the charger limit (10 A) must match `CHARGER_A` in `src/install.html` in `README.md`,
 `docs/install.md`, `docs/install-manual.md`, `docs/shelly-setup.md` and `docs/configuration.md`.
 

@@ -25,6 +25,10 @@ The plug keeps working with no phone connected and with no internet. Power cuts 
 - **Events**: relay changes with their source, boots, script restarts (updates).
 - **Set the clock from this phone** and the **Setup** link at the top.
 
+<img src="assets/screenshots/daily-page-full.png" alt="The whole daily page: now, relay, today, month, history, sessions, report buttons and events" width="300">
+
+_Example data (random numbers). The page shows the plug's own name, nothing personal._
+
 Turning the relay off from the page asks for confirmation, because charging stops. Nothing else on any page
 switches the relay.
 

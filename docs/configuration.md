@@ -9,6 +9,8 @@ Nothing on the setup page switches the relay.
 > "My charger is set to draw at most 10 A". ChargeLens cannot limit the charger; the relay limits below only cut
 > the plug off when they are exceeded.
 
+<img src="assets/screenshots/setup-thresholds.png" alt="Setup page: thresholds and relay protection" width="260"> <img src="assets/screenshots/setup-price-time-led.png" alt="Setup page: price, time and LED ring" width="260">
+
 Settings that are not saved (blank, damaged or hand-edited wrongly) fall back to their defaults field by field,
 so a fresh install works before you open the setup page.
 
@@ -101,11 +103,15 @@ Recipient (to, cc, bcc), subject and body of the monthly report. Placeholders:
 Accents and currency signs work in the subject and body. The recipients and your signature stay on the plug and in
 your own export file, never in this repository.
 
+<img src="assets/screenshots/setup-mail.png" alt="Setup page: mail recipient, subject and body with the default template" width="260">
+
 ## Device and access point
 
 Device name (up to 64 characters). Wi-Fi access point: network name, WPA2 password (at least 8 characters) and
 on/off. If you are connected through the access point itself, applying a change disconnects you; reconnect to the
 new network. See [security.md](security.md).
+
+<img src="assets/screenshots/setup-network-backup.png" alt="Setup page: access point, hardening, backup and about" width="260">
 
 ## Hardening
 
