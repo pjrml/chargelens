@@ -34,6 +34,21 @@ python tools/shelly.py testpage src/install.html tests/install_test.js
 Other commands: `info`, `backup --out <dir>`, `rpc <Method> [json]`, `put <Name> <file> [--temp|--store]`,
 `delscript <Name>`.
 
+## Logo and icons
+
+`docs/assets/logo.svg` is the source. `src/page.html` and `src/setup.html` carry it inline in `<head>` as an SVG
+favicon (a `data:image/svg+xml` URI, ASCII, `#` written as `%23`) plus an `apple-touch-icon`: a 180 px PNG on the
+dark page background, reduced to a 16-colour palette (about 1.2 KB, `docs/assets/icon-180.png`). To regenerate it,
+render the logo at 180 px with headless Edge (`--screenshot`), quantize to 16 colours, base64 it into both pages
+and run the build. iOS ignores SVG icons, which is why the PNG exists.
+
+## Documentation
+
+User docs are in `docs/*.md` (en-US, for non-developers) and are linked from `README.md`. Screenshots live in
+`docs/assets/screenshots/` and must not show personal data (addresses, Wi-Fi names, device locations). Document
+what the code does; the charger limit (10 A) must match `CHARGER_A` in `src/install.html` in `README.md`,
+`docs/install.md`, `docs/install-manual.md`, `docs/shelly-setup.md` and `docs/configuration.md`.
+
 ## Privacy check
 
 ```
