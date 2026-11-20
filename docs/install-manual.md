@@ -3,8 +3,8 @@
 Use this if the Library step fails or you prefer not to run the installer. It creates the scripts by hand in the
 plug's web UI. It is longer, but always works.
 
-> **Status: in development.** No release exists yet (no `v1.0.0` tag). Replace `<tag>` below with a released tag
-> once there is one.
+> **Status: release candidate.** There is no final `v1.0.0` yet. Replace `<tag>` below with the newest tag on the
+> GitHub *Releases* page (a release candidate, `v1.0.0-rc.N`).
 >
 > **Charger requirement.** Set the car or charger to draw **at most 10 A** first (the plug is rated 12 A).
 

@@ -2,7 +2,9 @@
 
 ## Unreleased
 
-First public version (v1, in development; not tagged yet). Evolved from a private build.
+## 1.0.0-rc.1 (2026-11-20)
+
+First release candidate of v1 (first public version; evolved from a private build).
 
 - Energy per day and month (six months kept on the plug), charging sessions, relay/boot/restart events, heartbeats
   and manual dating of charges made while the clock was unknown.

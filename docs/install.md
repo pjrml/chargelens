@@ -3,8 +3,8 @@
 This installs everything from your phone or computer, with no tools. If it fails, use the
 [manual path](install-manual.md).
 
-> **Status: in development.** There is no released version yet (no `v1.0.0` tag). The links below point at
-> releases that do not exist yet. Do not use ChargeLens on a plug you rely on.
+> **Status: release candidate.** ChargeLens v1 is being validated; there is no final `v1.0.0` yet. Do not use
+> ChargeLens on a plug you rely on.
 
 > [!CAUTION]
 > **Use at your own risk.** ChargeLens comes without warranty of any kind and the author accepts no liability

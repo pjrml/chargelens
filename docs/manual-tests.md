@@ -31,7 +31,7 @@ phone, from Step 1.
 
   Write down whether the name goes back to `chargelens-installer.js` (then the docs must warn against it).
 - [ ] **1.5 Address.** The address in the console opens the install page (no 404) and the page shows the version
-      that was imported (`1.0.0-dev` on `main`).
+      that was imported (the version in `main/dist/release.json`, e.g. `1.0.0-rc.1`).
 - [ ] **1.6 Checks.** Tested model, firmware up to date, charger confirmation; **Install** stays disabled until the
       10 A box is ticked.
 - [ ] **1.7 Hardening.** Cloud, Bluetooth, MQTT, button and *Turn the websocket debug logs off* are ticked by

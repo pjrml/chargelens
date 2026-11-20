@@ -12,8 +12,8 @@
 > ratings of everything involved and follow the charger and plug manufacturers' instructions. "Tested hardware"
 > below lists the models ChargeLens was tested on; it is not a statement or guarantee that using them is safe.
 
-> **Status: in development.** ChargeLens is not released yet (no `v1.0.0` tag). The install instructions point to
-> releases that do not exist yet; do not use it on a plug you rely on.
+> **Status: release candidate.** ChargeLens v1 is being validated (`v1.0.0-rc.N` tags); there is no final `v1.0.0`
+> yet. Do not use it on a plug you rely on.
 
 Offline energy logger for charging an electric car from a socket someone else pays for (a condominium, an
 employer, a landlord, family). ChargeLens runs as scripts on a **Shelly Plus Plug S**: it keeps daily and monthly

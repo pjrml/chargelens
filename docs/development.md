@@ -109,26 +109,36 @@ Without Node installed, VS Code's bundled one works:
 `ELECTRON_RUN_AS_NODE=1 "<VS Code>/Code.exe" tools/puretest.js <src> <test>`.
 
 The `Installer` loader (in `src/installer.js`) fetches `dist/install.html` from `main` while `main/dist/release.json`
-has its own tag, otherwise from its tag, and falls back to `main` when that tag has no `install.html` (an
-`Installer` imported from `main` carries a `-dev` tag that is never published). An explicit `?tag=` or `?base=`
-never falls back; a failed load names the URL.
+has its own tag, otherwise from its tag, and falls back to `main` when that tag has no `install.html` (a safety
+net: every published version has its tag). An explicit `?tag=` or `?base=` never falls back; a failed load names
+the URL.
 
 Manual checks with a phone and a plug (install, setup page, daily page, update): [manual-tests.md](manual-tests.md).
 
-### Release checklist (design B2)
+### Versions and publishing (design B2)
 
-Versions are semver. Between releases `src/version.txt` holds the next version with a pre-release suffix,
-`X.Y.Z-dev` (shown as such in the About card and in every script header), so a build from `main` never claims to
-be a release. A test release uses `X.Y.Z-rc.N` and tag `vX.Y.Z-rc.N`. Precedence: `1.0.0-dev` < `1.0.0-rc.1` <
-`1.0.0-rc.2` < `1.0.0`. The installer refuses to go back to an older version, so a plug on `1.0.0` must be
-cleaned before a `1.0.0-dev` build can be installed on it. After a release, set `src/version.txt` to the next
-`X.Y.Z-dev`.
+Versions are semver, and **every build that reaches `main` has its own version number** (owner rule,
+2026-11-20). Plugs install from `main`, and the installer compares version numbers to offer an update, to refuse a
+downgrade and to tell an update from a reinstall, so two different builds must never share a number: a changed
+comma or logo is a new version. Tags and the changelog describe a version; they do not replace the number.
+Commits on `dev` between two publications need no number of their own.
 
-1. Everything committed; device tests and page tests pass; [manual-tests.md](manual-tests.md) passed on a plug;
-   `python tools/check_private.py` has no hits.
-2. Set `src/version.txt` to `X.Y.Z` (drop the `-dev` suffix) and add the `CHANGELOG.md` entry.
+- While a release is being validated: `X.Y.Z-rc.N`, tag `vX.Y.Z-rc.N`, GitHub pre-release. Every push to `main`
+  takes the next `N`.
+- The release: `X.Y.Z` (the last rc, unchanged, once [manual-tests.md](manual-tests.md) and the validation passed).
+- After a release, the next publication is the next version's `-rc.1` (or a patch `X.Y.Z+1`).
+- Precedence: `1.0.0-dev` < `1.0.0-rc.1` < `1.0.0-rc.2` < `1.0.0-rc.10` < `1.0.0`. The installer refuses to go
+  back to an older version, so a plug on a newer number must be cleaned before an older build can be installed.
+
+Publishing checklist (every rc and every release):
+
+1. Everything committed on `dev`; device tests and page tests pass; `python tools/check_private.py` has no hits.
+   For a release (not an rc), [manual-tests.md](manual-tests.md) also passed on a plug.
+2. Set `src/version.txt` to the new number and move the `CHANGELOG.md` "Unreleased" items under it.
 3. `python tools/build.py`; check `git diff dist/` (version headers, sizes in `dist/release.json`).
-4. Commit on `main`: `Release vX.Y.Z`.
-5. Tag `vX.Y.Z` on that commit; push `main` and the tag together (`git push origin main vX.Y.Z`).
-6. CI must be green on both (dist up to date, privacy check, Node tests). Installers read every file from their
+4. Commit on `dev`: `Release vX.Y.Z[-rc.N]`; push `dev`.
+5. Fast-forward `main` to it: `git push origin dev:main`.
+6. Tag that commit and push the tag: `git tag vX.Y.Z[-rc.N]` and `git push origin vX.Y.Z[-rc.N]`.
+7. GitHub release from the tag with the changelog entry (`gh release create vX.Y.Z-rc.N --prerelease` for an rc).
+8. CI must be green on both (dist up to date, privacy check, Node tests). Installers read every file from their
    baked tag, so never move or re-create a pushed tag.

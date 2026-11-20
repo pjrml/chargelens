@@ -1,4 +1,4 @@
-// ChargeLens Page v1.0.0-dev
+// ChargeLens Page v1.0.0-rc.1
 let CLOCK_MIN = 1700000000;
 let TADJ_MAX = 5;
 let BOOT = "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"utf-8\">" +
