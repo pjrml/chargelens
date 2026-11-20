@@ -1,0 +1,102 @@
+"""Fail if the repo text leaks anything private (public repo rule, see CLAUDE.md).
+
+Usage: python tools/check_private.py [paths...]
+Exit 1 and print `file:line: term` for every hit. Default scope: `git ls-files` plus untracked,
+non-ignored files. Generic patterns always apply; private terms are read, one per line (# = comment,
+case-insensitive), from ~/.config/chargelens/private-terms.txt (outside the repo; a missing file is only
+a warning). Stdlib only.
+"""
+import os
+import re
+import subprocess
+import sys
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+TERMS_FILE = os.path.join(os.path.expanduser("~"), ".config", "chargelens", "private-terms.txt")
+ALLOWED_IPS = {"192.168.33.1", "0.0.0.0"}
+ALLOWED_MAIL = ("@users.noreply.github.com", "@example.com", ".example.com")
+BINARY_EXT = {".png", ".jpg", ".jpeg", ".gif", ".ico", ".pdf", ".woff", ".woff2", ".zip"}
+
+IPV4 = re.compile(r"(?<![\d.])(?:\d{1,3}\.){3}\d{1,3}(?![\d.]*\d)")
+MAC = re.compile(r"(?<![0-9A-Fa-f:-])(?:[0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}(?![0-9A-Fa-f:-])")
+MAIL = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+")
+# built from pieces so that this file does not match its own patterns
+LANG_PT = re.compile("lang" + "=" + '"' + "pt", re.I)
+BS2 = chr(92) * 2  # regex for one backslash
+WIN_USER = re.compile("[A-Za-z]:[" + BS2 + "/]+Users[" + BS2 + "/]", re.I)
+
+
+def load_terms():
+    if not os.path.isfile(TERMS_FILE):
+        print("warning: %s not found, private terms not checked" % TERMS_FILE, file=sys.stderr)
+        return []
+    out = []
+    with open(TERMS_FILE, encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith("#"):
+                out.append(line.lower())
+    return out
+
+
+def default_files():
+    r = subprocess.run(["git", "ls-files", "--cached", "--others", "--exclude-standard"], cwd=ROOT,
+                       capture_output=True, text=True, check=True)
+    return sorted(set(x for x in r.stdout.splitlines() if x))
+
+
+def scan_line(line, terms):
+    hits = []
+    for m in IPV4.finditer(line):
+        parts = m.group(0).split(".")
+        if all(int(p) < 256 for p in parts) and m.group(0) not in ALLOWED_IPS:
+            hits.append(m.group(0))
+    hits += [m.group(0) for m in MAC.finditer(line)]
+    for m in MAIL.finditer(line):
+        if not m.group(0).lower().endswith(ALLOWED_MAIL):
+            hits.append(m.group(0))
+    hits += [m.group(0) for m in LANG_PT.finditer(line)]
+    hits += [m.group(0) for m in WIN_USER.finditer(line)]
+    low = line.lower()
+    hits += [t for t in terms if t in low]
+    return hits
+
+
+def scan(paths, terms):
+    found = []
+    for rel in paths:
+        full = rel if os.path.isabs(rel) else os.path.join(ROOT, rel)
+        if os.path.splitext(full)[1].lower() in BINARY_EXT or not os.path.isfile(full):
+            continue
+        try:
+            with open(full, encoding="utf-8", errors="replace") as f:
+                for n, line in enumerate(f, 1):
+                    for h in scan_line(line, terms):
+                        found.append("%s:%d: %s" % (rel.replace(os.sep, "/"), n, h))
+        except OSError as e:
+            print("warning: cannot read %s: %s" % (rel, e), file=sys.stderr)
+    return found
+
+
+def main():
+    paths = []
+    for a in sys.argv[1:]:
+        if os.path.isdir(a):
+            for d, _, fs in os.walk(a):
+                if "__pycache__" not in d and ".git" not in d.split(os.sep):
+                    paths += [os.path.join(d, f) for f in sorted(fs)]
+        else:
+            paths.append(a)
+    paths = paths or default_files()
+    found = scan(paths, load_terms())
+    for h in found:
+        print(h)
+    if found:
+        print("%d hit(s)" % len(found), file=sys.stderr)
+        return 1
+    print("check_private: no hits (%d files)" % len(paths))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

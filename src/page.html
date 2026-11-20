@@ -1,0 +1,156 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="ChargeLens"><meta name="theme-color" content="#0b1221">
+<title>ChargeLens</title>
+<style>
+*{box-sizing:border-box}:root{--bg:#0b1221;--card:#131c2e;--line:#1f2a44;--tx:#e5e7eb;--mu:#94a3b8;--ok:#10b981;--warn:#f59e0b;--bad:#ef4444}
+body{margin:0;padding:16px;padding-top:max(16px,env(safe-area-inset-top));font:16px -apple-system,system-ui,sans-serif;background:var(--bg);color:var(--tx)}
+.w{max-width:480px;margin:0 auto}.c{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:12px}
+h1{font-size:18px;margin:0 0 4px}.mu{color:var(--mu);font-size:14px}.r{display:flex;justify-content:space-between;align-items:baseline;padding:6px 0}
+.big{font-size:26px;font-weight:700}.lab{color:var(--mu);font-size:13px;letter-spacing:.05em;text-transform:uppercase}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-left:8px}
+button,select{width:100%;padding:13px;margin-top:8px;border-radius:10px;border:1px solid var(--line);background:#1d2a45;color:var(--tx);font-size:16px}
+.tg{width:auto;margin:0 0 0 10px;padding:6px 14px;font-size:15px}.sm{font-size:14px;padding:9px}.m{cursor:pointer;border-top:1px solid var(--line)}.d{font-size:14px;color:var(--mu);padding:2px 0 8px 12px}.adj{font-size:13px;color:var(--warn)}
+.t{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}.t td,.t th{padding:4px 2px;text-align:right}.t td:first-child,.t th:first-child{text-align:left}.t th{color:var(--mu);font-weight:400}
+input{width:100%;padding:10px;margin-top:6px;border-radius:10px;border:1px solid var(--line);background:#1d2a45;color:var(--tx);font-size:16px}
+input[type=checkbox]{width:20px;height:20px;margin:0 10px 0 0;padding:0;vertical-align:middle}a{color:var(--warn)}button:disabled{opacity:.4}
+</style></head><body><div class="w">
+<div class="c"><h1>&#9889; ChargeLens</h1><div class="mu" id="clk">&hellip;</div><button id="ts" class="sm">&#128339; Acertar hora pelo telem&oacute;vel</button><div class="mu" id="tsr"></div></div>
+<div class="c">
+<div class="r"><span class="lab">Agora</span><span><span class="big" id="w">&ndash;</span><button id="rel" class="tg">&ndash;</button></span></div>
+<div class="r"><span class="lab">Hoje</span><span class="big" id="td">&ndash;</span></div>
+<div class="r"><span class="lab" id="mn">M&ecirc;s</span><span class="big" id="mt">&ndash;</span></div>
+<div class="adj" id="pend"></div></div>
+<div class="c"><div class="lab">Hist&oacute;rico</div><div id="hist" class="mu">a carregar&hellip;</div><div id="adjs"></div></div>
+<div class="c"><select id="sel"></select>
+<div class="lab" style="margin-top:12px">Sess&otilde;es</div><div id="ses" class="mu">a carregar&hellip;</div>
+<button id="mail">&#9993; Enviar resumo por mail</button><button id="csv">&#11015; Descarregar CSV</button></div>
+<div class="c" id="undc" hidden><div class="lab">Sem data</div><div class="mu">Cargas sem hora: escolhe as cargas e o dia (entre a &uacute;ltima data conhecida antes e a seguinte).</div><div id="und"></div><select id="udd"></select><button id="uda" disabled>Atribuir</button><div class="mu" id="udr"></div></div>
+<div class="c"><div class="lab">Eventos</div><div id="evs" class="mu">&hellip;</div></div>
+</div><script>
+/* ==== PURE ==== */
+const pad=n=>String(n).padStart(2,'0');
+const f2=x=>x.toFixed(2).replace('.',',');
+function fmtW(w){return Math.round(w*100)/100<1000?f2(w)+' W':f2(w/1000)+' kW'}
+function fmtWh(wh){return Math.round(wh*100)/100<1000?f2(wh)+' Wh':f2(wh/1000)+' kWh'}
+function fmtKwh(wh){return f2(wh/1000)+' kWh'}
+function dayKeyOf(u,off){const t=new Date((u+off)*1000);return t.getUTCFullYear()+pad(t.getUTCMonth()+1)+pad(t.getUTCDate())}
+function prevMonth(k){let y=+k.slice(0,4),m=+k.slice(4)-1;if(m<1){m=12;y--}return y+pad(m)}
+function unsavedWh(D){const u=D.e-D.st.c;return u>0&&u<100000?u:0}
+function todayWh(D,m,tk){const u=unsavedWh(D);if(D.st.dk===tk)return D.st.dw+u;if(m&&tk.slice(0,6)===D.k)return (m.days[+tk.slice(6)-1]||0)+u;return u}
+function monthWh(D,m,k,tk){let t=0;m.days.forEach((x,i)=>{t+=(D.st.dk===k+pad(i+1))?D.st.dw:x});return t+(k===tk.slice(0,6)?unsavedWh(D):0)}
+function defaultMonth(ks,tk){const cur=tk.slice(0,6),p=prevMonth(cur);if(+tk.slice(6)<=5&&ks.indexOf(p)>=0)return p;return ks.indexOf(cur)>=0?cur:ks[0]}
+/* v2: sessions, cost (price from that month on; a tariff change = a new row), events, undated boots */
+/* tariff rows: [from month, EUR/kWh, how it was calculated (mail text)] */
+const PRICES=[['200001',0,'']];
+const priceRow=m=>{let p=PRICES[0];PRICES.forEach(r=>{if(r[0]<=m)p=r});return p};
+function priceFor(m){return priceRow(m)[1]}
+function costEur(wh,m){return Math.round(wh/1000*priceFor(m)*100)/100}
+const fdY=d=>d.slice(8)+'/'+d.slice(5,7)+'/'+d.slice(0,4);
+function daysIn(lo,hi,max){const out=[],e=Date.parse(hi+'T00:00:00Z');let t=lo?Date.parse(lo+'T00:00:00Z'):e-(max-1)*864e5;
+if(e-t>(max-1)*864e5)t=e-(max-1)*864e5;for(;t<=e;t+=864e5)out.push(new Date(t).toISOString().slice(0,10));return out}
+function fmtDur(min){return Math.floor(min/60)+'h'+pad(min%60)}
+function fmtEur(x){return f2(x)+' \u20ac'}
+function parseSessions(vals,m){const out=[];vals.forEach(v=>{if(!v)return;v.split(';').forEach(l=>{const p=l.split(','),h=p[1];
+const s={day:m.slice(0,4)+'-'+m.slice(4)+'-'+p[0],hhmm:h==='----'||h[0]==='~'?null:h.slice(0,2)+':'+h.slice(2),min:+p[2],wh:+p[3],f:p[4]||''};
+if(h[0]==='~'){const x=h.slice(1).split('.');s.b=+x[0];s.up=+x[1]}out.push(s)})});return out}
+const sortS=l=>l.slice().sort((a,b)=>a.day<b.day?-1:a.day>b.day?1:(a.hhmm||'')<(b.hhmm||'')?-1:(a.hhmm||'')>(b.hhmm||'')?1:0);
+const hmMin=h=>+h.slice(0,2)*60+ +h.slice(3);
+function endHm(s){if(!s.hhmm)return '';const e=(hmMin(s.hhmm)+s.min)%1440;return pad(Math.floor(e/60))+':'+pad(e%60)}
+function pairInterrupted(l){l.forEach((s,i)=>{const n=l[i+1];s.int=!!(s.f.indexOf('p')>=0&&n&&s.hhmm&&n.hhmm&&n.day===s.day&&hmMin(n.hhmm)-(hmMin(s.hhmm)+s.min)<=30)});return l}
+function csvSessRows(l,m){return l.map(s=>['sessao',s.day,s.hhmm||'',endHm(s),s.min,s.wh,f2(s.wh/1000),f2(costEur(s.wh,m)),s.f].join(';'))}
+/* v2.1 manual dating: items of cc:su (sessions; a boot's T line only when it has no sessions left), current boot hidden */
+const upN=u=>u==='T'?1e12:+u;
+function undatedItems(su,cur){const L=su?su.split(';').map(l=>{const p=l.split(',');return{n:+p[0],up:p[1],min:+p[2],wh:+p[3],f:p[4]||''}}):[];
+const hs={};L.forEach(x=>{if(x.up!=='T')hs[x.n]=1});return L.filter(x=>x.n!==cur&&(x.up!=='T'||!hs[x.n])).sort((a,b)=>a.n-b.n||upN(a.up)-upN(b.up))}
+function boundsOf(it,boots,man,today,first,off){let lo=first,hi=today;const u=upN(it.up);
+Object.keys(boots).forEach(b=>{const d=dayKeyOf(boots[b],off).replace(/(....)(..)(..)/,'$1-$2-$3');if(+b<it.n&&d>lo)lo=d;if(+b>it.n&&d<hi)hi=d});
+man.forEach(s=>{if(s.b===undefined)return;const bf=s.b<it.n||(s.b===it.n&&s.up<u);if(bf&&s.day>lo)lo=s.day;if(!bf&&s.day<hi)hi=s.day});return{lo:lo,hi:hi}}
+function rangeOf(rs){let lo='',hi='9999-12-31';rs.forEach(r=>{if(r.lo>lo)lo=r.lo;if(r.hi<hi)hi=r.hi});return{lo:lo,hi:hi,ok:lo<=hi}}
+/* monthly report mail; c = cc:mail {n name, f fraction line, a address, to} */
+function mailText(c,mon,y,k,l,tot){const rows=l.map(s=>[s.day.slice(8)+'/'+s.day.slice(5,7)+'/'+s.day.slice(0,4),s.wh]);let sw=0,eur=0,t='';
+l.forEach(s=>sw+=s.wh);const out=Math.round(tot-sw);if(out>=10)rows.push(['Fora de sess\u00f5es',out]);
+rows.forEach(r=>{const x=costEur(r[1],k);eur+=x;t+=r[0]+' | '+f2(r[1]/1000)+' | '+f2(x)+'\n'});eur=Math.round(eur*100)/100;const P=priceRow(k);
+const b='Consumos medidos durante o m\u00eas de '+mon+' de '+y+'.'+'\n'+
+'Total: '+fmtKwh(tot)+', custo '+fmtEur(eur)+'.'+'\n\n'+
+(P[2]?P[2]+'\n':'')+'O valor calculado \u00e9 de '+String(P[1]).replace('.',',')+' \u20ac / kWh.\n\n'+
+(c.n?c.n+'\n':'')+(c.f?c.f+'\n':'')+'\nData | Consumo (kWh) | Custo (\u20ac)\n'+t;
+return{s:'Comunica\u00e7\u00e3o de consumos | '+mon+' '+y+(c.a?' | '+c.a:''),b:b}}
+function bootsOf(s){const b={};(s||'').split(';').forEach(x=>{const p=x.split(':');if(p.length===3)b[p[0]]=+p[1]});return b}
+function resolveSt(st,b){if(st&&st[0]==='~'){const p=st.slice(1).split('.');return b[p[0]]!==undefined?b[p[0]]+ +p[1]:null}return st?+st:null}
+function evLines(ev,ei,bs){const b=bootsOf(bs),out=[];for(let k=1;k<=3;k++){const v=ev[(ei+k)%3];if(!v)continue;v.split(';').forEach(l=>{const p=l.split(','),x=(p[2]||'').split('/');
+if(p[0]==='R')out.push({when:resolveSt(p[1],b),text:'Tomada '+(x[0]==='1'?'ligada':'desligada')+' ('+(x[1]||'?')+')'});
+else if(p[0]==='B')out.push({when:resolveSt(p[1],b),text:'Arranque (raz\u00e3o '+x[0]+')',loss:resolveSt(x[1],b)});
+else out.push({when:resolveSt(p[1],b),text:l})})}return out}
+/* ==== END PURE ==== */
+const B=location.pathname.replace(/\/ui$/,'/');const MN=['janeiro','fevereiro','mar\u00e7o','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+const WD=['dom','seg','ter','qua','qui','sex','s\u00e1b'];const AJ={u:'energia sem data (atribu\u00edda ao dia do acerto)',m:'energia do m\u00eas anterior somada ao dia 1',s:'salto do contador ignorado',b:'contador recuou (energia perdida)'};
+const $=i=>document.getElementById(i);const j=u=>fetch(B+u).then(r=>r.json());
+const mname=k=>MN[+k.slice(4,6)-1]+' '+k.slice(0,4);const dname=(k,i)=>k.slice(0,4)+'-'+k.slice(4)+'-'+pad(i+1);
+const pm=v=>{if(!v)return null;const p=v.split('|');return{s:+p[0],days:p[1]?p[1].split(',').map(Number):[]}};
+let D=null,months={},ADJ=[],LOGS={},MC={};
+const fd=d=>d.slice(8)+'/'+d.slice(5,7);
+const tms=u=>{const t=new Date((u+D.off)*1000);return t.getUTCDate()+'/'+pad(t.getUTCMonth()+1)+' '+pad(t.getUTCHours())+':'+pad(t.getUTCMinutes())};
+const sessOf=k=>LOGS[k]?pairInterrupted(sortS(parseSessions(LOGS[k].s,k))):[];let UI=[];
+function sumS(l,k){let wh=0,eur=0;l.forEach(s=>{wh+=s.wh;eur+=costEur(s.wh,k)});return{wh:wh,eur:Math.round(eur*100)/100}}
+function showLog(){const k=$('sel').value,L=LOGS[k];if(!L){$('ses').textContent='sem dados';return}
+const l=sessOf(k),tot=sumS(l,k),m=months[k];
+let h=l.length?'<table class="t"><tr><th>Data</th><th>In&iacute;cio</th><th>Fim</th><th>Dura&ccedil;&atilde;o</th><th>kWh</th><th>&euro;</th></tr>'+l.map(s=>'<tr'+(s.int?' style="color:var(--warn)"':'')+'><td>'+fd(s.day)+'</td><td>'+(s.hhmm||'&ndash;')+'</td><td>'+(endHm(s)||'&ndash;')+'</td><td>'+(s.hhmm||s.min?fmtDur(s.min):'&ndash;')+'</td><td>'+f2(s.wh/1000)+'</td><td>'+f2(costEur(s.wh,k))+'</td></tr>').join('')+'</table>':'<div>sem sess&otilde;es</div>';
+h+='<div class="r"><span>Total</span><span>'+fmtKwh(tot.wh)+' &middot; '+fmtEur(tot.eur)+'</span></div>';
+h+='<div>Pre&ccedil;o '+String(priceFor(k)).replace('.',',')+' &euro;/kWh</div>';
+if(m){const out=Math.round(monthWh(D,m,k,tkey()))-tot.wh;if(out>0)h+='<div>Fora de sess&otilde;es: '+fmtKwh(out)+' ('+fmtEur(costEur(out,k))+')</div>'}
+const y=k.slice(0,4);let yw=0,ye=0;Object.keys(LOGS).forEach(x=>{if(x.slice(0,4)===y){const t=sumS(sessOf(x),x);yw+=t.wh;ye+=t.eur}});
+h+='<div>Ano '+y+': '+fmtKwh(yw)+' &middot; '+fmtEur(ye)+'</div>';
+if(l.some(s=>s.int))h+='<div class="adj">A laranja: carga interrompida por corte de energia (continua na linha seguinte).</div>';
+if(L.l)h+='<div class="adj">'+L.l+' registo(s) perdido(s): mem&oacute;ria cheia.</div>';$('ses').innerHTML=h;
+showUnd(L);
+const e=evLines(L.ev,L.ei,L.boot).reverse();
+$('evs').innerHTML=e.length?e.map(x=>'<div>'+(x.when?tms(x.when):'?')+' &middot; '+x.text+(x.loss?' &ndash; sem energia desde ~'+tms(x.loss):'')+'</div>').join(''):'sem eventos'}
+async function loadLogs(){try{for(const o of $('sel').options)LOGS[o.value]=await j('log?m='+o.value);showLog()}catch(e){$('ses').textContent='Falhou a leitura das sess\u00f5es ('+e+').'}}
+async function refLog(){const k=$('sel').value;if(!k)return;try{LOGS[k]=await j('log?m='+k);showLog()}catch(e){}}
+const isoD=k=>k.replace(/(....)(..)(..)/,'$1-$2-$3');
+function showUnd(L){const cur=D&&D.unix>1.7e9&&D.st.nb?D.st.n:-1,man=[],ks=Object.keys(LOGS).sort();UI=undatedItems(L.su,cur);
+ks.forEach(x=>parseSessions(LOGS[x].s,x).forEach(s=>man.push(s)));const first=ks.length?isoD(ks[0]+'01'):'',bt=bootsOf(L.boot);let wh=0;
+UI.forEach(x=>{x.r=boundsOf(x,bt,man,isoD(tkey()),first,D.off);wh+=x.wh});$('undc').hidden=!UI.length;
+$('pend').innerHTML=UI.length?'<a href="#undc">&#9888; '+UI.length+' carga(s) sem data ('+fmtKwh(wh)+') &ndash; atribuir</a>':'';
+$('und').innerHTML=UI.map((x,i)=>'<label class="r m"><span><input type="checkbox" class="uc" data-i="'+i+'" onchange="selUnd()">Arranque '+x.n+(x.up==='T'?' &middot; fora de sess&otilde;es':x.min?' &middot; '+fmtDur(x.min):'')+'</span><span>'+fmtKwh(x.wh)+'</span></label><div class="d">'+(x.r.lo?'entre '+fdY(x.r.lo)+' e ':'at&eacute; ')+fdY(x.r.hi)+'</div>').join('');selUnd()}
+const selU=()=>[...document.querySelectorAll('.uc')].filter(c=>c.checked).map(c=>UI[+c.dataset.i]);
+function selUnd(){const sel=selU(),r=rangeOf(sel.map(x=>x.r)),d=$('udd'),v=d.value;
+d.innerHTML='<option value="">Escolhe o dia</option>'+(sel.length&&r.ok?daysIn(r.lo,r.hi,120).map(x=>'<option value="'+x+'"'+(x===v?' selected':'')+'>'+fdY(x)+'</option>').join(''):'');
+$('uda').disabled=!sel.length||!r.ok;
+$('udr').textContent=sel.length&&!r.ok?'As cargas escolhidas n\u00e3o cabem no mesmo dia.':''}
+const nowU=()=>D&&D.unix>1.7e9?D.unix:Math.floor(Date.now()/1000);const tkey=()=>dayKeyOf(nowU(),D?D.off:0);
+async function sync(){const now=Math.floor(Date.now()/1000);if(!(D.unix>1.7e9)||Math.abs(D.unix-now)>60){await j('time?set='+now);D=await j('data?m='+tkey().slice(0,6))}}
+function show(){const t=new Date((D.unix+D.off)*1000);const ok=D.unix>1.7e9;
+$('clk').innerHTML=ok?WD[t.getUTCDay()]+' '+t.getUTCDate()+' '+MN[t.getUTCMonth()].slice(0,3)+' '+t.getUTCFullYear()+' &middot; '+pad(t.getUTCHours())+':'+pad(t.getUTCMinutes())+' <span style="color:var(--ok)">&#10003;</span>':'<span style="color:var(--warn)">&#9888; hora desconhecida &ndash; a acertar&hellip;</span>';
+$('w').textContent=fmtW(D.w);const R=$('rel');R.textContent=D.on?'Ligada':'Desligada';R.style.background=D.on?'#065f46':'#7f1d1d';
+const tk=tkey(),mk=tk.slice(0,6);let m=pm(D.m);if(D.k!==mk)m=null;if(m)months[mk]=m;else m={s:0,days:[]};
+$('td').textContent=fmtWh(todayWh(D,D.k===mk?m:null,tk));$('mn').textContent=mname(mk);$('mt').textContent=fmtWh(monthWh(D,m,mk,tk));}
+async function tick(){try{const was=D?D.on:null;D=await j('data'+(D?'?m='+tkey().slice(0,6):''));show();if(was!==null&&was!==D.on)setTimeout(refLog,2500)}catch(e){$('clk').textContent='sem liga\u00e7\u00e3o \u00e0 tomada'}}
+async function hist(){try{const L=await j('list');const ks=L.months.sort().reverse();let h='',o='';const tk=tkey();
+for(const k of ks){if(!months[k]){const r=await j('data?m='+k);months[k]=pm(r.m)||{s:0,days:[]}}const m=months[k];
+const ds=m.days.map((x,i)=>x?'<div>'+dname(k,i)+' &nbsp; '+fmtWh(x)+'</div>':'').join('');
+h+='<div class="m r" onclick="this.nextSibling.hidden=!this.nextSibling.hidden"><span>'+mname(k)+'</span><span>'+fmtWh(monthWh(D,m,k,tk))+' &#9656;</span></div><div class="d" hidden>'+(ds||'sem consumo')+'</div>';o+='<option value="'+k+'">'+mname(k)+'</option>'}
+$('hist').innerHTML=h||'sem dados';$('sel').innerHTML=o;if(ks.length)$('sel').value=defaultMonth(ks,tk);ADJ=(L.adj||[]).filter(x=>x[2]!=='u');loadLogs();
+const a=ADJ.map(x=>'<div class="adj">'+x[0]+': '+fmtWh(x[1])+' &ndash; '+(AJ[x[2]]||x[2])+'</div>');$('adjs').innerHTML=a.length?'<div class="lab" style="margin-top:10px">Acertos</div>'+a.join(''):''}
+catch(e){$('hist').textContent='Falhou a leitura do hist\u00f3rico ('+e+'). Recarrega a p\u00e1gina.'}}
+$('mail').onclick=()=>{const k=$('sel').value,m=months[k];if(!m)return;
+if(UI.length&&!confirm('H\u00e1 '+UI.length+' carga(s) sem data, que n\u00e3o entram no mail. Enviar mesmo assim?'))return;
+const mn=MN[+k.slice(4)-1],x=mailText(MC,mn[0].toUpperCase()+mn.slice(1),k.slice(0,4),k,sessOf(k),monthWh(D,m,k,tkey()));
+location.href='mailto:'+encodeURIComponent(MC.to||'')+'?subject='+encodeURIComponent(x.s)+'&body='+encodeURIComponent(x.b)};
+$('csv').onclick=()=>{const tk=tkey();let c='\ufefftipo;data;Wh;kWh\r\n';Object.keys(months).sort().forEach(k=>{const m=months[k];
+m.days.forEach((x,i)=>c+='dia;'+dname(k,i)+';'+x+';'+f2(x/1000)+'\r\n');const t=Math.round(monthWh(D,m,k,tk));c+='m\u00eas;'+k.slice(0,4)+'-'+k.slice(4)+';'+t+';'+f2(t/1000)+'\r\n'});
+c+='\r\ntipo;data;inicio;fim;min;Wh;kWh;EUR;flags\r\n';Object.keys(LOGS).sort().forEach(k=>csvSessRows(sessOf(k),k).forEach(r=>c+=r+'\r\n'));
+const L=LOGS[$('sel').value];if(L){c+='\r\ntipo;quando;texto\r\n';evLines(L.ev,L.ei,L.boot).forEach(x=>c+='evento;'+(x.when?tms(x.when):'?')+';'+x.text+(x.loss?' (sem energia desde ~'+tms(x.loss)+')':'')+'\r\n')}
+const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([c],{type:'text/csv;charset=utf-8'}));a.download='carregador-'+tk+'.csv';document.body.appendChild(a);a.click();a.remove()};
+$('sel').onchange=showLog;
+$('uda').onclick=async()=>{const sel=selU(),v=$('udd').value,r=rangeOf(sel.map(x=>x.r));
+if(!sel.length||!v||v<r.lo||v>r.hi){$('udr').textContent='Escolhe o dia na lista.';return}
+$('uda').disabled=true;$('udr').textContent='a atribuir\u2026';
+try{for(const x of sel)await j('time?boot='+x.n+'&up='+x.up+'&day='+v.replace(/-/g,''))}catch(e){$('udr').textContent='Falhou ('+e+')';$('uda').disabled=false;return}
+setTimeout(async()=>{months={};await hist();$('udr').textContent='Atribu\u00eddo a '+fdY(v)+'.'},1500+800*sel.length)};
+$('rel').onclick=async()=>{if(!D)return;const on=!D.on;if(!on&&!confirm('Desligar a tomada? O carregamento para.'))return;await fetch('/rpc/Switch.Set?id=0&on='+on);tick()};
+$('ts').onclick=async()=>{const now=Math.floor(Date.now()/1000);try{const r=await j('time?set='+now);$('tsr').textContent='Hora acertada'+(r.prev>1.7e9?' (diferen\u00e7a: '+(now-r.prev)+' s)':'');tick()}catch(e){$('tsr').textContent='Falhou o acerto da hora'}};
+(async()=>{await tick();if(D){await sync();show();hist()}setInterval(tick,5000);try{MC=JSON.parse((await (await fetch('/rpc/KVS.Get?key=cc:mail')).json()).value)||{}}catch(e){MC={}}})();
+</script></body></html>
