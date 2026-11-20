@@ -109,6 +109,8 @@ s += "}";
 return u8len(s) > 253 ? null : s;
 }
 const MODELS={"SNPL-00112EU":{gen:2,maxA:12,maxW:2500},"EF3PL-00112EU":{gen:3,maxA:12,maxW:2500}};
+const idleOk=(st,ss,current,cfg)=>(ss===null||ss===undefined)&&typeof current==='number'&&current<=cfg.r;
+function ssState(code,value){if(code)return code===-105?null:'?';try{return JSON.parse(value)}catch(e){return '?'}}
 const BSU=String.fromCharCode(92)+'u';
 function asciiEsc(s){let o='',i,c;for(i=0;i<s.length;i++){c=s.charCodeAt(i);o+=c>126?BSU+('0000'+c.toString(16)).slice(-4):s.charAt(i)}return o}
 const asciiJson=o=>asciiEsc(JSON.stringify(o));
@@ -121,7 +123,7 @@ cfgBad(raw).forEach(k=>{e[k]=RNG(k)});
 const y=typeof raw.y==='number'&&!e.y?raw.y:cfgDef('y'),cl=f.current_limit,pl=f.power_limit;
 if(!(typeof cl==='number'&&cl>y&&cl<=model.maxA))e.current_limit='Above the maximum normal current ('+y+' A) and at most '+model.maxA+' A';
 if(!(typeof pl==='number'&&pl>0&&pl<=model.maxW))e.power_limit='Above 0 and at most '+model.maxW+' W';
-const tz=String(f.tz||'').trim();if(!tz)e.tz='Enter a time zone, e.g. Europe/Lisbon';
+const tz=String(f.tz||'').trim();if(!tz)e.tz='Enter a time zone, e.g. Europe/Berlin';
 if(f.in_mode!=='detached'&&f.in_mode!=='momentary')e.in_mode='Pick one';
 const name=String(f.name||'').trim();if(name.length>64)e.name='At most 64 characters';
 if(f.ap&&f.ap.on&&String(f.ap.pass||'').length<8)e.ap_pass='At least 8 characters';
@@ -195,7 +197,7 @@ fl('r','Residual current (A)','At or below this the socket counts as idle.',c.r)
 '<div class="c"><div class="lab">Device</div>'+tx('name','Device name (optional, up to 64 characters)',n.name)+'</div>'+
 '<div class="c"><div class="lab">Button</div>'+sl('in_mode','The button',[['detached','does nothing'],['momentary','toggles the relay']],n.in_mode)+'</div>'+
 '<div class="c"><div class="lab">Price</div>'+fl('p','Price per kWh (0 = not set)','',c.p)+tx('cu','Currency label (1 to 4 characters)',c.cu)+sl('ds','Decimal separator',[['.','Dot (1.50)'],[',','Comma (1,50)']],c.ds)+sl('df','Date format',[['YMD','2026-11-20'],['DMY','20/11/2026'],['MDY','11/20/2026']],c.df)+'</div>'+
-'<div class="c"><div class="lab">Time</div>'+tx('tz','Time zone (e.g. Europe/Lisbon)',n.tz)+'<button id="tzp" class="sm">Use this phone\'s time zone</button><div class="mu" id="clk" style="margin-top:10px"></div><button id="ts" class="sm">Set clock from this phone</button></div>'+
+'<div class="c"><div class="lab">Time</div>'+tx('tz','Time zone (e.g. Europe/Berlin)',n.tz)+'<button id="tzp" class="sm">Use this phone\'s time zone</button><div class="mu" id="clk" style="margin-top:10px"></div><button id="ts" class="sm">Set clock from this phone</button></div>'+
 '<div class="c"><div class="lab">LED ring</div><div class="f"><label><input type="checkbox" id="f_lo"'+(c.lo?' checked':'')+'>Use the LED ring</label></div>'+fl('lb','Brightness (5 to 100)','',c.lb)+
 '<div class="mu" style="margin-top:10px"><span class="dt" style="background:#3b82f6;margin-left:0"></span>idle<span class="dt" style="background:#ef4444"></span>on, not charging<span class="dt" style="background:#10b981"></span>charging<span class="dt" style="background:#f59e0b"></span>above normal<br><span class="dt" style="background:#a855f7;margin-left:0"></span>purple / <span class="dt" style="background:#f97316;margin-left:0"></span>orange: the clock is unknown, set it.</div></div>'+
 '<div class="c"><div class="lab">Mail</div>'+tx('to','To',mt.to)+tx('cc','Cc',mt.cc)+tx('bcc','Bcc',mt.bcc)+tx('subject','Subject',mt.subject)+
@@ -269,6 +271,8 @@ if(id==='ex')exportNow();
 if(id==='im')$('imf').click();
 if(id==='ia'&&IMP){$('ia').disabled=true;await runPlan(writePlan(OLD,IMP),'im_res','Imported. Live within about a minute.');IMP=null;$('im_go').innerHTML='';try{await load()}catch(x){}}
 if(id==='up'){$('up_res').textContent='';try{const L=await g('/rpc/Script.List'),s=L.scripts.find(x=>x.name==='Installer');if(!s){$('up_res').textContent='The installer is not on this plug yet. See the documentation for how to update.';return}
+const ss=await rpc('KVS.Get',{key:'cc:ss'}).then(r=>ssState(0,r.value),e=>ssState(e.code||-1,'')),sw=await g('/rpc/Switch.GetStatus?id=0'),cr=await g('/rpc/KVS.Get?key=cc:cfg').then(r=>r.value).catch(()=>null);
+if(!idleOk(null,ss,sw.current,cfgParse(cr))){$('up_res').textContent='An open charging session or current above the residual threshold: update after charging.';return}
 for(const n of['Led','Page']){const o=L.scripts.find(x=>x.name===n);if(o)await rpc('Script.Stop',{id:o.id}).catch(x=>{})}
 await rpc('Script.Start',{id:s.id});location.href='/script/'+s.id+'/install'}catch(x){$('up_res').textContent='Could not start the installer: '+x.message;try{const L=await g('/rpc/Script.List');for(const o of L.scripts)if((o.name==='Led'||o.name==='Page')&&!o.running)await rpc('Script.Start',{id:o.id}).catch(y=>{})}catch(y){}}}});
 document.addEventListener('change',e=>{if(e.target.id==='imf'&&e.target.files[0])importFile(e.target.files[0])});

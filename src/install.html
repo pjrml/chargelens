@@ -46,6 +46,12 @@ P.write=names.filter(n=>n!=='MailTpl'||!have(n));
 if(P.mode==='update')['Led','Page','Meter'].forEach(n=>{if(scripts.some(s=>s.name===n&&s.running))P.stop.push(n)});
 scripts.forEach(s=>{if(names.indexOf(s.name)>=0)return;if(s.running&&s.name!=='Installer')P.stop.push(s.name);if(s.enable)P.disable.push(s.name)});
 return P}
+/* first line of a script's stored code (Script.GetCode data): '' only when the code is completely empty (a half-written
+   script of ours); a blank first line with code after it is not empty, so it is never taken for ours */
+const hdrLine=d=>d===''?'':d.split('\n')[0]||'(blank first line)';
+const hdrVer=l=>{const m=/^(?:\/\/|<!--) ChargeLens \w+ v(\d+\.\d+\.\d+)/.exec(String(l));return m?m[1]:null};
+/* never go back to an older release than the one on the plug (installed = Meter header version, ver = what would be installed) */
+const downgradeBlocked=(installed,ver)=>!!installed&&semverGt(installed,ver);
 /* update gate (design B4 rule a): no open session (cc:ss parsed; null = none) and current not above the residual threshold r */
 const idleOk=(st,ss,current,cfg)=>(ss===null||ss===undefined)&&typeof current==='number'&&current<=cfg.r;
 const baseUrl=(q,repo,tag)=>q?(/\/$/.test(q)?q:q+'/'):'https://raw.githubusercontent.com/'+repo+'/'+tag+'/';
@@ -89,13 +95,13 @@ const halt=h=>{$('app').innerHTML='<div class="c">'+h+'</div><div class="c"><but
 async function restore(names){const L=await list();for(const n of restoreList(names)){const x=L.find(y=>y.name===n);if(x&&!x.running)await rpc('Script.Start',{id:x.id}).catch(()=>{})}return L}
 async function leave(){$('back').disabled=true;try{if(SELF)await rpc('Script.Stop',{id:Number(SELF)}).catch(()=>{});const L=await restore(['Meter','Led','Page']),p=L.find(x=>x.name==='Page');
 $('app').innerHTML='<div class="c">Left without changes.'+(p?' <a href="/script/'+p.id+'/ui">Open the daily page</a>':'')+'</div>'}catch(e){$('back').disabled=false;log('Could not leave cleanly: '+esc(e.message),'er')}}
-let DI={},MODEL=null,REL=null,PLAN=null,LAT=null,CUR={},BASE=CL.base,TZ='',BUSY=false;
+let HM='',DI={},MODEL=null,REL=null,PLAN=null,LAT=null,CUR={},BASE=CL.base,TZ='',BUSY=false;
 function loadTag(tag){if(!tagOk(tag)||!SELF)throw new Error('bad tag');location.href='/script/'+SELF+'/install?tag='+tag}
 async function idle(){const ss=await rpc('KVS.Get',{key:'cc:ss'}).then(r=>ssState(0,r.value),e=>ssState(e.code||-1,''));
 const sw=await g('/rpc/Switch.GetStatus?id=0'),raw=await g('/rpc/KVS.Get?key=cc:cfg').then(r=>r.value).catch(()=>null);
 return idleOk(null,ss,sw.current,cfgParse(raw))}
 async function gather(){const L=await list(),H={};
-for(const f of REL.files)if(OWN.indexOf(f.name)<0&&f.name!=='MailTpl'){const id=idOf(L,f.name);if(id!==null)H[f.name]=(await g('/rpc/Script.GetCode?id='+id+'&offset=0&len=80').then(r=>r.data.split('\n')[0],()=>undefined))}
+for(const f of REL.files)if(OWN.indexOf(f.name)<0&&f.name!=='MailTpl'){const id=idOf(L,f.name);if(id!==null)H[f.name]=(await g('/rpc/Script.GetCode?id='+id+'&offset=0&len=80').then(r=>hdrLine(r.data),()=>undefined))}
 return{L:L,H:H}}
 async function curState(){const x=await Promise.all(['Cloud','MQTT','BLE'].map(n=>g('/rpc/'+n+'.GetConfig').catch(()=>null))),ui=await g('/rpc/PLUGS_UI.GetConfig').catch(()=>null);
 const sw=ui&&ui.controls&&ui.controls['switch:0'];
@@ -117,11 +123,12 @@ h+=row(true,'Firmware is up to date.');
 REL=JSON.parse(await ftxt(BASE+'dist/release.json'));
 if(isDefaultBase(BASE,CL.repo,CL.tag)){try{LAT=JSON.parse(await ftxt('https://raw.githubusercontent.com/'+CL.repo+'/main/dist/latest.json'))}catch(e){LAT=null}}
 else h+=row(null,'<b>Developer base:</b> files come from '+esc(BASE)+' instead of GitHub. Continue only if you started this yourself.');
-const o=await gather();PLAN=planInstall(o.L,o.H,REL);
+const o=await gather();PLAN=planInstall(o.L,o.H,REL);HM=o.H.Meter;
 if(LAT&&semverGt(LAT.version,REL.version)&&tagOk(LAT.tag)){h+=row(null,'A newer version is available: '+esc(LAT.version)+' (you have '+esc(REL.version)+'). '+(safeLink(LAT.changelog)?'<a href="'+esc(LAT.changelog)+'" target="_blank" rel="noopener">What changed</a>':'')+'<button id="newer">Use version '+esc(LAT.version)+'</button>')}
 }catch(e){halt(h+row(false,'Could not check the plug: '+esc(e.message))+'<div class="mu">Reload the page to try again.</div>');return}
 if(PLAN.mode==='legacy'||PLAN.mode==='blocked'){halt(h+row(false,esc(PLAN.reason)));return}
 const upd=PLAN.mode==='update';
+if(upd&&downgradeBlocked(hdrVer(HM),REL.version)){halt(h+row(false,'The plug has ChargeLens '+esc(hdrVer(HM))+', which is newer than the version of this installer ('+esc(REL.version)+'). Going back to an older version is not supported. Nothing was changed.'));return}
 if(upd){try{if(!await idle()){halt(h+row(false,'The plug is charging or a session is open. Updating restarts the meter, so try again when the car is unplugged.')+'<button id="again">Check again</button>');return}}catch(e){halt(h+row(false,'Could not read the plug state: '+esc(e.message)));return}h+=row(true,'No charging in progress.')}
 CUR=await curState();TZ=(()=>{try{return Intl.DateTimeFormat().resolvedOptions().timeZone||''}catch(e){return ''}})();
 h+=row(true,(upd?'Update':'First installation')+' of ChargeLens '+esc(REL.version)+': '+PLAN.write.map(esc).join(', ')+'.');

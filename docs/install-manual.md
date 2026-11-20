@@ -35,6 +35,9 @@ For each script:
    only hold text.
 3. `Installer` is optional. Do not start it while `Meter`, `Led` and `Page` run (three scripts is the limit).
 
+`dist/install.html` is not a script on the plug: the `Installer` script fetches that page from GitHub every time
+it runs, and the installer page never stores it. The manual install and `tools/shelly.py install` skip it too.
+
 To check a script, compare its size with `dist/release.json` (it also lists a `crc32` for each file).
 
 ## Start

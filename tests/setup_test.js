@@ -4,7 +4,7 @@ function tb(name, fn) { t(name, fn); }
 let M2 = MODELS["SNPL-00112EU"];
 function form(o) {
   let f = {r: 0.1, g: 5, y: 11, h: 0.3, hr: 0.05, hs: 10, sg: 600, p: 0, cu: "EUR", ds: ".", df: "YMD", lo: 1, lb: 50,
-    current_limit: 12, power_limit: 2500, in_mode: "detached", tz: "Europe/Lisbon", name: "Plug",
+    current_limit: 12, power_limit: 2500, in_mode: "detached", tz: "Europe/Berlin", name: "Plug",
     mail: {to: "", cc: "", bcc: "", subject: "S {year}", body: "B"}};
   for (let k in o) f[k] = o[k];
   return f;
@@ -21,7 +21,7 @@ t("validate_ok_defaults", function () {
   let v = validateForm(form({}), M2);
   eq("no errors", v.errors, {});
   eq("cfg", v.cfg, '{"v":1}');
-  eq("native", v.native, {current_limit: 12, power_limit: 2500, in_mode: "detached", tz: "Europe/Lisbon", name: "Plug"});
+  eq("native", v.native, {current_limit: 12, power_limit: 2500, in_mode: "detached", tz: "Europe/Berlin", name: "Plug"});
 });
 t("validate_y_vs_limit", function () {
   let v = validateForm(form({y: 11, current_limit: 11}), M2);
@@ -153,7 +153,7 @@ t("skip_after_failed_chunk", function () {
 // ---- Task 7: access point, hardening, export/import ----
 function cur(o) {
   let s = {model: "SNPL-00112EU", cfg: '{"v":1,"p":0.3}', mail: JSON.stringify({v: 1, to: "a@b", cc: "", bcc: "", subject: "S", body: "B"}),
-    native: {current_limit: 12, power_limit: 2500, in_mode: "detached", tz: "Europe/Lisbon", name: "My plug",
+    native: {current_limit: 12, power_limit: 2500, in_mode: "detached", tz: "Europe/Berlin", name: "My plug",
       ap: {ssid: "chargelens-ab12", enable: true}, cloud: false, ble: {en: false, rpc: false}, mqtt: false}};
   for (let k in o) s[k] = o[k];
   return s;
@@ -261,4 +261,16 @@ t("harden_plan_ble_shapes", function () {
   eq("gen2 en only", hardenPlan({ble: {en: true, rpc: false}}, {ble: true})[0].params, {config: {enable: false}});
   eq("gen2 rpc only", hardenPlan({ble: {en: false, rpc: true}}, {ble: true})[0].params, {config: {rpc: {enable: false}}});
   eq("unchecked", hardenPlan({ble: {en: true, rpc: true}}, {ble: false}), []);
+});
+// ---- final review: update gate copied from install.html (build.py checks both copies are identical) ----
+t("idle_gate", function () {
+  eq("idle", idleOk(null, null, 0, {r: 0.1}), true);
+  eq("session", idleOk(null, {s: 1}, 0, {r: 0.1}), false);
+  eq("above residual", idleOk(null, null, 0.11, {r: 0.1}), false);
+  eq("not a number", idleOk(null, null, undefined, {r: 0.1}), false);
+  eq("missing key", ssState(-105, ""), null);
+  eq("other error", ssState(-114, ""), "?");
+  eq("garbage", ssState(0, "{x"), "?");
+  eq("unknown is busy", idleOk(null, ssState(-114, ""), 0, {r: 0.1}), false);
+  eq("absent is idle", idleOk(null, ssState(-105, ""), 0, {r: 0.1}), true);
 });

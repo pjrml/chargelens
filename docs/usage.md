@@ -4,7 +4,7 @@
 
 1. Plug the charger's cable into the ChargeLens plug and the plug into the socket. The ring shows the state (see
    [configuration.md](configuration.md#led-ring)).
-2. Start charging. The plug counts the energy; a session starts when the current is above the minimum charging
+2. Start charging. The plug counts the energy; a session starts when the current is at or above the minimum charging
    current and ends when it has been below it for the session gap (10 minutes by default).
 3. When you want the numbers, connect your phone to the plug (its access point, or the Wi-Fi it is on) and open
    `http://<plug-ip>/script/<PageId>/ui`. With the access point the address is

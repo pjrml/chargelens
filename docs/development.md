@@ -31,7 +31,8 @@ python tools/shelly.py testpage src/page.html tests/page_test.js   # page2, page
 python tools/shelly.py testpage src/install.html tests/install_test.js
 ```
 
-Other commands: `info`, `backup --out <dir>`, `rpc <Method> [json]`, `put <Name> <file> [--temp|--store]`,
+Other commands: `info`, `backup --out <dir>`, `rpc <Method> [json]`, `put <Name> <file> [--temp|--store]` (adds the
+version header to ChargeLens script names, like the build),
 `delscript <Name>`.
 
 ## Logo and icons

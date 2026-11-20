@@ -166,9 +166,32 @@ t("tag_regex", function () {
 });
 t("plan_half_written", function () {
   let p = planInstall(ours(false), {Meter: "", Led: "// ChargeLens Led v1.0.0", Page: "// ChargeLens Page v1.0.0", PageHtml: "<!-- ChargeLens PageHtml v1.0.0 -->", SetupHtml: ""}, REL);
-  eq("empty first line is ours", p.mode, "update");
+  eq("empty code is ours", p.mode, "update");
   eq("rewritten", p.write.indexOf("Meter") >= 0, true);
   eq("private build still legacy", planInstall(ours(false), {Meter: "let x;", Led: ""}, REL).mode, "legacy");
+});
+t("hdr_line", function () {
+  eq("completely empty", hdrLine(""), "");
+  eq("header", hdrLine("// ChargeLens Meter v1.0.0\nlet x;"), "// ChargeLens Meter v1.0.0");
+  eq("blank first line is not ours", HDR.test(hdrLine("\nlet x;")), false);
+  eq("blank first line is not empty", hdrLine("\nlet x;") === "", false);
+  eq("only a newline is not empty", hdrLine("\n") === "", false);
+  eq("legacy through plan", planInstall(ours(false), {Meter: hdrLine("\nlet x;"), Led: ""}, REL).mode, "legacy");
+});
+t("hdr_ver", function () {
+  eq("script", hdrVer("// ChargeLens Meter v1.2.3"), "1.2.3");
+  eq("html", hdrVer("<!-- ChargeLens PageHtml v10.0.1 -->"), "10.0.1");
+  eq("none", hdrVer("let x;"), null);
+  eq("undefined", hdrVer(undefined), null);
+});
+t("downgrade_blocked", function () {
+  eq("newer installed", downgradeBlocked("1.2.0", "1.1.9"), true);
+  eq("tag with v", downgradeBlocked("1.2.0", "v1.1.9"), true);
+  eq("same", downgradeBlocked("1.2.0", "v1.2.0"), false);
+  eq("older installed", downgradeBlocked("1.0.0", "v1.2.0"), false);
+  eq("unknown installed", downgradeBlocked(null, "v1.2.0"), false);
+  eq("unknown tag", downgradeBlocked("1.2.0", "main"), false);
+  eq("10 > 9", downgradeBlocked("1.10.0", "1.9.0"), true);
 });
 t("idle_ss_state", function () {
   eq("missing key", ssState(-105, ""), null);

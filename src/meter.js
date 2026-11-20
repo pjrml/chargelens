@@ -795,19 +795,25 @@ function start(total) {
 // 3 running scripts, all sharing ~25 KB heap); it starts the others with a delay. A separate launcher script
 // would take one of the 3 running slots, so Meter does it.
 let LAUNCH = [["Led", 5000], ["Page", 20000]];
-function startLater(id, ms) {
-  Timer.set(ms, false, function () { Shelly.call("Script.Start", {id: id}); });
+// One timer at a time (device limit: 5 timers per script): each step starts a script and arms the next.
+function startChain(q, i, prev) {
+  if (i >= q.length) return;
+  Timer.set(q[i][1] - prev, false, function () {
+    Shelly.call("Script.Start", {id: q[i][0]});
+    startChain(q, i + 1, q[i][1]);
+  });
 }
 function launch() {
   Shelly.call("Script.List", {}, function (r, err) {
     if (err || !r || !r.scripts) return;
-    let i, j;
+    let i, j, q = [];
     for (i = 0; i < LAUNCH.length; i++) {
       for (j = 0; j < r.scripts.length; j++) {
         let s = r.scripts[j];
-        if (s.name === LAUNCH[i][0] && !s.running) startLater(s.id, LAUNCH[i][1]);
+        if (s.name === LAUNCH[i][0] && !s.running) q.push([s.id, LAUNCH[i][1]]);
       }
     }
+    startChain(q, 0, 0);
   });
 }
 launch();

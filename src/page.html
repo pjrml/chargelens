@@ -77,6 +77,10 @@ function mailVars(x){const c=x.cfg,sw=x.sessions.reduce((a,s)=>a+s.wh,0);
 return{month_name:monthName(x.k,x.lang),month:x.k.slice(4,6),year:x.k.slice(0,4),total_kwh:fmtNum(x.totalWh/1000,2,c.ds),total_cost:fmtCost(x.totalWh,c),
 currency:c.cu,price:String(c.p).replace('.',c.ds),outside_kwh:fmtNum(Math.max(0,Math.round(x.totalWh-sw))/1000,2,c.ds),
 session_count:String(x.sessions.length),sessions_table:sessionsTable(x.sessions,c),device_name:x.name||''}}
+/* default mail template: the same text as src/mail-default.json (a test compares them) */
+const MAILD={subject:'Charging report | {month_name} {year}',body:'Hello,\n\nHere is the charging report for {month_name} {year}.\n\nTotal: {total_kwh} kWh in {session_count} session(s).\n\nSessions:\n{sessions_table}\n\nEnergy outside sessions: {outside_kwh} kWh\n\nPlease confirm that you received this report.\n\nSignature: replace this line\n'};
+/* a stored template that lacks a subject or body (or is not an object) gets the default text, field by field */
+const mailTpl=m=>{m=m&&typeof m==='object'?m:{};const t=x=>typeof x==='string';return{to:t(m.to)?m.to:'',cc:t(m.cc)?m.cc:'',bcc:t(m.bcc)?m.bcc:'',subject:t(m.subject)?m.subject:MAILD.subject,body:t(m.body)?m.body:MAILD.body}};
 function renderTpl(t,v){return String(t).replace(/\{(\w+)\}/g,(m,k)=>Object.prototype.hasOwnProperty.call(v,k)?String(v[k]):m)}
 const mu1=s=>encodeURIComponent(s||"").replace(/%2C/g,',').replace(/%40/g,'@');
 function mailUrl(mt,subject,body){const u=b=>'mailto:'+mu1(mt.to)+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(b)+(mt.cc?'&cc='+mu1(mt.cc):'')+(mt.bcc?'&bcc='+mu1(mt.bcc):'');
@@ -156,7 +160,7 @@ const a=ADJ.map(x=>'<div class="adj">'+x[0]+': '+fmtWh(x[1],CFG.ds)+' &ndash; '+
 catch(e){$('hist').textContent='Could not read the history ('+e+'). Reload the page.'}}
 $('mail').onclick=async()=>{const k=$('sel').value,m=months[k];if(!m)return;
 if(UI.length&&!confirm(UI.length+' undated charge(s) are not in the report. Send anyway?'))return;
-const mt=MT||{subject:'Charging report | {month_name} {year}',body:'Total: {total_kwh} kWh\n\n{sessions_table}'},l=sessOf(k);
+const mt=mailTpl(MT),l=sessOf(k);
 const v=mailVars({k:k,sessions:l,totalWh:monthWh(D,m,k,tkey()),cfg:CFG,name:DN});
 const u=mailUrl(mt,renderTpl(mt.subject,v),renderTpl(mt.body,v));
 if(u.copy)try{await navigator.clipboard.writeText(u.copy)}catch(e){}

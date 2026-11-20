@@ -8,8 +8,8 @@
       "path": "dist/Meter.js",
       "kind": "code",
       "enable": true,
-      "size": 24117,
-      "crc32": 1809727775
+      "size": 24223,
+      "crc32": 2275514303
     },
     {
       "name": "Led",
@@ -32,16 +32,16 @@
       "path": "dist/PageHtml.html",
       "kind": "data",
       "enable": false,
-      "size": 26282,
-      "crc32": 3830523867
+      "size": 26767,
+      "crc32": 283053173
     },
     {
       "name": "SetupHtml",
       "path": "dist/SetupHtml.html",
       "kind": "data",
       "enable": false,
-      "size": 30293,
-      "crc32": 209902380
+      "size": 30894,
+      "crc32": 727844366
     },
     {
       "name": "MailTpl",
@@ -64,8 +64,8 @@
       "path": "dist/install.html",
       "kind": "data",
       "enable": false,
-      "size": 22672,
-      "crc32": 1621964269
+      "size": 23209,
+      "crc32": 782198945
     }
   ]
 }

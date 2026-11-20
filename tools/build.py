@@ -125,6 +125,13 @@ def models_literal(text):
     return m.group(1) if m else None
 
 
+def gate_lines(text):
+    """The update-gate code copied into setup.html from install.html (idleOk, ssState): must be identical."""
+    a = re.search(r"const idleOk=.*?;\n", text)
+    b = re.search(r"function ssState\(.*?\n", text)
+    return (a.group(0), b.group(0)) if a and b else None
+
+
 def build(out_root):
     ver = version()
     tag = "v" + ver
@@ -139,12 +146,12 @@ def build(out_root):
         if src.endswith(".json"):
             text = build_mail(src)  # user data: no header
         elif src.endswith(".html"):
-            text = ascii_html("<!-- ChargeLens %s v%s -->\n" % (name, ver) + build_page(src))
+            text = ascii_html(shelly.header(name, ver, True) + build_page(src))
         else:
             body = build_script(src)
             if src == "installer.js":
                 body = body.replace("@REPO@", REPO).replace("@TAG@", tag)
-            text = "// ChargeLens %s v%s\n" % (name, ver) + js_escape(body)
+            text = shelly.header(name, ver) + js_escape(body)
         bad = [i for i, ch in enumerate(text) if ord(ch) > 127]
         assert not bad, "%s: non-ASCII at %d" % (dst, bad[0])
         data = text.encode("ascii")
@@ -157,6 +164,8 @@ def build(out_root):
     if have_installer:
         a, b = models_literal(read("setup.html")), models_literal(read("install.html"))
         assert a and a == b, "MODELS differs between setup.html and install.html"
+        a, b = gate_lines(read("setup.html")), gate_lines(read("install.html"))
+        assert a and a == b, "idleOk/ssState differ between setup.html and install.html"
     for dst, data in blobs.items():
         with open(os.path.join(dist, dst), "wb") as f:
             f.write(data)

@@ -19,6 +19,7 @@ put       : creates/replaces script NAME from FILE (--temp: not enabled at boot;
 test      : runs LIBFILE's LIB section plus TESTFILE on the device as a temporary script "Test".
 install   : writes the built files of DIST (release.json) like the installer page: scripts created by name,
             chunks of 4000 + read back, only Meter enabled, an existing MailTpl is never overwritten, Meter started.
+            Skips InstallHtml (the Installer script fetches that page at run time; no device stores it).
 serve     : serves the repo root on 0.0.0.0:PORT with CORS (install page: ?base=http://<pc-ip>:PORT/).
 testpage  : runs the PURE block of an HTML page (or the LIB region of a .js file) plus TESTFILE in headless Edge (no device needed).
 
@@ -165,11 +166,25 @@ assert strip_trailing_comment("y = 'a" + chr(92) + "'//b'; // c") == "y = 'a" + 
 assert strip_trailing_comment("z = 1;  // c") == "z = 1;"
 
 
-def put(ip, name, code, start=True, enable=True, mini=True):
+CL_NAMES = ("Meter", "Led", "Page", "PageHtml", "SetupHtml", "Installer", "InstallHtml")  # scripts that carry the version header
+
+
+def header(name, ver, html=False):
+    """The first line of every built ChargeLens file (build.py and `put` share this one implementation)."""
+    return ("<!-- ChargeLens %s v%s -->\n" if html else "// ChargeLens %s v%s\n") % (name, ver)
+
+
+def src_version():
+    with open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "src", "version.txt"), encoding="utf-8") as f:
+        return f.read().strip()
+
+
+def put(ip, name, code, start=True, enable=True, mini=True, hdr=""):
     """Create (if missing) or replace script NAME with CODE, enable it (start at boot), start it. Returns the id.
     The device allows at most 3 enabled scripts: temporary scripts use enable=False."""
     if mini:
         code = minify(code)
+    code = hdr + code  # after minify: it would strip the comment line
     bad = [i for i, ch in enumerate(code) if ord(ch) > 127]
     if bad:
         raise RuntimeError("non-ASCII character at offset %d: the device rejects it (use JS unicode escapes or HTML entities)" % bad[0])
@@ -391,12 +406,19 @@ def run_page_tests(htmlfile, testfile, browser=None):
     return not fails and bool(res)
 
 
+# release.json lists install.html for the loader (installer.js fetches it from the base at run time and the installer
+# page never stores it as a script), so the dev install skips it too: it writes only what the installer page writes.
+PAGE_ONLY = ("InstallHtml",)
+
+
 def install(ip, dist):
     """Same writes as the installer page, from a PC. Never overwrites an existing MailTpl; enables only Meter."""
     import zlib
     rel = json.load(open(os.path.join(dist, "release.json"), encoding="ascii"))
     files = []
     for f in rel["files"]:
+        if f["name"] in PAGE_ONLY:
+            continue
         data = open(os.path.join(os.path.dirname(os.path.abspath(dist)), f["path"]), "rb").read()
         if len(data) != f["size"] or (zlib.crc32(data) & 0xFFFFFFFF) != f["crc32"]:
             sys.exit("%s: size/crc32 differ from release.json (run tools/build.py)" % f["path"])
@@ -469,10 +491,11 @@ def main():
         if not a.method or not a.params:
             sys.exit("put needs NAME FILE")
         code = strip_test_only(expand_libs(a.params, expand_includes(a.params, open(a.params, encoding="utf-8").read())))
+        hdr = header(a.method, src_version(), a.params.endswith(".html")) if a.method in CL_NAMES else ""  # so a dev plug is not seen as legacy
         if a.store:  # data stored as a script (e.g. PageHtml): never enabled or started, not minified
-            print("stored %s id=%d" % (a.method, put(ip, a.method, code, start=False, enable=False, mini=False)))
+            print("stored %s id=%d" % (a.method, put(ip, a.method, code, start=False, enable=False, mini=False, hdr=hdr)))
         else:
-            print("script %s id=%d" % (a.method, put(ip, a.method, code, enable=not a.temp)))
+            print("script %s id=%d" % (a.method, put(ip, a.method, code, enable=not a.temp, hdr=hdr)))
     elif a.cmd == "delscript":
         delscript(ip, a.method)
     elif a.cmd == "test":  # test LIBFILE TESTFILE

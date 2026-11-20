@@ -19,7 +19,7 @@ The LED ring and the sessions use three current thresholds.
 | Field | Default | Range | Meaning |
 |---|---|---|---|
 | Residual current (A) | 0.1 | 0.02 to 1 | At or below this the socket counts as idle (blue). |
-| Minimum charging current (A) | 5 | 1 to 11 | Above this a charging session starts (green). |
+| Minimum charging current (A) | 5 | 1 to 11 | At or above this a charging session starts (green). |
 | Maximum normal current (A) | 11 | 1 to 12 | Above this the ring turns yellow. |
 
 The order must be residual < minimum < maximum, and the maximum must be below the relay current limit. Between the
@@ -70,7 +70,7 @@ There is one price, applied to everything shown.
 
 ## Time
 
-- **Time zone** (e.g. `Europe/Lisbon`): *Use this phone's time zone* fills it in.
+- **Time zone** (e.g. `Europe/Berlin`): *Use this phone's time zone* fills it in.
 - **Set the clock from this phone** is on the daily page and the setup page (the plug has no battery-backed clock;
   see [how-it-works.md](how-it-works.md)).
 

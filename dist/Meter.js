@@ -655,19 +655,24 @@ else { logEv(fmtEv("U", stamp(t.unix, st.n, t.up))); go(); }
 });
 }
 let LAUNCH = [["Led", 5000], ["Page", 20000]];
-function startLater(id, ms) {
-Timer.set(ms, false, function () { Shelly.call("Script.Start", {id: id}); });
+function startChain(q, i, prev) {
+if (i >= q.length) return;
+Timer.set(q[i][1] - prev, false, function () {
+Shelly.call("Script.Start", {id: q[i][0]});
+startChain(q, i + 1, q[i][1]);
+});
 }
 function launch() {
 Shelly.call("Script.List", {}, function (r, err) {
 if (err || !r || !r.scripts) return;
-let i, j;
+let i, j, q = [];
 for (i = 0; i < LAUNCH.length; i++) {
 for (j = 0; j < r.scripts.length; j++) {
 let s = r.scripts[j];
-if (s.name === LAUNCH[i][0] && !s.running) startLater(s.id, LAUNCH[i][1]);
+if (s.name === LAUNCH[i][0] && !s.running) q.push([s.id, LAUNCH[i][1]]);
 }
 }
+startChain(q, 0, 0);
 });
 }
 launch();

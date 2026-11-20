@@ -62,11 +62,16 @@ the page place events and charges in time after a power cut.
 
 ## Sessions and events
 
-A session starts when the current is above the minimum charging current (`g`) and ends after the session gap
+A session starts when the current is at or above the minimum charging current (`g`) and ends after the session gap
 (`sg`) without it. Sessions are written into the month's session keys. Events (relay on/off with source, boot,
 script restart `U`, old data format `L`) go into a small ring of three keys. Restarting `Meter` without a reboot
 (an update, or Stop/Start in the web UI) is not counted as a boot: the open session is kept and a `U` event is
 logged.
+
+The meter tells a reboot from a restart by the plug's uptime: it is a reboot when the uptime is lower than the one
+saved last, or when both are under 120 s. One edge follows from this: if the plug rebooted while `Meter` was stopped
+and `Meter` is then started by hand more than 120 s after that reboot (uptime already above the saved one), it
+counts as a restart (`U` event), not as a boot.
 
 ## Configuration flow
 

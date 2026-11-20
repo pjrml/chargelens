@@ -104,3 +104,22 @@ t("ev_text_u", function () {
   eq("B", evText("B,~4.3,1/~3.7200"), "Boot (reason 1)");
   eq("unknown", evText("Z,1"), "Z,1");
 });
+
+// ---- final review: MailTpl missing subject/body falls back field by field to the default template ----
+t("mailtpl_default_is_single_source", function () {
+  let d = JSON.parse(MAIL_DEFAULT_JSON);
+  eq("subject", MAILD.subject, d.subject);
+  eq("body", MAILD.body, d.body);
+});
+t("mailtpl_fallback", function () {
+  eq("null", mailTpl(null).subject, MAILD.subject);
+  eq("not an object", mailTpl("x").body, MAILD.body);
+  let m = mailTpl({to: "a@b", subject: "S"});
+  eq("keeps subject", m.subject, "S");
+  eq("default body", m.body, MAILD.body);
+  eq("keeps to", m.to, "a@b");
+  eq("default subject", mailTpl({body: "B", cc: "c@d"}).subject, MAILD.subject);
+  eq("bad types", mailTpl({subject: 5, body: null}).body, MAILD.body);
+  eq("empty subject kept", mailTpl({subject: "", body: "B"}).subject, "");
+  eq("recipients default empty", mailTpl({}).to, "");
+});
