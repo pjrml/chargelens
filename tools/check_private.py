@@ -1,4 +1,4 @@
-"""Fail if the repo text leaks anything private (public repo rule, see CLAUDE.md).
+"""Fail if the repo text leaks anything private (public repo rule).
 
 Usage: python tools/check_private.py [--generic-only] [paths...]
 --generic-only: skip the private terms file (CI, where it does not exist; no warning).

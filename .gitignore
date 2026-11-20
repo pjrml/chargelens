@@ -1,4 +1,4 @@
-# SECURITY: secrets never live in the working tree (see README "Secrets and where they live").
+# SECURITY: secrets never live in the working tree (see README.private.md, local only).
 # These patterns are only a safety net.
 *.env
 *.env.*
@@ -47,3 +47,9 @@ desktop.ini
 tmp/
 
 # Note: dist/ is committed on purpose (served to devices through raw.githubusercontent.com).
+
+# Local-only maintainer files (owner, 2026-11-20): kept out of the public repo until reviewed
+README.private.md
+CLAUDE.md
+TODO.md
+_chargelens.code-workspace

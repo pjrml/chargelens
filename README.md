@@ -80,41 +80,7 @@ Shelly **Plus Plug S** (Gen2) and Shelly **Plug S Gen3**, including rebranded va
 | `dist/` | Committed build output (devices read it through raw.githubusercontent.com) |
 | `library/` | Shelly Library URL manifest |
 | `docs/` | User and developer docs; `docs/assets/` logo and screenshots; `docs/superpowers/` design and plans |
-| `CLAUDE.md`, `TODO.md` | Working rules for Claude Code, pending work and change log |
 
 ## License
 
 MIT, see [LICENSE](LICENSE).
-
----
-
-## Maintainer notes
-
-### Secrets and where they live
-
-Secrets are never stored in the repo.
-
-| Secret | Location (outside the repo) | How to recreate |
-|---|---|---|
-| none | | The plugs have no device auth by design; Wi-Fi/AP passwords are set on the device and never stored here. |
-
-Device backups and configuration exports hold personal data: keep them outside the repo (they are also
-git-ignored as a safety net).
-
-### Recover on a new PC
-
-1. **Tools:** Git, VS Code with the Claude Code extension, Python 3.8+ (stdlib only), Microsoft Edge or Chrome
-   (headless page tests), GitHub CLI (`gh`).
-2. **Clone** outside any cloud-synced folder:
-   `git clone https://github.com/pjrml/chargelens.git "$env:USERPROFILE\Projects\chargelens"`, then set the
-   identity used for this repo: `git config user.name pjrml` and
-   `git config user.email 25982611+pjrml@users.noreply.github.com`; `gh auth login`.
-3. **Open** `_chargelens.code-workspace` and **trust** the folder (Claude Code does not start in Restricted Mode).
-4. **Claude Code plugins:** the maintainer's baseline plugin (installed as described in the maintainer's private
-   notes) and `superpowers` (official marketplace) for the design/plan workflow.
-5. **Environment:** `python -m venv .venv` (no packages needed so far).
-6. **Secrets:** none.
-7. **Verify:** `python tools/build.py --check`, the page tests and a device test against a development plug (see
-   `docs/development.md`).
-8. **Not recovered, by design:** Claude Code session history and memory (rules are in `CLAUDE.md`, state in
-   `TODO.md`). Start the first session with "read `TODO.md`".
