@@ -483,8 +483,7 @@ Copy files only (no history). Behaviour unchanged except what the scrub removes.
 
 **Files:**
 - Create: `docs/shelly-setup.md`, `docs/install.md`, `docs/install-manual.md`, `docs/configuration.md`,
-  `docs/usage.md`, `docs/how-it-works.md`, `docs/security.md`, `docs/troubleshooting.md`, `CHANGELOG.md`,
-  `docs/assets/logo.svg` (from the chosen draft)
+  `docs/usage.md`, `docs/how-it-works.md`, `docs/security.md`, `docs/troubleshooting.md`, `CHANGELOG.md`
 - Modify: `src/page.html`, `src/setup.html` (icon)
 - Modify: `README.md`, `docs/development.md`
 
@@ -495,15 +494,13 @@ Copy files only (no history). Behaviour unchanged except what the scrub removes.
   `docs/security.md` and `docs/shelly-setup.md`; the security model (no device auth, WPA2 AP); KVS map and
   limits in `docs/how-it-works.md`; the Library URL path with screenshot placeholders (filled in Task 11);
   the manual path (7 scripts, exact names, only Meter on startup, raw links per file of the tag).
-- [ ] **Step 2: Logo.** Drafts exist since 2026-11-20 (round 4: `docs/assets/logo-g1.svg`, `-g2`, `-g3`, `-d2l`; the owner
-  chooses before this task, see `TODO.md`). The chosen one becomes `docs/assets/logo.svg` (drafts deleted), the
-  README header image, and the home-screen / favicon icon of the daily and setup pages (inline data URI, ASCII;
-  `apple-touch-icon` needs a PNG: render a 180 px PNG once and inline it as base64 if it stays under ~4 KB,
-  otherwise use the SVG favicon only).
+- [ ] **Step 2: Logo** (chosen 2026-11-20: `docs/assets/logo.svg`). Use it as the README header image and the
+  home-screen / favicon icon of the daily and setup pages (inline data URI, ASCII; `apple-touch-icon` needs a
+  PNG: render a 180 px PNG once and inline it as base64 if it stays under ~4 KB, otherwise use the SVG favicon
+  only).
 - [ ] **Step 3: README**: what/who/features/hardware/quick start/links, status updated, maintainer sections
   kept ("Secrets and where they live", "Recover on a new PC" with the baseline plugin install lines).
-- [ ] **Step 4: Run** `python tools/check_private.py` -> no hits. **Commit** `User documentation and logo
-  variants`.
+- [ ] **Step 4: Run** `python tools/check_private.py` -> no hits. **Commit** `User documentation and logo`.
 
 ### Task 11: Validation on both plugs and release
 
