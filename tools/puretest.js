@@ -78,6 +78,15 @@ function main() {
     process.exit(1);
   }
   const res = JSON.parse(vm.runInContext("JSON.stringify(__R)", ctx));
+  if (libfile.endsWith(".html")) {  // the whole page script must parse (the PURE tests alone miss a typo outside PURE)
+    const re = /<script>([\s\S]*?)<\/script>/g;
+    let m, i = 0;
+    while ((m = re.exec(read(libfile))) !== null) {
+      const n = "script " + i++ + " parses";
+      try { new vm.Script(expandLibs(libfile, m[1], true)); res.push({n: n, ok: true}); }
+      catch (e) { res.push({n: n, ok: false, g: String(e), e: "no error"}); }
+    }
+  }
   const skipped = vm.runInContext("__SKIPPED", ctx);
   let fails = 0;
   for (const x of res) {

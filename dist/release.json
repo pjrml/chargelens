@@ -56,16 +56,16 @@
       "path": "dist/installer.js",
       "kind": "code",
       "enable": false,
-      "size": 3221,
-      "crc32": 2133859797
+      "size": 3249,
+      "crc32": 1414949338
     },
     {
       "name": "InstallHtml",
       "path": "dist/install.html",
       "kind": "data",
       "enable": false,
-      "size": 24904,
-      "crc32": 1114288795
+      "size": 24908,
+      "crc32": 1962988927
     }
   ]
 }

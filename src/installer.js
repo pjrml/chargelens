@@ -53,13 +53,12 @@ Timer.set(1500, false, function () {
     if (!(c && c.debug && c.debug.websocket && c.debug.websocket.enable)) {
       Shelly.call("Sys.SetConfig", {config: {debug: {websocket: {enable: true}}}});
     }
-    // Repeat the address for 30 s, so a console opened (or reloaded) after Start still shows it.
-    let left = 10;
+    // Print the address at 0, 3, 10 and 30 s, so a console opened (or reloaded) after Start still shows it.
+    let gaps = [3000, 7000, 20000], k = 0;
     let say = function () {
       let w = Shelly.getComponentStatus("wifi");
       print("ChargeLens installer: open http://" + ((w && w.sta_ip) || "192.168.33.1") + "/script/" + JSON.stringify(id) + "/install");
-      left--;
-      if (left > 0) Timer.set(3000, false, say);
+      if (k < gaps.length) Timer.set(gaps[k++], false, say);
     };
     say();
   });

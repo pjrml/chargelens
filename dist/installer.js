@@ -38,12 +38,11 @@ let c = Shelly.getComponentConfig("sys");
 if (!(c && c.debug && c.debug.websocket && c.debug.websocket.enable)) {
 Shelly.call("Sys.SetConfig", {config: {debug: {websocket: {enable: true}}}});
 }
-let left = 10;
+let gaps = [3000, 7000, 20000], k = 0;
 let say = function () {
 let w = Shelly.getComponentStatus("wifi");
 print("ChargeLens installer: open http://" + ((w && w.sta_ip) || "192.168.33.1") + "/script/" + JSON.stringify(id) + "/install");
-left--;
-if (left > 0) Timer.set(3000, false, say);
+if (k < gaps.length) Timer.set(gaps[k++], false, say);
 };
 say();
 });

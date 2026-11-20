@@ -154,7 +154,7 @@ f+='<div class="c"><div class="lab">Setup</div>'+ck('o_tz','Set the time zone fr
 (n.cloud===true?ck('h_cloud','<span class="wn">&#9888;</span> Turn the Shelly cloud off',true,'No Shelly app access from outside the plug\'s networks.'):'')+
 (bleOn(n.ble)?ck('h_ble','<span class="wn">&#9888;</span> Turn Bluetooth off',true):'')+
 (n.mqtt===true?ck('h_mqtt','<span class="wn">&#9888;</span> Turn MQTT off',true):'')+
-(n.dbg===true?ck('h_dbg','<span class="wn">&#9888;</span> Turn the websocket debug logs off',true,'The installer turned them on to show its address in the plug's script console. ChargeLens does not need them.'):'')+
+(n.dbg===true?ck('h_dbg','<span class="wn">&#9888;</span> Turn the websocket debug logs off',true,'The installer turned them on to show its address in the plug&#39;s script console. ChargeLens does not need them.'):'')+
 (n.in_mode&&n.in_mode!=='detached'?ck('h_button','<span class="wn">&#9888;</span> Make the button do nothing (it toggles the relay)',true):'')+
 ck('h_forget','Forget the home Wi-Fi at the end (recommended)',false,'Only with the access point set up. Nobody on your network can then reach the plug, but the plug has no internet clock and the next update needs it joined to a Wi-Fi again. You will have to connect to the access point to use it.')+'</div>'}
 f+='<div class="c"><button id="go" disabled>'+(upd?'Update':'Install')+'</button><div class="er" id="e_go"></div><div id="busy" class="mu" style="display:none;margin-top:8px"><progress style="width:100%"></progress><div>Working&hellip; keep this page open. This takes about a minute; the steps are listed below.</div></div><button id="back">Leave without changes</button><div class="mu" style="margin-top:8px">Nothing here switches the relay.</div></div>';

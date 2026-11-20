@@ -59,7 +59,7 @@ code.
 
 3. Press **Start**.
 4. Wait a second or two. The console prints the address of the install page, like
-   `http://<plug-ip>/script/<id>/install`. It repeats it every 3 seconds for 30 seconds.
+   `http://<plug-ip>/script/<id>/install`. It prints it again after 3, 10 and 30 seconds.
 5. Open that address in your browser and continue with Step 3.
 
 > [!IMPORTANT]
@@ -73,7 +73,7 @@ If you pressed **Start** without **Enable**, the script turns the console logs o
 not notice. Then:
 
 1. Reload the page in your browser.
-2. Read the address in the console (it is repeated for 30 seconds after **Start**).
+2. Read the address in the console (it is printed again until 30 seconds after **Start**).
 3. If the 30 seconds have passed, press **Stop**.
 4. Press **Start**. The address is printed again.
 

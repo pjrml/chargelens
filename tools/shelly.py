@@ -381,6 +381,12 @@ def run_page_tests(htmlfile, testfile, browser=None):
         pure = expand_libs(htmlfile, src[a:b]) if a >= 0 and b > a else ""
     mailf = os.path.join(os.path.dirname(os.path.abspath(htmlfile)), "mail-default.json")
     mail_js = "let MAIL_DEFAULT_JSON = " + json.dumps(open(mailf, encoding="utf-8").read() if os.path.exists(mailf) else "") + ";" + chr(10)
+    if not htmlfile.endswith(".js"):  # the whole page script must parse (the PURE tests alone miss a typo outside PURE)
+        import re
+        bodies = [expand_libs(htmlfile, m) for m in re.findall(r"<script>(.*?)</script>", src, re.S)]
+        pure += (chr(10) + "t('page script parses', function () { " + json.dumps(bodies).replace("</", r"<\/") +
+                 ".forEach(function (b, i) { try { new Function(b); eq('script ' + i + ' parses', true, true); }" +
+                 " catch (e) { eq('script ' + i + ' parses', String(e), 'no error'); } }); });" + chr(10))
     pure = mail_js + pure  # tests read the repo default mail template (src/mail-default.json) through this global
     prelude = TEST_PRELUDE.split("HTTPServer.registerEndpoint")[0].replace("Timer.set(200, false, __next);", "")
     prelude = prelude.replace("Timer.set(50, false, __next);", "__next();")
