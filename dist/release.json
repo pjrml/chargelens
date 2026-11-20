@@ -1,6 +1,6 @@
 {
-  "version": "1.0.0-rc.3",
-  "tag": "v1.0.0-rc.3",
+  "version": "1.0.0-rc.4",
+  "tag": "v1.0.0-rc.4",
   "repo": "pjrml/chargelens",
   "files": [
     {
@@ -9,7 +9,7 @@
       "kind": "code",
       "enable": true,
       "size": 24228,
-      "crc32": 3588862145
+      "crc32": 2807432034
     },
     {
       "name": "Led",
@@ -17,7 +17,7 @@
       "kind": "code",
       "enable": false,
       "size": 3085,
-      "crc32": 2505429052
+      "crc32": 1942039815
     },
     {
       "name": "Page",
@@ -25,7 +25,7 @@
       "kind": "code",
       "enable": false,
       "size": 4971,
-      "crc32": 1747703295
+      "crc32": 3489458421
     },
     {
       "name": "PageHtml",
@@ -33,7 +33,7 @@
       "kind": "data",
       "enable": false,
       "size": 28714,
-      "crc32": 3550961541
+      "crc32": 2685326427
     },
     {
       "name": "SetupHtml",
@@ -41,7 +41,7 @@
       "kind": "data",
       "enable": false,
       "size": 33382,
-      "crc32": 143467437
+      "crc32": 1747848982
     },
     {
       "name": "MailTpl",
@@ -57,7 +57,7 @@
       "kind": "code",
       "enable": false,
       "size": 3251,
-      "crc32": 1935095576
+      "crc32": 552826124
     },
     {
       "name": "InstallHtml",
@@ -65,7 +65,7 @@
       "kind": "data",
       "enable": false,
       "size": 26890,
-      "crc32": 2683507371
+      "crc32": 2696177079
     }
   ]
 }

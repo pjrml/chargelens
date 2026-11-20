@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 1.0.0-rc.4 (2026-11-20)
+
+- Mail: the report goes whole in the mail link up to 8000 characters (was 1800); longer reports are copied to the
+  clipboard in a way that works on the plug's http page (before, the body was lost).
+- Mail: optional **Language of {month_name}** on the setup page (e.g. `pt-PT`); empty keeps the phone's language.
+
 ## 1.0.0-rc.3 (2026-11-20)
 
 - Docs: LED ring colour table in daily use (`docs/usage.md`); use cases in the README.
