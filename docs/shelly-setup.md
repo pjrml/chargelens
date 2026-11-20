@@ -25,8 +25,11 @@ ChargeLens itself works offline, but the installer downloads the scripts from Gi
 browser needs internet, and so does the plug for firmware updates. Use a Wi-Fi network you control (your home
 router, or a phone hotspot).
 
-1. In the web UI: **Settings -> Wi-Fi**, enable the first Wi-Fi station, pick your network, enter the password,
-   save.
+1. In the web UI: **Settings -> Wi-Fi** (under *Network settings*), turn on **Enable Wi-Fi** in *Wi-Fi 1
+   settings*, pick your network, enter the password, **Save settings**.
+
+   <img src="assets/screenshots/shelly-wifi.png" alt="Shelly web UI: Wi-Fi 1 settings with Enable Wi-Fi, network and password" width="560">
+
 2. The plug reconnects. Find its new address in your router's device list (or the Shelly app) and open
    `http://<plug-ip>`. From now on `<plug-ip>` means that address.
 
@@ -36,7 +39,11 @@ Your browser must be on the same network as the plug for the next steps.
 
 The installer only continues when the firmware is **up to date**.
 
-1. Web UI: **Settings -> Firmware** (or the Shelly app). If an update is offered, install it.
+1. Web UI: **Settings -> Firmware** (or the Shelly app). Press **Check for updates**; if an update is offered
+   under *Official Shelly updates*, install it. *No updates* means you are done.
+
+   <img src="assets/screenshots/shelly-firmware.png" alt="Shelly web UI: Firmware information showing No updates and the Check for updates button" width="560">
+
 2. Updates come **in steps**: after one update the next one is offered only after the plug has restarted. Update,
    wait for the restart (a few minutes), check again, and repeat until no update is offered.
 3. Right after an update the plug may answer "Not committed" (error -109) if you start another update straight
@@ -47,7 +54,7 @@ date.
 
 ## 4. Name and recommended settings
 
-- **Name** (optional): Settings -> Device name. ChargeLens shows it in the mail template as `{device_name}`.
+- **Name** (optional): Settings -> *Device settings* -> Device name. ChargeLens shows it in the mail template as `{device_name}`.
 - **Time zone**: the setup page can fill it from your phone later.
 - The installer offers to turn off the **Shelly cloud**, **Bluetooth** and **MQTT**, to make the **button** do
   nothing, and to configure the plug's own access point with a WPA2 password. You can do these in the installer or
