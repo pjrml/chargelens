@@ -210,7 +210,7 @@ const upd=PLAN.mode==='update';
 if(upd&&downgradeBlocked(hdrVer(HM),REL.version)){halt(h+row(false,'The plug has ChargeLens '+esc(hdrVer(HM))+', which is newer than the version of this installer ('+esc(REL.version)+'). Going back to an older version is not supported. Nothing was changed.'));return}
 if(upd){try{if(!await idle()){halt(h+row(false,'The plug is charging or a session is open. Updating restarts the meter, so try again when the car is unplugged.')+'<button id="again">Check again</button>');return}}catch(e){halt(h+row(false,'Could not read the plug state: '+esc(e.message)));return}h+=row(true,'No charging in progress.')}
 CUR=await curState();TZ=(()=>{try{return Intl.DateTimeFormat().resolvedOptions().timeZone||''}catch(e){return ''}})();
-h+=row(true,(upd?'Update':'First installation')+' of ChargeLens '+esc(REL.version)+': '+PLAN.write.map(esc).join(', ')+'.');
+h+=row(upd?null:true,(upd?'Update of ChargeLens '+esc(hdrVer(HM)||'?')+' to '+esc(REL.version):'First installation of ChargeLens '+esc(REL.version))+': '+PLAN.write.map(esc).join(', ')+'.');
 if(upd)h+='<div class="mu">Your settings, mail template and energy log are kept.</div>';
 let f='<div class="c">'+h+'</div>';
 f+='<div class="c"><div class="lab">Charger</div>'+ck('c_ok','My charger is set to draw at most '+CHARGER_A+' A.',false,'The plug is rated '+MODEL.maxA+' A. A charger that draws more can overheat the plug or the socket: set the current in the car or charger first.')+'</div>';
