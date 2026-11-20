@@ -4,7 +4,9 @@
 //
 // KVS (Global Constraints of the plan):
 //   cc:state     {"c":lastCounterWh,"o":ownTotalWh,"t":lastSaveUnix,"pb":pendingBootWh,"po":pendingOldWh,
-//                 "dk":"YYYYMMDD","dw":todayWhFloat}
+//                 "dk":"YYYYMMDD","dw":todayWhFloat,"n":bootCount,"nb":bootDated,"u":uptimeAtLastSave,
+//                 "sv":schemaVersion (absent = legacy, never prune),"ei"/"hi":ring indexes,"l":lostRecords}
+//   cc:cfg       user config (cfg_lib.js), polled each tick by etag
 //   cc:m:YYYYMM  "<startOwnWh>|d1,d2,...,dN"   (integer Wh per day)
 //   cc:adj       [[ "YYYYMMDD", Wh, code ], ...] last 8; codes: u = unknown-date energy (v1/v2 only), m = energy from a
 //                previous month folded into day 1, s = counter spike ignored, b = counter went back (lost)
@@ -231,12 +233,14 @@ function splitStamp(st) {
   return [parseInt(p[0], 10), parseInt(p[1], 10)];
 }
 
+// ==== TEST ONLY ==== (not deployed: `put` strips this part, tests keep it)
 function resolveStamp(st, boots) {
   let p = splitStamp(st);
   if (!p) return st;
   let b = bootUnixOf(boots, p[0]);
   return b === null ? null : b + p[1];
 }
+// ==== END TEST ONLY ====
 
 // cc:state without the open session (kept in its own key cc:ss): both must fit a KVS value (253)
 function stateJson(st) {
@@ -245,7 +249,7 @@ function stateJson(st) {
   return JSON.stringify(o);
 }
 
-// session keys of a month: 2 keys (~28 sessions) keep the store within 50 keys with 12 months
+// session keys of a month: 2 keys (~28 sessions) keep the store within 50 keys with 6 months
 function recKeys(mk) { return ["cc:s:" + mk, "cc:s:" + mk + "-2"]; }
 
 // ---- sessions (v2) ----
@@ -729,7 +733,8 @@ function tick() {
     month = r.month;
     unsaved = r3(unsaved + r.d);
     if (r.sx) st.ss = sessSpike(st.ss, r.sx);
-    let sr = sessTick(st.ss, up, cfg.sg);
+    // until cc:cfg was read once (cfgTag set) the gap is unknown: never close a session with the default
+    let sr = cfgTag === null ? {ss: st.ss, closed: null} : sessTick(st.ss, up, cfg.sg);
     if (sr.closed) { st.ss = null; saveRec(sr.closed); r.changed = true; r.forced = true; }
     if (unix > CLOCK_MIN && !st.nb) dateThisBoot({unix: unix, up: up, sync: sys.last_sync_ts});
     if (r.changed && shouldPersist(unsaved, up - lastSaveUp, r.forced)) {
@@ -742,7 +747,6 @@ function tick() {
 
 function startTimers() {
   lastSaveUp = Shelly.getComponentStatus("sys").uptime;
-  Timer.set(1000, false, cfgPoll);
   Timer.set(FIRST_TICK_MS, false, tick);
   Timer.set(TICK_MS, true, tick);
   Timer.set(HB_MS, true, heartbeat);
@@ -771,13 +775,17 @@ function start(total) {
         if (st.n === undefined) { st.n = 0; st.nb = false; }
         if (st.ss === undefined) st.ss = null;
         let mg = migrate(st, fresh);
-        if (mg.legacy) logEv(fmtEv("L", stamp(now().unix, st.n, now().up)));
+        // L (legacy state, once per start) is logged after the boot/restart decision: its stamp has the right n
+        function go() {
+          if (mg.legacy) { let t2 = now(); logEv(fmtEv("L", stamp(t2.unix, st.n, t2.up))); }
+          startTimers();
+        }
         if (pw > 0) rqPush(function (done) {
           Shelly.call("KVS.Get", {key: "cc:su"}, function (ru, eu) { suSave(suAddT(!eu && ru ? ru.value : null, pn, pw), done); });
         });
         let t = now();
-        if (isRealBoot(t.up, st.u)) newBoot(total, startTimers);
-        else { logEv(fmtEv("U", stamp(t.unix, st.n, t.up))); startTimers(); }
+        if (isRealBoot(t.up, st.u)) newBoot(total, go);
+        else { logEv(fmtEv("U", stamp(t.unix, st.n, t.up))); go(); }
       });
     });
   });

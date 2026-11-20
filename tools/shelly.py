@@ -129,10 +129,35 @@ def minify(code):
     script heap, so comments cost RAM. (No block comments or multi-line strings in our scripts.)"""
     out = []
     for line in code.splitlines():
-        s = line.strip()
+        s = strip_trailing_comment(line.strip())
         if s and not s.startswith("//"):
             out.append(s)
     return chr(10).join(out) + chr(10)
+
+
+def strip_trailing_comment(line):
+    """Cut a trailing // comment from one line, quote-aware: a // inside '...' or "..." (e.g. "http://") stays.
+    Scripts have no regex literals containing //."""
+    q = None
+    i = 0
+    while i < len(line):
+        c = line[i]
+        if q:
+            if c == chr(92):
+                i += 1
+            elif c == q:
+                q = None
+        elif c in "'\"":
+            q = c
+        elif c == "/" and line[i + 1:i + 2] == "/":
+            return line[:i].rstrip()
+        i += 1
+    return line
+
+
+assert strip_trailing_comment('x = "http://a"; // c') == 'x = "http://a";'
+assert strip_trailing_comment("y = 'a" + chr(92) + "'//b'; // c") == "y = 'a" + chr(92) + "'//b';"
+assert strip_trailing_comment("z = 1;  // c") == "z = 1;"
 
 
 def put(ip, name, code, start=True, enable=True, mini=True):
@@ -192,25 +217,40 @@ def delscript(ip, name_or_id):
     print("deleted script %s" % sid)
 
 
-def lib_section(path):
-    """LIB region of PATH (between the LIB markers), with //@lib includes expanded. '' when there is none."""
+def strip_test_only(code):
+    """Drop '// ==== TEST ONLY ====' .. '// ==== END TEST ONLY ====' regions (code only tests use) from deployed scripts."""
+    return re.sub(r"// ==== TEST ONLY ====.*?// ==== END TEST ONLY ====" + chr(92) + "n?", "", code, flags=re.S)
+
+
+PAGE_ONLY_MARK = "// ==== PAGE ONLY ===="
+
+
+def lib_section(path, page_only=True):
+    """LIB region of PATH (between the LIB markers), with //@lib includes expanded. '' when there is none.
+    page_only=False cuts the region at the PAGE ONLY marker (code only pages need, to save script heap)."""
     src = open(path, encoding="utf-8").read()
     a, b = src.find("// ==== LIB ===="), src.find("// ==== END LIB ====")
     if a < 0 or b < a:
         return ""  # no LIB yet: tests must fail
-    return expand_libs(path, src[a:b])
+    region = src[a:b]
+    if not page_only and PAGE_ONLY_MARK in region:
+        region = region[:region.find(PAGE_ONLY_MARK)]
+    return expand_libs(path, region)
 
 
 LIB_MARK = re.compile(r"^[ 	]*(?://@lib[ 	]+(\S+)|/\*@lib[ 	]+(\S+?)\*/)[ 	]*$", re.M)
 
 
-def expand_libs(path, code):
+def expand_libs(path, code, page_only=None):
     """Replace a line '//@lib NAME' or '/*@lib NAME*/' with the LIB region of NAME (a file next to PATH),
-    without its marker lines. Also used by tools/build.py."""
+    without its marker lines. Rule: the PAGE ONLY part of NAME is kept only when the target PATH is an .html
+    page (override with page_only); scripts (.js) get the part above the marker. Also used by tools/build.py."""
+    if page_only is None:
+        page_only = path.endswith(".html")
     base = os.path.dirname(os.path.abspath(path))
 
     def repl(m):
-        lib = lib_section(os.path.join(base, m.group(1) or m.group(2)))
+        lib = lib_section(os.path.join(base, m.group(1) or m.group(2)), page_only)
         if not lib:
             raise RuntimeError("@lib %s: no LIB region" % (m.group(1) or m.group(2)))
         return lib.split(chr(10), 1)[1].rstrip(chr(10))
@@ -368,7 +408,7 @@ def main():
     elif a.cmd == "put":  # put NAME FILE
         if not a.method or not a.params:
             sys.exit("put needs NAME FILE")
-        code = expand_libs(a.params, expand_includes(a.params, open(a.params, encoding="utf-8").read()))
+        code = strip_test_only(expand_libs(a.params, expand_includes(a.params, open(a.params, encoding="utf-8").read())))
         if a.store:  # data stored as a script (e.g. PageHtml): never enabled or started, not minified
             print("stored %s id=%d" % (a.method, put(ip, a.method, code, start=False, enable=False, mini=False)))
         else:
