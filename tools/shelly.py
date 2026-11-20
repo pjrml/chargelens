@@ -71,6 +71,27 @@ def script_code(ip, sid):
             return code
 
 
+def kvs_all(ip):
+    """All KVS items: KVS.GetMany is paged (a few items per call), so follow offset until total."""
+    items = None
+    while True:
+        off = 0 if items is None else len(items)
+        r = rpc(ip, "KVS.GetMany", {"match": "*", "offset": off})
+        page = r.get("items", {})
+        if items is None:
+            items = type(page)()
+        if isinstance(page, dict):
+            items.update(page)
+        else:
+            items.extend(page)
+        total = r.get("total", len(items))
+        if not page or len(items) >= total:
+            break
+    if len(items) != total:
+        raise RuntimeError("KVS: got %d of %d items" % (len(items), total))
+    return {"items": items, "offset": 0, "total": total}
+
+
 def backup(ip, out=None):
     ts = datetime.datetime.now().strftime("%Y-%m-%d_%H%M%S")
     dest = os.path.join(out or BACKUPS, ts)
@@ -95,7 +116,7 @@ def backup(ip, out=None):
         except Exception as e:
             print("warn: %s failed: %s" % (method, e), file=sys.stderr)
     try:
-        save("kvs.json", rpc(ip, "KVS.GetMany", {"match": "*"}))
+        save("kvs.json", kvs_all(ip))
     except Exception as e:
         print("warn: KVS.GetMany failed: %s" % e, file=sys.stderr)
 
