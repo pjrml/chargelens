@@ -50,7 +50,8 @@ numbered item** (one click, one field, one choice per item; owner rule 2026-11-2
 gets one of them skipped. Screenshots live in
 `docs/assets/screenshots/` and must not show personal data (addresses, Wi-Fi names, device locations, MAC
 addresses: the Shelly web UI, the default AP name and the installer's SSID field all contain the MAC).
-The current set was taken on the Gen2 dev plug (fw 1.7.6, 2026-11-20) with headless Edge driven over the
+The current set was taken on the Gen2 dev plug (fw 1.7.6, 2026-11-20; the daily, setup-thresholds and install
+screenshots retaken on the Gen3 dev plug for 1.0.0-rc.2) with headless Edge driven over the
 DevTools protocol: phone viewport 390 px at 2x for the ChargeLens pages, 1280 px for the Shelly web UI; six
 months of random energy and sessions written into the KVS with `Meter` stopped; the live power on the daily
 page faked by rewriting the `data` response in the browser; the MAC (and the dev plug's address) replaced in
