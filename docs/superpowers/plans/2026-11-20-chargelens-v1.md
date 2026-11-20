@@ -113,7 +113,7 @@ Copy files only (no history). Behaviour unchanged except what the scrub removes.
 - [ ] **Step 2: Scrub `src/page.html`.** `PRICES` becomes `[['200001', 0, '']]` (no tariff text); the mail
   body in `mailText` becomes a neutral two-line text (no condominium, parking, address, name, fraction); title
   and heading become `ChargeLens` (rest of the UI stays Portuguese until Task 6). Same for `page.js` BOOT title.
-  Adjust `page2_test.js` / `page3_test.js` expectations that quoted the removed text and the 0.1866 price.
+  Adjust `page2_test.js` / `page3_test.js` expectations that quoted the removed text and the old price.
 - [ ] **Step 3: Port `tools/shelly.py`.** Remove `find()` and the MAC/NAME/POOL/SSH constants; `--ip` is
   required for every device command; `backup` writes to `--out` (default `~/.config/chargelens/backups/`);
   Edge is looked up in both `Program Files` paths and `--browser <path>` overrides; add `info` (device info +
@@ -121,7 +121,7 @@ Copy files only (no history). Behaviour unchanged except what the scrub removes.
   `TEST_PRELUDE`, `lib_section`, `minify`, `expand_includes` as they are.
 - [ ] **Step 4: Write `tools/check_private.py`.** Generic patterns (always): IPv4 other than `192.168.33.1`
   and `0.0.0.0`, MAC addresses, e-mail addresses other than `@users.noreply.github.com` and `example.com`,
-  a Portuguese `lang` attribute (regex `lang="pt`, built in the script so the script does not match itself),
+  a Portuguese `lang` attribute (the regex is built in the script from parts, so the script does not match itself),
   Windows user paths. Private terms: one per line from `~/.config/chargelens/private-terms.txt`
   (outside the repo; the maintainer fills it with project/host/network/person names); missing file = warning,
   not failure. Scans `git ls-files` plus untracked non-ignored files by default.
