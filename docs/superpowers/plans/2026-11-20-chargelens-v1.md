@@ -495,7 +495,7 @@ Copy files only (no history). Behaviour unchanged except what the scrub removes.
   `docs/security.md` and `docs/shelly-setup.md`; the security model (no device auth, WPA2 AP); KVS map and
   limits in `docs/how-it-works.md`; the Library URL path with screenshot placeholders (filled in Task 11);
   the manual path (7 scripts, exact names, only Meter on startup, raw links per file of the tag).
-- [ ] **Step 2: Logo.** Three drafts exist since 2026-11-20 (`docs/assets/logo-a.svg`, `-b`, `-c`; the owner
+- [ ] **Step 2: Logo.** Drafts exist since 2026-11-20 (round 2: `docs/assets/logo-d.svg`, `-e`, `-f`; the owner
   chooses before this task, see `TODO.md`). The chosen one becomes `docs/assets/logo.svg` (drafts deleted), the
   README header image, and the home-screen / favicon icon of the daily and setup pages (inline data URI, ASCII;
   `apple-touch-icon` needs a PNG: render a 180 px PNG once and inline it as base64 if it stays under ~4 KB,
