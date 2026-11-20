@@ -2,6 +2,16 @@
 
 # ChargeLens
 
+<p align="center"><img src="docs/assets/disclaimer.svg" alt="USE AT YOUR OWN RISK. No warranty and no liability of any kind. You alone are responsible for the plug, the charger, the socket and this software." width="880"></p>
+
+> [!CAUTION]
+> **Use at your own risk, now and in every future version.** ChargeLens is provided "as is", without warranty of
+> any kind, express or implied ([MIT License](LICENSE)). The author accepts no responsibility or liability, express
+> or implied, for any damage, injury, fire, loss of data, wrong readings or wrong bills that may result from using
+> the plug, the charger, the socket or this software. Charging a car draws high current for hours: check the
+> ratings of everything involved and follow the charger and plug manufacturers' instructions. "Tested hardware"
+> below lists the models ChargeLens was tested on; it is not a statement or guarantee that using them is safe.
+
 > **Status: in development.** ChargeLens is not released yet (no `v1.0.0` tag). The install instructions point to
 > releases that do not exist yet; do not use it on a plug you rely on.
 
@@ -37,14 +47,22 @@ car charging before publishing. Tests run on real devices and in a headless brow
 - Install from the browser through the Shelly web UI "Library" (no PC needed), or manually.
 - English UI. No cloud, no account, no hub.
 
-## Supported hardware
+## Tested hardware
 
-Shelly **Plus Plug S** (Gen2) and Shelly **Plug S Gen3**, including rebranded variants that run Shelly firmware
-(e.g. EcoFlow x Shelly). Other Shelly devices with metering may follow.
+ChargeLens was developed and tested on the Shelly **Plus Plug S** (Gen2) and the Shelly **Plug S Gen3**,
+including rebranded variants that run Shelly firmware (e.g. EcoFlow x Shelly). The installer accepts only these
+models. "Tested" means only that the software was tested on them; it is no warranty of any kind, in particular
+not about safety (see the caution at the top). Other Shelly devices with metering may follow.
 
 > **Charger requirement: at most 10 A.** These plugs are rated 12 A / 2500 W. Set your car or charger to draw **no
 > more than 10 A**. A charger that draws more can overheat the plug or the socket. The installer asks you to
 > confirm it. See [docs/configuration.md](docs/configuration.md).
+
+> **Use a plug dedicated to ChargeLens.** We recommend that the plug runs **no other scripts**. ChargeLens needs
+> all 3 running script slots and most of the plug's small script memory (about 25 KB shared), and it was tested
+> only on plugs without other scripts. Other scripts can make it run out of memory, miss readings or fail to
+> start, and problems on such a plug cannot be reproduced or investigated. Details:
+> [docs/how-it-works.md](docs/how-it-works.md).
 
 ## Quick start
 

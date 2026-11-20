@@ -1,12 +1,13 @@
-// ChargeLens Installer v1.0.0
+// ChargeLens Installer v1.0.0-dev
 let REPO = "pjrml/chargelens";
-let TAG = "v1.0.0";
+let TAG = "v1.0.0-dev";
 let BOOT = "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"utf-8\">" +
 "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>ChargeLens installer</title></head>" +
 "<body style=\"background:#0b1221;color:#94a3b8;font-family:sans-serif;padding:16px\"><div id=\"m\">Loading the installer...</div><script>" +
-"(async function(){var s=location.search,m=/[?&]base=([^&]*)/.exec(s),t=/[?&]tag=(v[0-9]+[.][0-9]+[.][0-9]+)(&|$)/.exec(s),tg=t?t[1]:'" + TAG + "'," +
-"d='https://raw.githubusercontent.com/" + REPO + "/'+tg+'/',b=m?decodeURIComponent(m[1]):'';if(b&&b.slice(-1)!='/')b+='/';if(!b)b=d;" +
-"if(b!=d&&!confirm('Load the installer from '+b+'? Only continue if you started this yourself.'))throw new Error('cancelled');" +
+"(async function(){var s=location.search,m=/[?&]base=([^&]*)/.exec(s),t=/[?&]tag=(v[0-9]+[.][0-9]+[.][0-9]+(-[0-9A-Za-z]+([.][0-9A-Za-z]+)*)?)(&|$)/.exec(s),tg=t?t[1]:'" + TAG + "'," +
+"g='https://raw.githubusercontent.com/" + REPO + "/',d=g+tg+'/',b=m?decodeURIComponent(m[1]):'';if(b&&b.slice(-1)!='/')b+='/';" +
+"if(!b&&!t){try{var q=await fetch(g+'main/dist/release.json',{cache:'no-store'});if(q.ok&&(await q.json()).tag==tg)d=g+'main/'}catch(e){}}if(!b)b=d;" +
+"if(b!=d&&!confirm('This link installs ChargeLens from a test source ('+b+') instead of the official release. Continue only if you are testing ChargeLens yourself.'))throw new Error('cancelled');" +
 "var r=await fetch(b+'dist/install.html',{cache:'no-store'});if(!r.ok)throw new Error('HTTP '+r.status);var h=await r.text();" +
 "window.CL={repo:'" + REPO + "',tag:tg,base:b};document.open();document.write(h);document.close()})()" +
 ".catch(function(e){document.getElementById('m').innerHTML='Could not load the install page: '+e+'<br><button onclick=\"bk()\">Back</button>'});" +
@@ -31,7 +32,17 @@ else if (r.scripts[i].name === "Installer") taken = true;
 }
 }
 if (me !== null && me !== "Installer" && !taken) Shelly.call("Script.SetConfig", {id: id, config: {name: "Installer"}});
+let c = Shelly.getComponentConfig("sys");
+if (!(c && c.debug && c.debug.websocket && c.debug.websocket.enable)) {
+Shelly.call("Sys.SetConfig", {config: {debug: {websocket: {enable: true}}}});
+}
+let left = 10;
+let say = function () {
 let w = Shelly.getComponentStatus("wifi");
 print("ChargeLens installer: open http://" + ((w && w.sta_ip) || "192.168.33.1") + "/script/" + JSON.stringify(id) + "/install");
+left--;
+if (left > 0) Timer.set(3000, false, say);
+};
+say();
 });
 });

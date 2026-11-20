@@ -8,7 +8,7 @@ plug's web UI. It is longer, but always works.
 >
 > **Charger requirement.** Set the car or charger to draw **at most 10 A** first (the plug is rated 12 A).
 
-Prerequisites as in [install.md](install.md): a supported plug, firmware up to date, and no other scripts running
+Prerequisites as in [install.md](install.md): a tested plug model, firmware up to date, and no other scripts running
 (the plug runs at most 3 at once).
 
 ## The scripts

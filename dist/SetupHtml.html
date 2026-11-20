@@ -1,4 +1,4 @@
-<!-- ChargeLens SetupHtml v1.0.0 -->
+<!-- ChargeLens SetupHtml v1.0.0-dev -->
 <!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
@@ -11,7 +11,7 @@ body{margin:0;padding:16px;padding-top:max(16px,env(safe-area-inset-top));font:1
 .w{max-width:480px;margin:0 auto}.c{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:12px}
 h1{font-size:18px;margin:0 0 4px}.mu{color:var(--mu);font-size:14px}.lab{color:var(--mu);font-size:13px;letter-spacing:.05em;text-transform:uppercase}
 button,select,input,textarea{width:100%;padding:11px;margin-top:6px;border-radius:10px;border:1px solid var(--line);background:#1d2a45;color:var(--tx);font:16px -apple-system,system-ui,sans-serif}
-textarea{min-height:130px}.sm{font-size:14px;padding:9px}.f{margin-top:12px}.f>label{font-size:15px}.er{color:var(--bad);font-size:13px}.ok{color:var(--ok)}
+textarea{min-height:130px}.sm{font-size:14px;padding:9px}.f{margin-top:12px}.f>label{font-size:15px}.er{color:var(--bad);font-size:13px}.wl{color:var(--warn);font-size:13px}.ok{color:var(--ok)}
 input[type=checkbox]{width:20px;height:20px;margin:0 10px 0 0;padding:0;vertical-align:middle}a{color:var(--warn)}button:disabled{opacity:.4}
 .bar{display:flex;height:16px;border-radius:8px;overflow:hidden;margin:10px 0 4px}.bar div{min-width:2px}summary{cursor:pointer;margin-top:12px;color:var(--mu)}
 .dt{display:inline-block;width:10px;height:10px;border-radius:50%;margin:0 4px 0 8px}
@@ -131,6 +131,11 @@ let cfg=null,mail=null;
 if(!CFG_ORD.some(k=>e[k])){cfg=storedCfg(cfgFix(raw));if(cfg===null||cfg.length>253){e.cfg='The settings do not fit the 253 byte limit (shorten the currency)';cfg=null}}
 if(f.mail){mail=mailText(f.mail);if(mail.length>16000){e.body='Mail template too long';mail=null}}
 return{cfg:cfg,mail:mail,native:{current_limit:cl,power_limit:pl,in_mode:f.in_mode,tz:tz,name:name},errors:e}}
+const CHARGER_A=10;
+function limitNotes(f,model){const n={},cl=f.current_limit,pl=f.power_limit;
+if(typeof cl==='number'&&cl>0&&cl<model.maxA)n.current_limit='Below the plug rating ('+model.maxA+' A): the relay cuts earlier. Keep it above what your charger draws (at most '+CHARGER_A+' A).';
+if(typeof pl==='number'&&pl>0&&pl<model.maxW)n.power_limit='Below the plug rating ('+model.maxW+' W): the relay cuts earlier.'+(pl<CHARGER_A*240?' A '+CHARGER_A+' A charge draws about '+CHARGER_A*230+' to '+CHARGER_A*240+' W, so this can cut the charge.':'');
+return n}
 function writePlan(o,n){const P=[],a=o.native,b=n.native;
 if(n.cfg!==null&&n.cfg!==o.cfg)P.push({rpc:'KVS.Set',params:{key:'cc:cfg',value:n.cfg},label:'Settings (cc:cfg)'});
 if(n.mail!==null&&n.mail!==o.mail)for(let i=0;i<n.mail.length;i+=4000){const p={name:'MailTpl',code:n.mail.slice(i,i+4000)};if(i>0)p.append=true;P.push({rpc:'Script.PutCode',params:p,label:'Mail template'+(n.mail.length>4000?' ('+(i/4000+1)+'/'+Math.ceil(n.mail.length/4000)+')':'')})}
@@ -185,7 +190,7 @@ async function rpc(m,p){const r=await(await fetch('/rpc',{method:'POST',headers:
 async function scode(n){const L=await g('/rpc/Script.List'),s=L.scripts.find(x=>x.name===n);if(!s)return null;let h='',o=0,r;
 do{r=await g('/rpc/Script.GetCode?id='+s.id+'&offset='+o);h+=r.data;o+=r.data.length}while(r.left>0&&r.data.length);return h}
 let MODEL={gen:0,maxA:12,maxW:2500},OLD=null,DI={},IMP=null;
-const fl=(k,l,h,v,x)=>'<div class="f"><label for="f_'+k+'">'+l+'</label><input id="f_'+k+'" value="'+esc(v)+'" '+(x||'inputmode="decimal" autocomplete="off"')+'>'+(h?'<div class="mu">'+h+'</div>':'')+'<div class="er" id="e_'+k+'"></div></div>';
+const fl=(k,l,h,v,x)=>'<div class="f"><label for="f_'+k+'">'+l+'</label><input id="f_'+k+'" value="'+esc(v)+'" '+(x||'inputmode="decimal" autocomplete="off"')+'>'+(h?'<div class="mu">'+h+'</div>':'')+'<div class="er" id="e_'+k+'"></div><div class="wl" id="w_'+k+'"></div></div>';
 const sl=(k,l,o,v)=>'<div class="f"><label for="f_'+k+'">'+l+'</label><select id="f_'+k+'">'+o.map(x=>'<option value="'+x[0]+'"'+(x[0]===v?' selected':'')+'>'+x[1]+'</option>').join('')+'</select><div class="er" id="e_'+k+'"></div></div>';
 const tx=(k,l,v)=>fl(k,l,'',v,'autocomplete="off" autocapitalize="off"');
 function draw(c,n,mt){
@@ -193,7 +198,7 @@ $('app').innerHTML=
 '<div class="c"><div class="lab">Thresholds</div><div class="bar" id="bar"></div><div class="mu" id="leg"></div>'+
 fl('r','Residual current (A)','At or below this the socket counts as idle.',c.r)+fl('g','Minimum charging current (A)','A charging session starts above this.',c.g)+fl('y','Maximum normal current (A)','Above this the ring turns yellow.',c.y)+
 '<details><summary>Advanced</summary>'+fl('h','Hysteresis (A)','',c.h)+fl('hr','Residual hysteresis (A)','',c.hr)+fl('hs','Band hold time (s)','',c.hs)+fl('sg','Session gap (s)','A session ends after this long without charging current.',c.sg)+'</details></div>'+
-'<div class="c"><div class="lab">Relay protection</div>'+fl('current_limit','Current limit (A)','The relay cuts above this (device maximum '+MODEL.maxA+' A).',n.current_limit)+fl('power_limit','Power limit (W)','The relay cuts above this (device maximum '+MODEL.maxW+' W).',n.power_limit)+'</div>'+
+'<div class="c"><div class="lab">Relay protection</div>'+fl('current_limit','Current limit (A)','The relay cuts above this. Plug rating: '+MODEL.maxA+' A (manufacturer data); higher values are refused.',n.current_limit)+fl('power_limit','Power limit (W)','The relay cuts above this. Plug rating: '+MODEL.maxW+' W (manufacturer data); higher values are refused.',n.power_limit)+'</div>'+
 '<div class="c"><div class="lab">Device</div>'+tx('name','Device name (optional, up to 64 characters)',n.name)+'</div>'+
 '<div class="c"><div class="lab">Button</div>'+sl('in_mode','The button',[['detached','does nothing'],['momentary','toggles the relay']],n.in_mode)+'</div>'+
 '<div class="c"><div class="lab">Price</div>'+fl('p','Price per kWh (0 = not set)','',c.p)+tx('cu','Currency label (1 to 4 characters)',c.cu)+sl('ds','Decimal separator',[['.','Dot (1.50)'],[',','Comma (1,50)']],c.ds)+sl('df','Date format',[['YMD','2026-11-20'],['DMY','20/11/2026'],['MDY','11/20/2026']],c.df)+'</div>'+
@@ -260,7 +265,8 @@ const r=importCheck(d,MODEL,{model:DI.model,cfg:OLD.cfg,mail:OLD.mail,native:OLD
 if(!r.ok){$('im_res').innerHTML=r.errors.map(x=>'<div class="er">'+esc(x)+'</div>').join('');return}
 IMP=r.next;$('im_res').innerHTML=r.changes.length?'<div class="mu">Will change:</div>'+r.changes.map(c=>'<div>'+esc(c.field)+': '+esc(c.from)+' &rarr; '+esc(c.to)+'</div>').join(''):'<div class="mu">Nothing differs.</div>';
 if(r.changes.length)$('im_go').innerHTML='<button id="ia">Apply import</button>'}
-document.addEventListener('input',e=>{if(OLD&&e.target.id&&e.target.id.charAt(0)==='f')bands()});
+document.addEventListener('input',e=>{if(OLD&&e.target.id&&e.target.id.charAt(0)==='f')bands();if(OLD&&MODEL)lims()});
+function lims(){const f=readForm(),er=validateForm(f,MODEL).errors,n=limitNotes(f,MODEL);['current_limit','power_limit'].forEach(k=>{const a=$('e_'+k),b=$('w_'+k);if(a)a.textContent=er[k]||'';if(b)b.textContent=er[k]?'':(n[k]?'\u26a0 '+n[k]:'')})}
 document.addEventListener('click',async e=>{const id=e.target.id;
 if(id==='tzp')$('f_tz').value=Intl.DateTimeFormat().resolvedOptions().timeZone||'';
 if(id==='ts'){try{await g(B+'time?set='+Math.floor(Date.now()/1000));clock()}catch(x){$('clk').textContent='Could not set the clock'}}
@@ -286,6 +292,8 @@ async function runPlan(P,o,okMsg){let h='',bad=0;$(o).innerHTML='';
 const fails=[];for(const p of P){if(skipItem(p,fails)){if(fails.indexOf('skip')<0){fails.push('skip');bad++;h+='<div class="er">&#10007; Mail template not saved; the stored one may be damaged - save again</div>';$(o).innerHTML=h}continue}
 try{if(p.params.name==='MailTpl'){const L=await g('/rpc/Script.List'),s=L.scripts.find(x=>x.name==='MailTpl');p.params.id=s?s.id:(await rpc('Script.Create',{name:'MailTpl'})).id;delete p.params.name}
 const r=await rpc(p.rpc,p.params);h+='<div class="ok">&#10003; '+esc(p.label)+(r&&r.restart_required?' (restart needed)':'')+'</div>'}catch(x){fails.push(p.rpc);bad++;h+='<div class="er">&#10007; '+esc(p.label)+': '+esc(x.message)+'</div>'}$(o).innerHTML=h}
-$(o).innerHTML=h+'<div class="mu">'+(bad?'Some changes failed.':okMsg)+'</div>';return bad}
+if(bad)$(o).innerHTML=h+'<div class="mu">Some changes failed.</div>';
+else{$(o).innerHTML='<div class="ok" id="'+o+'_ok"><b>&#10003; '+okMsg+'</b></div>';setTimeout(()=>{const e=$(o+'_ok');if(e)e.remove()},5000)}
+return bad}
 load().catch(e=>{$('dev').textContent='Could not read the plug ('+e+'). Reload the page.'});
 </script></body></html>

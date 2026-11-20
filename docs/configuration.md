@@ -4,7 +4,7 @@ Everything is set on the plug's **setup page**: `http://<plug-ip>/script/<PageId
 link on the daily page). Changes are live within about a minute: the meter reads the settings once a minute.
 Nothing on the setup page switches the relay.
 
-> **Charger requirement.** The supported plugs are rated **12 A / 2500 W**. Set the car or charger to draw **at
+> **Charger requirement.** The tested plugs are rated **12 A / 2500 W**. Set the car or charger to draw **at
 > most 10 A**. A charger that draws more can overheat the plug or the socket. The installer asks you to confirm
 > "My charger is set to draw at most 10 A". ChargeLens cannot limit the charger; the relay limits below only cut
 > the plug off when they are exceeded.
@@ -48,10 +48,22 @@ relay; energy keeps counting.
 
 Device settings, kept in the plug itself:
 
-- **Current limit (A)** and **Power limit (W)**: the relay cuts above them. The device maximum is 12 A / 2500 W on
-  both supported plugs. The maximum normal current must stay below the current limit.
+- **Current limit (A)** and **Power limit (W)**: the relay cuts above them. The maximum normal current must stay
+  below the current limit.
+- **The plug rating is 12 A / 2500 W on both tested plugs.** ChargeLens does not read it from the plug (the
+  firmware has no call that reports it); it is a fixed value per model in the setup page and the installer, taken
+  from:
+  - the manufacturer's data: [Shelly Plus Plug S](https://www.shelly.com/blogs/documentation/shelly-plus-plug-s)
+    (12 A) and [Shelly Plug S MTR Gen3](https://www.shelly.com/blogs/documentation/shelly-plug-s-mtr-gen3) (12 A,
+    2500 W for resistive loads);
+  - the firmware itself, which refuses a current limit above 12 A or a power limit above 2500 W (checked on Plus
+    Plug S firmware 1.7.6 and Plug S Gen3 firmware 2.2.0).
+- The setup page refuses values above the rating and warns while you type when a value is below it: the relay
+  then cuts earlier, and a power limit below about 2400 W can cut a 10 A charge.
 - Note: 2500 W is about 10.9 A at 230 V, so the power limit can cut before the current limit and before the
   default 11 A maximum. A 10 A charger draws roughly 2300 to 2450 W.
+- These figures are the manufacturer's ratings, not a statement that charging a car through the plug is safe:
+  see the caution in the [README](../README.md).
 
 ## Button
 

@@ -29,8 +29,13 @@ const modelOf=d=>d&&typeof d.model==='string'&&Object.prototype.hasOwnProperty.c
 const fwUpToDate=r=>!!r&&typeof r==='object'&&!('stable' in r);
 const CRCT=(()=>{const t=[];let c,n,k;for(n=0;n<256;n++){c=n;for(k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t.push(c>>>0)}return t})();
 function crc32(s){let c=0xFFFFFFFF,i;for(i=0;i<s.length;i++)c=CRCT[(c^s.charCodeAt(i))&255]^(c>>>8);return(c^0xFFFFFFFF)>>>0}
-function semverGt(a,b){const p=x=>/^\d+\.\d+\.\d+$/.test(x=String(x).replace(/^v/,''))?x.split('.').map(Number):null,x=p(a),y=p(b);if(!x||!y)return false;
-for(let i=0;i<3;i++)if(x[i]!==y[i])return x[i]>y[i];return false}
+const VRE=/^(\d+)\.(\d+)\.(\d+)(-[0-9A-Za-z]+(?:\.[0-9A-Za-z]+)*)?$/;
+/* semver precedence incl. pre-release (1.0.0-dev < 1.0.0-rc.1 < 1.0.0-rc.10 < 1.0.0) */
+function semverGt(a,b){const p=x=>{const m=VRE.exec(String(x).replace(/^v/,''));return m?{n:[+m[1],+m[2],+m[3]],q:m[4]?m[4].slice(1).split('.'):[]}:null},x=p(a),y=p(b);if(!x||!y)return false;
+for(let i=0;i<3;i++)if(x.n[i]!==y.n[i])return x.n[i]>y.n[i];
+if(!x.q.length||!y.q.length)return !x.q.length&&y.q.length>0;
+for(let i=0;;i++){const s=x.q[i],t=y.q[i];if(s===undefined)return false;if(t===undefined)return true;if(s===t)continue;
+const ns=/^\d+$/.test(s),nt=/^\d+$/.test(t);if(ns&&nt)return +s>+t;if(ns!==nt)return !ns;return s>t}}
 /* scripts = Script.List entries {id,name,enable,running}; headers = {name: first line of the stored code};
    release = dist/release.json. mode: fresh | update | legacy | blocked. Never deletes; other scripts are only stopped/disabled. */
 function planInstall(scripts,headers,release){
@@ -49,19 +54,19 @@ return P}
 /* first line of a script's stored code (Script.GetCode data): '' only when the code is completely empty (a half-written
    script of ours); a blank first line with code after it is not empty, so it is never taken for ours */
 const hdrLine=d=>d===''?'':d.split('\n')[0]||'(blank first line)';
-const hdrVer=l=>{const m=/^(?:\/\/|<!--) ChargeLens \w+ v(\d+\.\d+\.\d+)/.exec(String(l));return m?m[1]:null};
+const hdrVer=l=>{const m=/^(?:\/\/|<!--) ChargeLens \w+ v(\d+\.\d+\.\d+(?:-[0-9A-Za-z]+(?:\.[0-9A-Za-z]+)*)?)/.exec(String(l));return m?m[1]:null};
 /* never go back to an older release than the one on the plug (installed = Meter header version, ver = what would be installed) */
 const downgradeBlocked=(installed,ver)=>!!installed&&semverGt(installed,ver);
 /* update gate (design B4 rule a): no open session (cc:ss parsed; null = none) and current not above the residual threshold r */
 const idleOk=(st,ss,current,cfg)=>(ss===null||ss===undefined)&&typeof current==='number'&&current<=cfg.r;
 const baseUrl=(q,repo,tag)=>q?(/\/$/.test(q)?q:q+'/'):'https://raw.githubusercontent.com/'+repo+'/'+tag+'/';
-const isDefaultBase=(b,repo,tag)=>b===baseUrl('',repo,tag);
+const isDefaultBase=(b,repo,tag)=>b===baseUrl('',repo,tag)||b===baseUrl('',repo,'main');
 /* a downloaded file: ASCII only, size and crc32 as in release.json; returns null or the problem */
 function verifyFile(f,text){if(/[^\x00-\x7f]/.test(text))return f.name+': contains non-ASCII characters';
 if(text.length!==f.size)return f.name+': size '+text.length+' instead of '+f.size;
 if(crc32(text)!==f.crc32)return f.name+': checksum differs';return null}
 /* tags the loader accepts (?tag=) and links worth showing; ss = parsed cc:ss, code -105 = no such key = no session, any other failure = unknown = busy */
-const TAGRE=/^v\d+\.\d+\.\d+$/,tagOk=t=>TAGRE.test(String(t));
+const TAGRE=/^v\d+\.\d+\.\d+(?:-[0-9A-Za-z]+(?:\.[0-9A-Za-z]+)*)?$/,tagOk=t=>TAGRE.test(String(t));
 const safeLink=u=>/^https:\/\/github\.com\//.test(String(u))?u:null;
 function ssState(code,value){if(code)return code===-105?null:'?';try{return JSON.parse(value)}catch(e){return '?'}}
 /* restart order after a stop: Meter, Led, Page, then the rest as stopped */
@@ -89,7 +94,7 @@ const list=async()=>(await g('/rpc/Script.List')).scripts.map(s=>String(s.id)===
 async function code(id){let h='',o=0,r;do{r=await g('/rpc/Script.GetCode?id='+id+'&offset='+o);h+=r.data;o+=r.data.length}while(r.left>0&&r.data.length);return h}
 const idOf=(L,n)=>{const s=L.find(x=>x.name===n);return s?s.id:null};
 const row=(ok,t)=>'<div class="r">'+(ok===true?'<span class="ok">&#10003;</span> ':ok===false?'<span class="er">&#10007;</span> ':'<span class="wn">&#9888;</span> ')+t+'</div>';
-function log(t,c){$('logc').style.display='';const d=document.createElement('div');d.className='r'+(c?' '+c:'');d.innerHTML=t;$('log').appendChild(d)}
+function log(t,c){$('logc').style.display='';const d=document.createElement('div');d.className='r'+(c?' '+c:'');d.innerHTML=t;$('log').appendChild(d);if(d.scrollIntoView)d.scrollIntoView({block:'nearest'})}
 /* the installer runs as the 4th script: stopping Led and Page made room for it (setup page, Check for updates); leaving restarts them */
 const halt=h=>{$('app').innerHTML='<div class="c">'+h+'</div><div class="c"><button id="back">Leave without changes</button><div class="mu" style="margin-top:6px">Restarts the Led and Page scripts if they were stopped to make room for this installer.</div></div>'};
 async function restore(names){const L=await list();for(const n of restoreList(names)){const x=L.find(y=>y.name===n);if(x&&!x.running)await rpc('Script.Start',{id:x.id}).catch(()=>{})}return L}
@@ -113,7 +118,7 @@ let h='';
 try{
 DI=await g('/rpc/Shelly.GetDeviceInfo');MODEL=modelOf(DI);
 $('dev').textContent=(DI.model||'?')+', firmware '+(DI.fw_id||DI.ver||'?');
-h+=MODEL?row(true,'Supported plug: '+esc(DI.model)):row(false,'This plug ('+esc(DI.model||'unknown')+') is not supported by ChargeLens v1 (Shelly Plus Plug S and Plug S Gen3 only).');
+h+=MODEL?row(true,'Tested model: '+esc(DI.model)):row(false,'This plug ('+esc(DI.model||'unknown')+') is not one of the models ChargeLens v1 was tested on (Shelly Plus Plug S and Plug S Gen3 only).');
 if(!MODEL){halt(h);return}
 $('app').innerHTML='<div class="c">'+h+row(null,'Checking the firmware (a few seconds)&hellip;')+'</div>';
 const cu=await g('/rpc/Shelly.CheckForUpdate').catch(()=>null);
@@ -122,7 +127,7 @@ if(!fwUpToDate(cu)){h+=row(false,'The firmware is not up to date'+(cu&&cu.stable
 h+=row(true,'Firmware is up to date.');
 REL=JSON.parse(await ftxt(BASE+'dist/release.json'));
 if(isDefaultBase(BASE,CL.repo,CL.tag)){try{LAT=JSON.parse(await ftxt('https://raw.githubusercontent.com/'+CL.repo+'/main/dist/latest.json'))}catch(e){LAT=null}}
-else h+=row(null,'<b>Developer base:</b> files come from '+esc(BASE)+' instead of GitHub. Continue only if you started this yourself.');
+else h+=row(null,'<b>Test source:</b> ChargeLens will be installed from '+esc(BASE)+', not from the official ChargeLens release. That is expected only if you are testing ChargeLens yourself; otherwise close this page.');
 const o=await gather();PLAN=planInstall(o.L,o.H,REL);HM=o.H.Meter;
 if(LAT&&semverGt(LAT.version,REL.version)&&tagOk(LAT.tag)){h+=row(null,'A newer version is available: '+esc(LAT.version)+' (you have '+esc(REL.version)+'). '+(safeLink(LAT.changelog)?'<a href="'+esc(LAT.changelog)+'" target="_blank" rel="noopener">What changed</a>':'')+'<button id="newer">Use version '+esc(LAT.version)+'</button>')}
 }catch(e){halt(h+row(false,'Could not check the plug: '+esc(e.message))+'<div class="mu">Reload the page to try again.</div>');return}
@@ -148,8 +153,8 @@ f+='<div class="c"><div class="lab">Setup</div>'+ck('o_tz','Set the time zone fr
 (bleOn(n.ble)?ck('h_ble','<span class="wn">&#9888;</span> Turn Bluetooth off',true):'')+
 (n.mqtt===true?ck('h_mqtt','<span class="wn">&#9888;</span> Turn MQTT off',true):'')+
 (n.in_mode&&n.in_mode!=='detached'?ck('h_button','<span class="wn">&#9888;</span> Make the button do nothing (it toggles the relay)',true):'')+
-ck('h_forget','Forget the home Wi-Fi at the end',false,'Only with the access point set up. Nobody on your network can then reach the plug, but the plug has no internet clock and the next update needs it joined to a Wi-Fi again. You will have to connect to the access point to use it.')+'</div>'}
-f+='<div class="c"><button id="go" disabled>'+(upd?'Update':'Install')+'</button><div class="er" id="e_go"></div><button id="back">Leave without changes</button><div class="mu" style="margin-top:8px">Nothing here switches the relay.</div></div>';
+ck('h_forget','Forget the home Wi-Fi at the end (recommended)',false,'Only with the access point set up. Nobody on your network can then reach the plug, but the plug has no internet clock and the next update needs it joined to a Wi-Fi again. You will have to connect to the access point to use it.')+'</div>'}
+f+='<div class="c"><button id="go" disabled>'+(upd?'Update':'Install')+'</button><div class="er" id="e_go"></div><div id="busy" class="mu" style="display:none;margin-top:8px"><progress style="width:100%"></progress><div>Working&hellip; keep this page open. This takes about a minute; the steps are listed below.</div></div><button id="back">Leave without changes</button><div class="mu" style="margin-top:8px">Nothing here switches the relay.</div></div>';
 $('app').innerHTML=f;sync()}
 function sync(){const need=['c_ok','c_stop'].every(k=>!$(k)||$(k).checked);if($('go'))$('go').disabled=BUSY||!need;
 if($('h_forget')){const ok=($('ap_pass').value||'').length>=8;$('h_forget').disabled=!ok;if(!ok)$('h_forget').checked=false}}
@@ -193,9 +198,9 @@ $('back').style.display='none';if(up)setTimeout(()=>{location.href=u},2500)}
 }catch(e){log('Stopped: '+esc(e.message)+'.','er');
 if(wrote)log('The meter is stopped: energy is not counted. Press '+(upd?'Update':'Install')+' again; if that fails, restart the plug (the meter starts at power-up).','er');
 else if(stopped.length){try{await restore(stopped);log('The scripts that were stopped were started again.')}catch(x){log('Start the meter by hand in the plug web UI (Scripts) or restart the plug.','er')}}
-BUSY=false;sync()}}
+BUSY=false;sync()}finally{const b=$('busy');if(b)b.style.display='none'}}
 document.addEventListener('click',e=>{const id=e.target.id;
-if(id==='go'){BUSY=true;$('go').disabled=true;$('e_go').textContent='';run()}
+if(id==='go'){BUSY=true;$('go').disabled=true;$('e_go').textContent='';$('busy').style.display='';run()}
 if(id==='again')init();
 if(id==='back')leave();
 if(id==='newer')try{loadTag(LAT.tag)}catch(x){}});

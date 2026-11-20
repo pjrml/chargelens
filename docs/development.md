@@ -45,7 +45,9 @@ and run the build. iOS ignores SVG icons, which is why the PNG exists.
 
 ## Documentation
 
-User docs are in `docs/*.md` (en-US, for non-developers) and are linked from `README.md`. Screenshots live in
+User docs are in `docs/*.md` (en-US, for non-developers) and are linked from `README.md`. **Every user action is its own
+numbered item** (one click, one field, one choice per item; owner rule 2026-11-20): a sentence with two actions
+gets one of them skipped. Screenshots live in
 `docs/assets/screenshots/` and must not show personal data (addresses, Wi-Fi names, device locations, MAC
 addresses: the Shelly web UI, the default AP name and the installer's SSID field all contain the MAC).
 The current set was taken on the Gen2 dev plug (fw 1.7.6, 2026-11-20) with headless Edge driven over the
@@ -103,8 +105,15 @@ Without Node installed, VS Code's bundled one works:
 
 ### Release checklist (design B2)
 
+Versions are semver. Between releases `src/version.txt` holds the next version with a pre-release suffix,
+`X.Y.Z-dev` (shown as such in the About card and in every script header), so a build from `main` never claims to
+be a release. A test release uses `X.Y.Z-rc.N` and tag `vX.Y.Z-rc.N`. Precedence: `1.0.0-dev` < `1.0.0-rc.1` <
+`1.0.0-rc.2` < `1.0.0`. The installer refuses to go back to an older version, so a plug on `1.0.0` must be
+cleaned before a `1.0.0-dev` build can be installed on it. After a release, set `src/version.txt` to the next
+`X.Y.Z-dev`.
+
 1. Everything committed; device tests and page tests pass; `python tools/check_private.py` has no hits.
-2. Bump `src/version.txt` (`X.Y.Z`) and add the `CHANGELOG.md` entry.
+2. Set `src/version.txt` to `X.Y.Z` (drop the `-dev` suffix) and add the `CHANGELOG.md` entry.
 3. `python tools/build.py`; check `git diff dist/` (version headers, sizes in `dist/release.json`).
 4. Commit on `main`: `Release vX.Y.Z`.
 5. Tag `vX.Y.Z` on that commit; push `main` and the tag together (`git push origin main vX.Y.Z`).

@@ -6,13 +6,17 @@ This installs everything from your phone or computer, with no tools. If it fails
 > **Status: in development.** There is no released version yet (no `v1.0.0` tag). The links below point at
 > releases that do not exist yet. Do not use ChargeLens on a plug you rely on.
 
-> **Charger requirement.** The supported plugs are rated 12 A / 2500 W. Set the car or charger to draw **at most
+> [!CAUTION]
+> **Use at your own risk.** ChargeLens comes without warranty of any kind and the author accepts no liability
+> for its use or for the use of the plug, the charger or the socket. See the [README](../README.md).
+
+> **Charger requirement.** The tested plugs are rated 12 A / 2500 W. Set the car or charger to draw **at most
 > 10 A** before you start. The installer asks you to tick "My charger is set to draw at most 10 A"; a charger that
 > draws more can overheat the plug or the socket.
 
 ## Before you start
 
-- A supported plug on up-to-date firmware, joined to a Wi-Fi network with internet: see
+- A tested plug model (see [Tested hardware](../README.md#tested-hardware)) on up-to-date firmware, joined to a Wi-Fi network with internet: see
   [shelly-setup.md](shelly-setup.md).
 - The plug's address (`<plug-ip>`) and a browser on the same network.
 - Free script slots: the plug runs at most **3 scripts at once** and stores 10. ChargeLens uses 7 stored scripts
@@ -24,7 +28,7 @@ This installs everything from your phone or computer, with no tools. If it fails
 1. Open `http://<plug-ip>` -> **Scripts**.
 2. Press **Library** (the list of ready-made scripts) and open **Configure URL**.
 
-   <img src="assets/screenshots/shelly-scripts.png" alt="Scripts page of the Shelly web UI with the Create script and Library buttons" width="600">
+   <img src="assets/screenshots/shelly-scripts.png" alt="Scripts page of the Shelly web UI on a new plug: no scripts yet, with the Create script and Library buttons" width="600">
 
 3. Replace the URL with this one and press **Save**:
 
@@ -32,29 +36,43 @@ This installs everything from your phone or computer, with no tools. If it fails
    https://raw.githubusercontent.com/pjrml/chargelens/main/library/manifest.json
    ```
 
-4. The list now shows **ChargeLens Installer**: press **Import code**. The plug creates the script.
+4. The list now shows **ChargeLens Installer**: press **Import code**.
 
    <img src="assets/screenshots/shelly-library-url.png" alt="Library dialog with the ChargeLens library URL and the ChargeLens Installer entry" width="420">
-
-   (The picture shows a plug where ChargeLens is already installed, so the script list behind the dialog is
-   longer than yours.)
 
 The exact menu labels depend on the firmware version (these are from 1.7.x); look for "Library" on the Scripts
 page. **Reset** in the same dialog brings back Shelly's own library.
 
-## Step 2: start the installer script
+## Step 2: save and start the installer script
 
-1. The new script renames itself to `Installer` a moment after it is created (reload the script list if it still
-   shows a file name).
-2. Open it and press **Start**. The script's console (below the code) prints the address of the install page,
-   like `http://<plug-ip>/script/<id>/install`. If the console says *Websocket debug logs are disabled*, press
-   **Enable** there and then **Stop** and **Start** the script again.
+**Import code** opens the script editor with the code and the name `chargelens-installer.js`. Do not change the
+code.
 
-   <img src="assets/screenshots/installer-console.png" alt="Installer script running, with the install page address in the console" width="600">
+1. Press **Save** (above the code). **Start** and **Delete** appear next to it.
+2. Look at the *Console* below the code. If it says *Websocket debug logs are disabled*, press **Enable**.
+   Without this the console stays empty and you do not see the address.
+3. Press **Start**.
+4. Wait a second or two. The console prints the address of the install page, like
+   `http://<plug-ip>/script/<id>/install`. It repeats it every 3 seconds for 30 seconds.
+5. Open that address in your browser and continue with Step 3.
 
-   You can also type the address yourself: the id is the number shown as `script:<id>` in the script list.
+> [!IMPORTANT]
+> **The script renames itself to `Installer` when it starts.** The editor still shows the old name
+> (`chargelens-installer.js`). That is expected; there is no need to press **Save** again. The *Scripts* list shows
+> `Installer` after a reload.
 
-If the plug refuses to start it ("too many scripts"), stop another running script first.
+<img src="assets/screenshots/installer-console.png" alt="Installer script running, with the install page address in the console" width="600">
+
+If you pressed **Start** without **Enable**, the script turns the console logs on by itself, but the open page may
+not notice. Then:
+
+1. Reload the page in your browser.
+2. Read the address in the console (it is repeated for 30 seconds after **Start**).
+3. If the 30 seconds have passed, press **Stop** and then **Start**.
+
+Or type the address yourself: `http://<plug-ip>/script/<id>/install`, where `<id>` is the number shown as
+`script:<id>` in the *Scripts* list (`1` on a new or freshly reset plug). If the plug refuses to start the script
+("too many scripts"), stop another running script first.
 
 ## Step 3: use the install page
 
@@ -63,12 +81,12 @@ GitHub, so the browser needs internet. The page then runs these checks and scree
 
 | Screen | What it means |
 |---|---|
-| Supported plug | The model is on the allow-list (Plus Plug S Gen2, Plug S Gen3, EcoFlow variant). Otherwise it stops. |
+| Tested model | The model is on the allow-list of tested models (Plus Plug S Gen2, Plug S Gen3, EcoFlow variant). Otherwise it stops. |
 | Firmware | Must be up to date. If an update is offered, update first ([shelly-setup.md](shelly-setup.md)) and open the page again. |
 | Charger | Tick the box to confirm the charger draws at most 10 A. |
 | Other scripts | Lists scripts that must be stopped or disabled to fit the 3-script limit. Nothing is deleted. |
 | Setup | Optional: time zone from this phone, the plug's access point (SSID and a WPA2 password of at least 8 characters). |
-| Hardening | Cloud, Bluetooth and MQTT off, button does nothing (all ticked by default; each says what you lose), and an optional "Forget the home Wi-Fi at the end" (off by default). |
+| Hardening | Cloud, Bluetooth and MQTT off, button does nothing (all ticked by default; each says what you lose), and an optional "Forget the home Wi-Fi at the end (recommended)" (off by default). |
 | Progress | Downloads each file, checks size and checksum, writes the scripts, reads them back, starts the meter and waits for the page. |
 
 When it finishes it shows **Installed** with a link to the setup page and opens it a few seconds later; the

@@ -125,6 +125,17 @@ t("semver", function () {
   eq("numeric", semverGt("1.10.0", "1.9.0"), true);
   eq("tag prefix", semverGt("v1.0.1", "v1.0.0"), true);
   eq("garbage", semverGt("x", "1.0.0"), false);
+  eq("release > rc", semverGt("1.0.0", "1.0.0-rc.1"), true);
+  eq("rc > dev", semverGt("1.0.0-rc.1", "1.0.0-dev"), true);
+  eq("rc.2 > rc.1", semverGt("1.0.0-rc.2", "1.0.0-rc.1"), true);
+  eq("rc.10 > rc.9 numeric", semverGt("1.0.0-rc.10", "1.0.0-rc.9"), true);
+  eq("dev < release", semverGt("1.0.0-dev", "1.0.0"), false);
+  eq("rc > older release", semverGt("1.0.0-rc.1", "0.9.9"), true);
+  eq("equal pre", semverGt("1.0.0-rc.1", "1.0.0-rc.1"), false);
+  eq("more fields", semverGt("1.0.0-rc.1.1", "1.0.0-rc.1"), true);
+  eq("numeric < alpha", semverGt("1.0.0-rc", "1.0.0-1"), true);
+  eq("tag pre", semverGt("v1.0.1-dev", "v1.0.0"), true);
+  eq("bad pre", semverGt("1.0.0-", "0.1.0"), false);
 });
 t("ap_and_harden_reused", function () {
   eq("ssid", apSsid("A0B1C2D3E4F5"), "chargelens-e4f5");
@@ -142,6 +153,9 @@ t("base_url", function () {
   eq("default", baseUrl("", "a/b", "v1.0.0"), "https://raw.githubusercontent.com/a/b/v1.0.0/");
   eq("custom flag", isDefaultBase("https://raw.githubusercontent.com/a/b/v1.0.0/", "a/b", "v1.0.0"), true);
   eq("custom flag no", isDefaultBase("http://evil/", "a/b", "v1.0.0"), false);
+  eq("main of the repo is official", isDefaultBase("https://raw.githubusercontent.com/a/b/main/", "a/b", "v1.0.0"), true);
+  eq("main of another repo is not", isDefaultBase("https://raw.githubusercontent.com/x/y/main/", "a/b", "v1.0.0"), false);
+  eq("other branch is not", isDefaultBase("https://raw.githubusercontent.com/a/b/dev/", "a/b", "v1.0.0"), false);
 });
 t("verify_file", function () {
   let txt = "abc";
@@ -160,7 +174,11 @@ t("tag_regex", function () {
   eq("big", tagOk("v10.20.300"), true);
   eq("no v", tagOk("1.0.0"), false);
   eq("branch", tagOk("main"), false);
-  eq("suffix", tagOk("v1.0.0-x"), false);
+  eq("pre-release", tagOk("v1.0.0-rc.1"), true);
+  eq("dev", tagOk("v1.0.0-dev"), true);
+  eq("empty pre", tagOk("v1.0.0-"), false);
+  eq("empty field", tagOk("v1.0.0-a..b"), false);
+  eq("bad char", tagOk("v1.0.0-a_b"), false);
   eq("path", tagOk("v1.0.0/../x"), false);
   eq("undefined", tagOk(undefined), false);
 });
@@ -182,6 +200,8 @@ t("hdr_ver", function () {
   eq("script", hdrVer("// ChargeLens Meter v1.2.3"), "1.2.3");
   eq("html", hdrVer("<!-- ChargeLens PageHtml v10.0.1 -->"), "10.0.1");
   eq("none", hdrVer("let x;"), null);
+  eq("pre-release", hdrVer("// ChargeLens Meter v1.0.0-rc.1"), "1.0.0-rc.1");
+  eq("dev html", hdrVer("<!-- ChargeLens PageHtml v1.0.0-dev -->"), "1.0.0-dev");
   eq("undefined", hdrVer(undefined), null);
 });
 t("downgrade_blocked", function () {

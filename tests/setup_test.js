@@ -274,3 +274,13 @@ t("idle_gate", function () {
   eq("unknown is busy", idleOk(null, ssState(-114, ""), 0, {r: 0.1}), false);
   eq("absent is idle", idleOk(null, ssState(-105, ""), 0, {r: 0.1}), true);
 });
+t("limit_notes", function () {
+  eq("defaults: no notes", limitNotes(form({}), M2), {});
+  eq("charger constant", CHARGER_A, 10);
+  eq("current below rating", typeof limitNotes(form({current_limit: 11.5}), M2).current_limit, "string");
+  eq("power below rating", typeof limitNotes(form({power_limit: 2450}), M2).power_limit, "string");
+  let n = limitNotes(form({power_limit: 2000}), M2).power_limit;
+  eq("power cuts a 10 A charge", /2300/.test(n), true);
+  eq("above rating is an error, not a note", limitNotes(form({current_limit: 13, power_limit: 3000}), M2), {});
+  eq("not a number: no note", limitNotes(form({current_limit: NaN}), M2), {});
+});

@@ -2,8 +2,8 @@
 
 ## Install
 
-**The installer says the plug is not supported.** ChargeLens v1 supports only the Shelly Plus Plug S (Gen2) and
-Plug S Gen3 (including EcoFlow x Shelly). Other models are refused on purpose.
+**The installer says the plug is not supported.** ChargeLens v1 accepts only the models it was tested on: the Shelly
+Plus Plug S (Gen2) and Plug S Gen3 (including EcoFlow x Shelly). Other models are refused on purpose.
 
 **"The firmware is not up to date."** Update first (Shelly app or Settings -> Firmware in the web UI). Updates come
 in steps: update, wait for the restart (a few minutes), check again, repeat until none is offered. Right after an
