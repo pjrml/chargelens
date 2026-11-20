@@ -1,0 +1,8 @@
+{
+  "v": 1,
+  "to": "",
+  "cc": "",
+  "bcc": "",
+  "subject": "Charging report | {month_name} {year}",
+  "body": "Hello,\n\nHere is the charging report for {month_name} {year}.\n\nTotal: {total_kwh} kWh in {session_count} session(s).\n\nSessions:\n{sessions_table}\n\nEnergy outside sessions: {outside_kwh} kWh\n\nPlease confirm that you received this report.\n\nSignature: replace this line\n"
+}

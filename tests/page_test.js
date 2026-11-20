@@ -38,15 +38,16 @@ t("defaultMonth", function () {
   eq("mid month, current missing", defaultMonth(["202611"], "20261215"), "202611");
 });
 
-// x,xx W below 1 kW, x,xx kW from 1 kW; same for Wh/kWh totals; report always x,xx kWh
+// x.xx W below 1 kW, x.xx kW from 1 kW (ds "." or ","); same for Wh/kWh totals; report always x.xx kWh
 t("formats", function () {
-  eq("W small", fmtW(0.4), "0,40 W");
-  eq("W", fmtW(65.237), "65,24 W");
-  eq("W edge", fmtW(999.994), "999,99 W");
-  eq("kW", fmtW(2310), "2,31 kW");
-  eq("Wh", fmtWh(12.5), "12,50 Wh");
-  eq("kWh", fmtWh(7420), "7,42 kWh");
-  eq("kWh thousands", fmtWh(1234567), "1234,57 kWh");
-  eq("report always kWh", fmtKwh(12.5), "0,01 kWh");
-  eq("report kWh", fmtKwh(86900), "86,90 kWh");
+  eq("W small", fmtW(0.4), "0.40 W");
+  eq("W", fmtW(65.237), "65.24 W");
+  eq("W comma", fmtW(65.237, ","), "65,24 W");
+  eq("W edge", fmtW(999.994), "999.99 W");
+  eq("kW", fmtW(2310), "2.31 kW");
+  eq("Wh", fmtWh(12.5), "12.50 Wh");
+  eq("kWh", fmtWh(7420), "7.42 kWh");
+  eq("kWh thousands", fmtWh(1234567, ","), "1234,57 kWh");
+  eq("report always kWh", fmtKwh(12.5), "0.01 kWh");
+  eq("report kWh", fmtKwh(86900), "86.90 kWh");
 });

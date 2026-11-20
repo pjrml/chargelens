@@ -6,8 +6,8 @@
 // "PageHtml" that is never started (flash only) and "ui" is a small loader that reads it with
 // /rpc/Script.GetCode and writes it into the document.
 // Endpoints (http://<ip>/script/<id>/...):
-//   ui              loader for the page
-//   data[?m=YYYYMM] {w,a,v,on,e,unix,off,up,st,k,m}  live switch (e = firmware counter Wh) + sys, cc:state, month
+//   ui[?p=setup]    loader for the page (PageHtml), or for the setup page (SetupHtml) with p=setup
+//   data[?m=YYYYMM] {w,a,v,on,e,unix,off,up,st,k,m,er}  live switch (er = switch:0 errors) (e = firmware counter Wh) + sys, cc:state, month
 //   list            {months:[YYYYMM...], adj:[...], tadj:[...]}
 //   time?set=<unix> {ok,prev}   sets the clock; logs corrections > 300 s of a set clock in cc:tadj
 //   log[?m=YYYYMM]  v2 {k,s:[cc:s:m,-2,-3 present],su,ev:[ev0..2],ei,boot,hb:[hb0..2],n,l} (missing keys null)
@@ -21,9 +21,9 @@ let TADJ_MAX = 5;
 let BOOT = "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"utf-8\">" +
   "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1,viewport-fit=cover\">" +
   "<meta name=\"apple-mobile-web-app-capable\" content=\"yes\"><meta name=\"apple-mobile-web-app-title\" content=\"ChargeLens\">" +
-  "<title>ChargeLens</title></head><body style=\"background:#0b1221;color:#94a3b8;font-family:sans-serif\">a carregar...<script>" +
+  "<title>ChargeLens</title></head><body style=\"background:#0b1221;color:#94a3b8;font-family:sans-serif\">Loading...<script>" +
   "(async function(){var g=async function(u){return (await fetch(u)).json()};" +
-  "var L=await g('/rpc/Script.List'),id=-1,i;for(i=0;i<L.scripts.length;i++)if(L.scripts[i].name=='PageHtml')id=L.scripts[i].id;" +
+  "var L=await g('/rpc/Script.List'),id=-1,i,n=location.search.indexOf('p=setup')>=0?'SetupHtml':'PageHtml';for(i=0;i<L.scripts.length;i++)if(L.scripts[i].name==n)id=L.scripts[i].id;" +
   "var h='',o=0,r;do{r=await g('/rpc/Script.GetCode?id='+id+'&offset='+o);h+=r.data;o+=r.data.length}while(r.left>0&&r.data.length);" +
   "document.open();document.write(h);document.close()})()</script></body></html>";
 
@@ -71,7 +71,7 @@ HTTPServer.registerEndpoint("data", function (req, res) {
     let m = q(req, "m");
     if (!validMonth(m)) m = st.dk ? st.dk.slice(0, 6) : "";
     let out = {w: sw.apower, a: sw.current, v: sw.voltage, on: sw.output, e: sw.aenergy.total,
-      unix: sys.unixtime || 0, off: sys.utc_offset || 0, up: sys.uptime, st: st, k: m, m: ""};
+      unix: sys.unixtime || 0, off: sys.utc_offset || 0, up: sys.uptime, st: st, k: m, m: "", er: sw.errors || []};
     if (!m) { json(res, out); return; }
     kvsGet("cc:m:" + m, function (mv) { out.m = mv || ""; json(res, out); });
   });

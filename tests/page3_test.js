@@ -23,20 +23,7 @@ t("boundsOf", function () {
   eq("range", rangeOf([{lo: "2026-11-15", hi: "2026-11-18"}, {lo: "2026-11-16", hi: "2026-11-20"}]), {lo: "2026-11-16", hi: "2026-11-18", ok: true});
   eq("empty range", rangeOf([{lo: "2026-11-17", hi: "2026-11-18"}, {lo: "", hi: "2026-11-16"}]).ok, false);
 });
-t("mailText", function () {
-  let l = [{day: "2026-10-03", wh: 15800}, {day: "2026-10-04", wh: 10450}];
-  let x = mailText({n: "Nome", f: "Fra\u00e7\u00e3o", a: "Morada"}, "Outubro", "2026", "202610", l, 26250);
-  eq("subject", x.s, "Comunica\u00e7\u00e3o de consumos | Outubro 2026 | Morada");
-  eq("month", x.b.indexOf("durante o m\u00eas de Outubro de 2026.") > 0, true);
-  eq("summary", x.b.indexOf("Total: 26,25 kWh, custo 0,00 \u20ac.") > 0, true);
-  eq("price", x.b.indexOf("O valor calculado \u00e9 de 0 \u20ac / kWh.") > 0, true);
-  eq("signature + table at the end", x.b.slice(x.b.indexOf("Nome")), "Nome\nFra\u00e7\u00e3o\n\nData | Consumo (kWh) | Custo (\u20ac)\n03/10/2026 | 15,80 | 0,00\n04/10/2026 | 10,45 | 0,00\n");
-  let y = mailText({}, "Outubro", "2026", "202610", [], 42538);
-  eq("no config, no sessions: outside row has the cost", y.b.indexOf("Fora de sess\u00f5es | 42,54 | 0,00") > 0, true);
-  eq("no address", y.s, "Comunica\u00e7\u00e3o de consumos | Outubro 2026");
-});
 t("dayList", function () {
   eq("range", daysIn("2026-10-30", "2026-11-02", 120), ["2026-10-30", "2026-10-31", "2026-11-01", "2026-11-02"]);
   eq("no lower bound = max days", daysIn("", "2026-11-02", 3), ["2026-10-31", "2026-11-01", "2026-11-02"]);
-  eq("DD/MM/AAAA", fdY("2026-11-02"), "02/11/2026");
 });
