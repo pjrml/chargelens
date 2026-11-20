@@ -28,6 +28,7 @@ Page tests (local, headless Edge, no device):
 
 ```
 python tools/shelly.py testpage src/page.html tests/page_test.js   # page2, page3 as well
+python tools/shelly.py testpage src/install.html tests/install_test.js
 ```
 
 Other commands: `info`, `backup --out <dir>`, `rpc <Method> [json]`, `put <Name> <file> [--temp|--store]`,

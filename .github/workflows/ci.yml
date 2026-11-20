@@ -29,3 +29,4 @@ jobs:
             node tools/puretest.js src/page.html tests/${t}_test.js
           done
           node tools/puretest.js src/setup.html tests/setup_test.js
+          node tools/puretest.js src/install.html tests/install_test.js

@@ -1,0 +1,157 @@
+// Unit tests (Task 9) for the PURE block of src/install.html. Run:
+//   python tools/shelly.py testpage src/install.html tests/install_test.js
+//   node tools/puretest.js src/install.html tests/install_test.js
+function tb(name, fn) { t(name, fn); }
+function F(name, kind, en) { return {name: name, path: "dist/" + name, kind: kind, enable: en, size: 1, crc32: 1}; }
+let REL = {version: "1.0.0", tag: "v1.0.0", repo: "x/y", files: [
+  F("Meter", "code", true), F("Led", "code", false), F("Page", "code", false), F("PageHtml", "data", false),
+  F("SetupHtml", "data", false), F("MailTpl", "data", false), F("Installer", "code", false), F("InstallHtml", "data", false)]};
+let MHDR = "// ChargeLens Meter v1.0.0";
+function S(id, name, run, en) { return {id: id, name: name, enable: !!en, running: !!run}; }
+function ours(running) {  // the 6 stored ChargeLens scripts + the installer, as Script.List shows them
+  return [S(1, "Meter", running, true), S(2, "Led", running), S(3, "Page", running), S(4, "PageHtml"), S(5, "SetupHtml"),
+    S(6, "MailTpl"), S(7, "Installer", true)];
+}
+let HS = {Meter: MHDR, Led: "// ChargeLens Led v1.0.0", Page: "// ChargeLens Page v1.0.0", PageHtml: "<!-- ChargeLens PageHtml v1.0.0 -->",
+  SetupHtml: "<!-- ChargeLens SetupHtml v1.0.0 -->"};
+
+t("model_known_gen2", function () {
+  eq("gen2", modelOf({model: "SNPL-00112EU", gen: 2}), {gen: 2, maxA: 12, maxW: 2500});
+});
+t("model_known_gen3", function () {
+  eq("gen3", modelOf({model: "EF3PL-00112EU", gen: 3}), {gen: 3, maxA: 12, maxW: 2500});
+});
+t("model_unknown", function () {
+  eq("other", modelOf({model: "SNSW-001X16EU"}), null);
+  eq("null", modelOf(null), null);
+  eq("proto key", modelOf({model: "constructor"}), null);
+});
+t("models_literal", function () {
+  eq("gen2", MODELS["SNPL-00112EU"], {gen: 2, maxA: 12, maxW: 2500});
+  eq("charger a", CHARGER_A < MODELS["SNPL-00112EU"].maxA, true);
+  eq("charger a value", CHARGER_A, 10);
+});
+t("fw_up_to_date", function () {
+  eq("empty", fwUpToDate({}), true);
+  eq("stable", fwUpToDate({stable: {version: "1.7.7"}}), false);
+  eq("beta only", fwUpToDate({beta: {version: "1.8.0-beta1"}}), true);
+  eq("null", fwUpToDate(null), false);
+});
+t("plan_fresh", function () {
+  let p = planInstall([], {}, REL);
+  eq("mode", p.mode, "fresh");
+  eq("create", p.create, ["Meter", "Led", "Page", "PageHtml", "SetupHtml", "MailTpl"]);
+  eq("write", p.write, ["Meter", "Led", "Page", "PageHtml", "SetupHtml", "MailTpl"]);
+  eq("stop", p.stop, []);
+  eq("disable", p.disable, []);
+});
+t("plan_fresh_with_installer", function () {
+  let p = planInstall([S(7, "Installer", true, false)], {}, REL);
+  eq("mode", p.mode, "fresh");
+  eq("create", p.create.length, 6);
+  eq("installer untouched", p.stop.concat(p.disable, p.write).indexOf("Installer"), -1);
+});
+t("plan_update_keeps_mailtpl", function () {
+  let p = planInstall(ours(true), HS, REL);
+  eq("mode", p.mode, "update");
+  eq("write", p.write, ["Meter", "Led", "Page", "PageHtml", "SetupHtml"]);
+  eq("create", p.create, []);
+});
+t("plan_update_order", function () {
+  let p = planInstall(ours(true), HS, REL);
+  eq("stop order", p.stop, ["Led", "Page", "Meter"]);
+  eq("only running", planInstall(ours(false), HS, REL).stop, []);
+});
+t("plan_update_partial", function () {
+  let sc = ours(false).filter(function (s) { return s.name !== "SetupHtml"; });
+  let p = planInstall(sc, HS, REL);
+  eq("mode", p.mode, "update");
+  eq("create", p.create, ["SetupHtml"]);
+  eq("write has it", p.write.indexOf("SetupHtml") >= 0, true);
+});
+t("plan_legacy", function () {
+  let p = planInstall([S(1, "Meter", true, true), S(2, "Led", true)], {Meter: "// private build header", Led: ""}, REL);
+  eq("mode", p.mode, "legacy");
+  eq("nothing written", p.write.concat(p.create), []);
+  eq("reason", typeof p.reason, "string");
+  eq("mixed", planInstall(ours(false), {Meter: MHDR, Led: "let x = 1;"}, REL).mode, "legacy");
+  eq("header missing in map", planInstall(ours(false), {}, REL).mode, "legacy");
+});
+t("plan_user_scripts", function () {
+  let sc = [S(1, "mine1", true, true), S(2, "mine2", true, true), S(3, "idle", false, true), S(4, "off")];
+  let p = planInstall(sc, {}, REL);
+  eq("mode", p.mode, "fresh");
+  eq("stop", p.stop, ["mine1", "mine2"]);
+  eq("disable", p.disable, ["mine1", "mine2", "idle"]);
+  eq("never deleted", p.write.concat(p.create).indexOf("mine1"), -1);
+  eq("create", p.create.length, 6);
+});
+t("plan_blocked_slots", function () {
+  let sc = [], i;
+  for (i = 0; i < 9; i++) sc.push(S(i + 1, "u" + i));
+  let p = planInstall(sc, {}, REL);
+  eq("mode", p.mode, "blocked");
+  eq("reason", typeof p.reason, "string");
+  eq("write", p.write, []);
+  let sc4 = [];
+  for (i = 0; i < 4; i++) sc4.push(S(i + 1, "u" + i));
+  eq("4 user + 6 = 10 fits", planInstall(sc4, {}, REL).mode, "fresh");
+  eq("5 user + 6 = 11", planInstall(sc4.concat([S(9, "u9")]), {}, REL).mode, "blocked");
+});
+t("idle_gate_session", function () {
+  eq("idle", idleOk({}, null, 0, {r: 0.1}), true);
+  eq("session", idleOk({}, {s: 1}, 0, {r: 0.1}), false);
+  eq("unreadable", idleOk({}, "?", 0, {r: 0.1}), false);
+  eq("undefined session", idleOk({}, undefined, 0, {r: 0.1}), true);
+});
+t("idle_gate_current", function () {
+  eq("below", idleOk(null, null, 0.05, {r: 0.1}), true);
+  eq("equal", idleOk(null, null, 0.1, {r: 0.1}), true);
+  eq("above", idleOk(null, null, 0.11, {r: 0.1}), false);
+  eq("not a number", idleOk(null, null, NaN, {r: 0.1}), false);
+  eq("missing", idleOk(null, null, undefined, {r: 0.1}), false);
+});
+t("crc32_known", function () {
+  eq("check value", crc32("123456789"), 3421780262);
+  eq("empty", crc32(""), 0);
+  eq("fox", crc32("The quick brown fox jumps over the lazy dog"), 1095738169);
+});
+t("semver", function () {
+  eq("patch", semverGt("1.0.1", "1.0.0"), true);
+  eq("minor", semverGt("1.1.0", "1.0.9"), true);
+  eq("major", semverGt("2.0.0", "1.9.9"), true);
+  eq("equal", semverGt("1.0.0", "1.0.0"), false);
+  eq("older", semverGt("1.0.0", "1.0.1"), false);
+  eq("numeric", semverGt("1.10.0", "1.9.0"), true);
+  eq("tag prefix", semverGt("v1.0.1", "v1.0.0"), true);
+  eq("garbage", semverGt("x", "1.0.0"), false);
+});
+t("ap_and_harden_reused", function () {
+  eq("ssid", apSsid("A0B1C2D3E4F5"), "chargelens-e4f5");
+  eq("ble", bleState({rpc: {enable: false}}), {en: null, rpc: false});
+  eq("harden", hardenPlan({cloud: true, mqtt: false, ble: null, in_mode: "momentary"}, {cloud: true, button: true}).map(function (p) { return p.rpc; }),
+    ["Cloud.SetConfig", "PLUGS_UI.SetConfig"]);
+});
+t("default_cfg", function () {
+  eq("cfg", DEF_CFG, cfgJson(cfgParse(null)));
+  eq("cfg text", DEF_CFG, '{"v":1}');
+});
+t("base_url", function () {
+  eq("slash added", baseUrl("http://dev.example.com:8000"), "http://dev.example.com:8000/");
+  eq("kept", baseUrl("http://dev.example.com:8000/"), "http://dev.example.com:8000/");
+  eq("default", baseUrl("", "a/b", "v1.0.0"), "https://raw.githubusercontent.com/a/b/v1.0.0/");
+  eq("custom flag", isDefaultBase("https://raw.githubusercontent.com/a/b/v1.0.0/", "a/b", "v1.0.0"), true);
+  eq("custom flag no", isDefaultBase("http://evil/", "a/b", "v1.0.0"), false);
+});
+t("verify_file", function () {
+  let txt = "abc";
+  eq("ok", verifyFile({name: "X", size: 3, crc32: crc32("abc")}, txt), null);
+  eq("size", typeof verifyFile({name: "X", size: 4, crc32: crc32("abc")}, txt), "string");
+  eq("crc", typeof verifyFile({name: "X", size: 3, crc32: 1}, txt), "string");
+  eq("non-ascii", typeof verifyFile({name: "X", size: 2, crc32: 0}, "a" + String.fromCharCode(233)), "string");
+});
+t("chunks", function () {
+  eq("empty", chunks("", 4), [""]);
+  eq("split", chunks("abcdefghij", 4), ["abcd", "efgh", "ij"]);
+  eq("exact", chunks("abcd", 4), ["abcd"]);
+});

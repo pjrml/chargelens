@@ -1,0 +1,265 @@
+<!-- ChargeLens InstallHtml v1.0.0 -->
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="ChargeLens"><meta name="theme-color" content="#0b1221">
+<title>ChargeLens installer</title>
+<style>
+*{box-sizing:border-box}:root{--bg:#0b1221;--card:#131c2e;--line:#1f2a44;--tx:#e5e7eb;--mu:#94a3b8;--ok:#10b981;--warn:#f59e0b;--bad:#ef4444}
+body{margin:0;padding:16px;padding-top:max(16px,env(safe-area-inset-top));font:16px -apple-system,system-ui,sans-serif;background:var(--bg);color:var(--tx)}
+.w{max-width:480px;margin:0 auto}.c{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:12px}
+h1{font-size:18px;margin:0 0 4px}.mu{color:var(--mu);font-size:14px}.lab{color:var(--mu);font-size:13px;letter-spacing:.05em;text-transform:uppercase}
+button,input:not([type=checkbox]){width:100%;padding:11px;margin-top:6px;border-radius:10px;border:1px solid var(--line);background:#1d2a45;color:var(--tx);font:16px -apple-system,system-ui,sans-serif}
+.f{margin-top:12px}.f>label{font-size:15px}.er{color:var(--bad);font-size:14px}.ok{color:var(--ok)}.wn{color:var(--warn)}
+input[type=checkbox]{width:20px;height:20px;margin:0 10px 0 0;padding:0;vertical-align:middle}a{color:var(--warn)}button:disabled{opacity:.4}
+.r{margin-top:6px;font-size:15px}
+</style></head><body><div class="w">
+<div class="c"><h1>&#9889; ChargeLens installer</h1><div class="mu" id="dev">&hellip;</div></div>
+<div id="app"></div>
+<div class="c" id="logc" style="display:none"><div class="lab">Progress</div><div id="log"></div></div>
+</div><script>
+function cfgNum() {
+let t = "r,0.1,0.02,1;g,5,1,11;y,11,1,12;h,0.3,0.05,1;hr,0.05,0.01,0.5;hs,10,2,60;sg,600,60,3600;p,0,0,10;lo,1,0,1;lb,50,5,100".split(";");
+let out = [], i, p;
+for (i = 0; i < t.length; i++) { p = t[i].split(","); out.push([p[0], Number(p[1]), Number(p[2]), Number(p[3])]); }
+return out;
+}
+let cfgX = null;
+function cfgFix(o) {
+let T = cfgNum(), c = {v: 1}, i, a, x;
+if (typeof o !== "object" || o === null) o = {};
+for (i = 0; i < T.length; i++) {
+a = T[i]; x = o[a[0]];
+c[a[0]] = (typeof x === "number" && x >= a[2] && x <= a[3]) ? x : a[1];
+}
+if (!(c.r < c.g && c.g < c.y)) { c.r = T[0][1]; c.g = T[1][1]; c.y = T[2][1]; }
+return cfgX ? cfgX(c, o) : c;
+}
+function cfgParse(text) {
+let o = null;
+try { o = JSON.parse(text); } catch (e) { o = null; }
+return cfgFix(o);
+}
+let CFG_NUM = cfgNum();
+let CFG_ORD = ["r", "g", "y", "h", "hr", "hs", "sg", "p", "cu", "ds", "df", "lo", "lb"];
+let U8B = JSON.parse('"' + String.fromCharCode(92) + 'u00e9"').length === 2;
+function u8len(s) {
+if (U8B) return s.length;
+let n = 0, i, c;
+for (i = 0; i < s.length; i++) {
+c = s.charCodeAt(i);
+if (c < 128) n += 1; else if (c < 2048) n += 2; else if (c >= 55296 && c < 56320) { n += 4; i++; } else n += 3;
+}
+return n;
+}
+function u8chars(s) {
+let n = 0, i, c;
+for (i = 0; i < s.length; i++) {
+c = s.charCodeAt(i);
+if (U8B ? (c & 192) !== 128 : (c < 56320 || c > 57343)) n++;
+}
+return n;
+}
+function cfgDef(k) {
+let i;
+for (i = 0; i < CFG_NUM.length; i++) if (CFG_NUM[i][0] === k) return CFG_NUM[i][1];
+return k === "cu" ? "EUR" : k === "ds" ? "." : "YMD";
+}
+function cfgStrOk(k, v) {
+if (k === "cu") { let n; if (typeof v !== "string") return false; n = u8chars(v); return n >= 1 && n <= 4; }
+if (k === "ds") return v === "." || v === ",";
+return v === "YMD" || v === "DMY" || v === "MDY";
+}
+cfgX = function (c, o) {
+let n = {v: 1}, i, k;
+for (i = 0; i < CFG_ORD.length; i++) {
+k = CFG_ORD[i];
+n[k] = typeof c[k] === "number" ? c[k] : (cfgStrOk(k, o[k]) ? o[k] : cfgDef(k));
+}
+return n;
+};
+function cfgBad(o) {
+let bad = [], c = cfgFix(o), i, k;
+if (typeof o !== "object" || o === null) return bad;
+for (i = 0; i < CFG_ORD.length; i++) {
+k = CFG_ORD[i];
+if (typeof o[k] !== "undefined" && JSON.stringify(o[k]) !== JSON.stringify(c[k])) bad.push(k);
+}
+return bad;
+}
+function cfgDiff(a, b) {
+let d = [], i, k;
+for (i = 0; i < CFG_ORD.length; i++) {
+k = CFG_ORD[i];
+if (JSON.stringify(a[k]) !== JSON.stringify(b[k])) d.push(k);
+}
+return d;
+}
+function cfgJson(cfg) {
+let s = '{"v":1', i, k;
+for (i = 0; i < CFG_ORD.length; i++) {
+k = CFG_ORD[i];
+if (JSON.stringify(cfg[k]) !== JSON.stringify(cfgDef(k))) s += ',"' + k + '":' + JSON.stringify(cfg[k]);
+}
+s += "}";
+return u8len(s) > 253 ? null : s;
+}
+const MODELS={"SNPL-00112EU":{gen:2,maxA:12,maxW:2500},"EF3PL-00112EU":{gen:3,maxA:12,maxW:2500}};
+const CHARGER_A=10;
+const DEF_CFG=cfgJson(cfgParse(null));
+const SLOTS=10,OWN=['Installer','InstallHtml'],HDR=/^(\/\/|<!--) ChargeLens /;
+const modelOf=d=>d&&typeof d.model==='string'&&Object.prototype.hasOwnProperty.call(MODELS,d.model)?MODELS[d.model]:null;
+const fwUpToDate=r=>!!r&&typeof r==='object'&&!('stable' in r);
+const CRCT=(()=>{const t=[];let c,n,k;for(n=0;n<256;n++){c=n;for(k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t.push(c>>>0)}return t})();
+function crc32(s){let c=0xFFFFFFFF,i;for(i=0;i<s.length;i++)c=CRCT[(c^s.charCodeAt(i))&255]^(c>>>8);return(c^0xFFFFFFFF)>>>0}
+function semverGt(a,b){const p=x=>/^\d+\.\d+\.\d+$/.test(x=String(x).replace(/^v/,''))?x.split('.').map(Number):null,x=p(a),y=p(b);if(!x||!y)return false;
+for(let i=0;i<3;i++)if(x[i]!==y[i])return x[i]>y[i];return false}
+function planInstall(scripts,headers,release){
+const files=release.files.filter(f=>OWN.indexOf(f.name)<0),names=files.map(f=>f.name),have=n=>scripts.some(s=>s.name===n);
+const P={mode:'fresh',write:[],create:[],stop:[],disable:[],reason:''};
+const ex=names.filter(have);
+if(ex.some(n=>n!=='MailTpl'&&!HDR.test(headers[n]||''))){P.mode='legacy';P.reason='Scripts with the ChargeLens names exist but were not installed by this installer (an older private build?). Nothing was changed. See the documentation for how to migrate.';return P}
+P.create=names.filter(n=>!have(n));
+const over=scripts.length+P.create.length-SLOTS;
+if(over>0){P.mode='blocked';P.create=[];P.reason='The plug stores at most '+SLOTS+' scripts and ChargeLens needs room for '+over+' more. Delete scripts you do not need in the plug web UI (Scripts), then try again.';return P}
+if(ex.length)P.mode='update';
+P.write=names.filter(n=>n!=='MailTpl'||!have(n));
+if(P.mode==='update')['Led','Page','Meter'].forEach(n=>{if(scripts.some(s=>s.name===n&&s.running))P.stop.push(n)});
+scripts.forEach(s=>{if(names.indexOf(s.name)>=0)return;if(s.running&&s.name!=='Installer')P.stop.push(s.name);if(s.enable)P.disable.push(s.name)});
+return P}
+const idleOk=(st,ss,current,cfg)=>(ss===null||ss===undefined)&&typeof current==='number'&&current<=cfg.r;
+const baseUrl=(q,repo,tag)=>q?(/\/$/.test(q)?q:q+'/'):'https://raw.githubusercontent.com/'+repo+'/'+tag+'/';
+const isDefaultBase=(b,repo,tag)=>b===baseUrl('',repo,tag);
+function verifyFile(f,text){if(/[^\x00-\x7f]/.test(text))return f.name+': contains non-ASCII characters';
+if(text.length!==f.size)return f.name+': size '+text.length+' instead of '+f.size;
+if(crc32(text)!==f.crc32)return f.name+': checksum differs';return null}
+const chunks=(s,n)=>{const o=[];for(let i=0;i<Math.max(s.length,1);i+=n)o.push(s.slice(i,i+n));return o};
+const apSsid=m=>'chargelens-'+String(m||'').replace(/[^0-9a-fA-F]/g,'').slice(-4).toLowerCase();
+const viaAp=h=>h==='192.168.33.1';
+const bleState=c=>{if(!c)return null;const en=typeof c.enable==='boolean'?c.enable:null,rp=c.rpc&&typeof c.rpc.enable==='boolean'?c.rpc.enable:null;return en===null&&rp===null?null:{en:en,rpc:rp}};
+const bleOn=b=>b?(b.en===true||b.rpc===true):null;
+function hardenPlan(cur,b){const P=[];
+[['cloud','Cloud','Cloud'],['mqtt','MQTT','MQTT']].forEach(x=>{if(b[x[0]]&&cur[x[0]]===true)P.push({rpc:x[1]+'.SetConfig',params:{config:{enable:false}},label:x[2]+' off'})});
+if(b.ble&&bleOn(cur.ble)){const k={};if(cur.ble.en===true)k.enable=false;if(cur.ble.rpc===true)k.rpc={enable:false};P.push({rpc:'BLE.SetConfig',params:{config:k},label:'Bluetooth off'})}
+if(b.button&&cur.in_mode&&cur.in_mode!=='detached')P.push({rpc:'PLUGS_UI.SetConfig',params:{config:{controls:{'switch:0':{in_mode:'detached'}}}},label:'Button does nothing'});
+return P}
+const $=i=>document.getElementById(i),esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const CL=window.CL||{repo:'',tag:'',base:''},SELF=(/\/script\/(\d+)\//.exec(location.pathname)||[])[1];
+const g=u=>fetch(u).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json()});
+async function rpc(m,p){const r=await(await fetch('/rpc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:1,method:m,params:p||{}})})).json();
+if(r.error){const e=new Error(r.error.message||('error '+r.error.code));e.code=r.error.code;throw e}return r.result}
+async function ftxt(u){const r=await fetch(u,{cache:'no-store'});if(!r.ok)throw new Error(u+': HTTP '+r.status);return r.text()}
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const list=async()=>(await g('/rpc/Script.List')).scripts.map(s=>String(s.id)===SELF?Object.assign({},s,{name:'Installer'}):s);
+async function code(id){let h='',o=0,r;do{r=await g('/rpc/Script.GetCode?id='+id+'&offset='+o);h+=r.data;o+=r.data.length}while(r.left>0&&r.data.length);return h}
+const idOf=(L,n)=>{const s=L.find(x=>x.name===n);return s?s.id:null};
+const row=(ok,t)=>'<div class="r">'+(ok===true?'<span class="ok">&#10003;</span> ':ok===false?'<span class="er">&#10007;</span> ':'<span class="wn">&#9888;</span> ')+t+'</div>';
+function log(t,c){$('logc').style.display='';const d=document.createElement('div');d.className='r'+(c?' '+c:'');d.innerHTML=t;$('log').appendChild(d)}
+const halt=h=>{$('app').innerHTML='<div class="c">'+h+'</div><div class="c"><button id="back">Leave without changes</button><div class="mu" style="margin-top:6px">Restarts the Led and Page scripts if they were stopped to make room for this installer.</div></div>'};
+async function leave(){$('back').disabled=true;try{const L=await list();if(SELF)await rpc('Script.Stop',{id:Number(SELF)}).catch(()=>{});let pid=null;
+for(const n of ['Led','Page']){const s=L.find(x=>x.name===n);if(s){if(!s.running)await rpc('Script.Start',{id:s.id}).catch(()=>{});if(n==='Page')pid=s.id}}
+$('app').innerHTML='<div class="c">Left without changes.'+(pid!==null?' <a href="/script/'+pid+'/ui">Open the daily page</a>':'')+'</div>'}catch(e){$('back').disabled=false;log('Could not leave cleanly: '+esc(e.message),'er')}}
+let DI={},MODEL=null,REL=null,PLAN=null,LAT=null,CUR={},BASE=CL.base,TZ='',BUSY=false;
+async function loadTag(tag){const b=baseUrl('',CL.repo,tag),h=await ftxt(b+'dist/install.html');window.CL={repo:CL.repo,tag:tag,base:b};document.open();document.write(h);document.close()}
+async function idle(){const ss=await g('/rpc/KVS.Get?key=cc:ss').then(r=>{try{return JSON.parse(r.value)}catch(e){return '?'}}).catch(()=>null);
+const sw=await g('/rpc/Switch.GetStatus?id=0'),raw=await g('/rpc/KVS.Get?key=cc:cfg').then(r=>r.value).catch(()=>null);
+return idleOk(null,ss,sw.current,cfgParse(raw))}
+async function gather(){const L=await list(),H={};
+for(const f of REL.files)if(OWN.indexOf(f.name)<0&&f.name!=='MailTpl'){const id=idOf(L,f.name);if(id!==null)H[f.name]=(await g('/rpc/Script.GetCode?id='+id+'&offset=0&len=80').catch(()=>({data:''}))).data.split('\n')[0]}
+return{L:L,H:H}}
+async function curState(){const x=await Promise.all(['Cloud','MQTT','BLE'].map(n=>g('/rpc/'+n+'.GetConfig').catch(()=>null))),ui=await g('/rpc/PLUGS_UI.GetConfig').catch(()=>null);
+const sw=ui&&ui.controls&&ui.controls['switch:0'];
+return{cloud:x[0]?!!x[0].enable:null,mqtt:x[1]?!!x[1].enable:null,ble:bleState(x[2]),in_mode:sw?sw.in_mode:null}}
+const ck=(k,l,on,x)=>'<div class="f"><label><input type="checkbox" id="'+k+'"'+(on?' checked':'')+'>'+l+'</label>'+(x?'<div class="mu">'+x+'</div>':'')+'</div>';
+async function init(){
+if(!CL.base){$('dev').innerHTML='<span class="er">Open this page through the ChargeLens Installer script on the plug (see the documentation).</span>';return}
+let h='';
+try{
+DI=await g('/rpc/Shelly.GetDeviceInfo');MODEL=modelOf(DI);
+$('dev').textContent=(DI.model||'?')+', firmware '+(DI.fw_id||DI.ver||'?');
+h+=MODEL?row(true,'Supported plug: '+esc(DI.model)):row(false,'This plug ('+esc(DI.model||'unknown')+') is not supported by ChargeLens v1 (Shelly Plus Plug S and Plug S Gen3 only).');
+if(!MODEL){halt(h);return}
+$('app').innerHTML='<div class="c">'+h+row(null,'Checking the firmware (a few seconds)&hellip;')+'</div>';
+const cu=await g('/rpc/Shelly.CheckForUpdate').catch(()=>null);
+if(!fwUpToDate(cu)){h+=row(false,'The firmware is not up to date'+(cu&&cu.stable?' (version '+esc(cu.stable.version)+' is offered)':' (the update check failed; is the plug online?)')+'.')+
+'<div class="mu">Update it first (Shelly app or the plug web UI, Settings, Firmware). Updates come in steps: update, wait for the restart (a few minutes), check again, and repeat until no update is offered. Then open this page again.</div>';halt(h);return}
+h+=row(true,'Firmware is up to date.');
+REL=JSON.parse(await ftxt(BASE+'dist/release.json'));
+if(isDefaultBase(BASE,CL.repo,CL.tag)){try{LAT=JSON.parse(await ftxt('https://raw.githubusercontent.com/'+CL.repo+'/main/dist/latest.json'))}catch(e){LAT=null}}
+else h+=row(null,'<b>Developer base:</b> files come from '+esc(BASE)+' instead of GitHub. Continue only if you started this yourself.');
+const o=await gather();PLAN=planInstall(o.L,o.H,REL);
+if(LAT&&semverGt(LAT.version,REL.version)){h+=row(null,'A newer version is available: '+esc(LAT.version)+' (you have '+esc(REL.version)+'). <a href="'+esc(LAT.changelog)+'" target="_blank" rel="noopener">What changed</a><button id="newer">Use version '+esc(LAT.version)+'</button>')}
+}catch(e){halt(h+row(false,'Could not check the plug: '+esc(e.message))+'<div class="mu">Reload the page to try again.</div>');return}
+if(PLAN.mode==='legacy'||PLAN.mode==='blocked'){halt(h+row(false,esc(PLAN.reason)));return}
+const upd=PLAN.mode==='update';
+if(upd){try{if(!await idle()){halt(h+row(false,'The plug is charging or a session is open. Updating restarts the meter, so try again when the car is unplugged.')+'<button id="again">Check again</button>');return}}catch(e){halt(h+row(false,'Could not read the plug state: '+esc(e.message)));return}h+=row(true,'No charging in progress.')}
+CUR=await curState();TZ=(()=>{try{return Intl.DateTimeFormat().resolvedOptions().timeZone||''}catch(e){return ''}})();
+h+=row(true,(upd?'Update':'First installation')+' of ChargeLens '+esc(REL.version)+': '+PLAN.write.map(esc).join(', ')+'.');
+if(upd)h+='<div class="mu">Your settings, mail template and energy log are kept.</div>';
+let f='<div class="c">'+h+'</div>';
+f+='<div class="c"><div class="lab">Charger</div>'+ck('c_ok','My charger is set to draw at most '+CHARGER_A+' A.',false,'The plug is rated '+MODEL.maxA+' A. A charger that draws more can overheat the plug or the socket: set the current in the car or charger first.')+'</div>';
+if(PLAN.stop.length||PLAN.disable.length){const ns=PLAN.stop.filter(n=>['Led','Page','Meter'].indexOf(n)<0);
+if(ns.length||PLAN.disable.length)f+='<div class="c"><div class="lab">Other scripts</div><div class="mu">The plug runs at most 3 scripts and ChargeLens needs all 3. Nothing is deleted.</div>'+
+(ns.length?'<div class="r">To stop: '+ns.map(esc).join(', ')+'</div>':'')+(PLAN.disable.length?'<div class="r">Not to start at power-up: '+PLAN.disable.map(esc).join(', ')+'</div>':'')+ck('c_stop','Yes, stop and disable them (I can start them again later).',false)+'</div>'}
+if(!upd){const n=CUR;
+f+='<div class="c"><div class="lab">Setup</div>'+ck('o_tz','Set the time zone from this phone'+(TZ?' ('+esc(TZ)+')':' (not available)'),!!TZ)+
+'<div class="mu" style="margin-top:12px">Wi-Fi access point: the plug\'s own network, for use without a router. WPA2 only.</div>'+
+'<div class="f"><label for="ap_ssid">Network name (SSID)</label><input id="ap_ssid" value="'+esc(apSsid(DI.mac))+'" autocomplete="off" autocapitalize="off"></div>'+
+'<div class="f"><label for="ap_pass">Password (at least 8 characters; leave empty to skip the access point)</label><input id="ap_pass" type="password" autocomplete="new-password"></div><div class="er" id="e_ap"></div></div>'+
+'<div class="c"><div class="lab">Hardening</div>'+
+(n.cloud===true?ck('h_cloud','<span class="wn">&#9888;</span> Turn the Shelly cloud off',true,'No Shelly app access from outside the plug\'s networks.'):'')+
+(bleOn(n.ble)?ck('h_ble','<span class="wn">&#9888;</span> Turn Bluetooth off',true):'')+
+(n.mqtt===true?ck('h_mqtt','<span class="wn">&#9888;</span> Turn MQTT off',true):'')+
+(n.in_mode&&n.in_mode!=='detached'?ck('h_button','<span class="wn">&#9888;</span> Make the button do nothing (it toggles the relay)',true):'')+
+ck('h_forget','Forget the home Wi-Fi at the end',false,'Only with the access point set up. Nobody on your network can then reach the plug, but the plug has no internet clock and the next update needs it joined to a Wi-Fi again. You will have to connect to the access point to use it.')+'</div>'}
+f+='<div class="c"><button id="go" disabled>'+(upd?'Update':'Install')+'</button><div class="er" id="e_go"></div><button id="back">Leave without changes</button><div class="mu" style="margin-top:8px">Nothing here switches the relay.</div></div>';
+$('app').innerHTML=f;sync()}
+function sync(){const need=['c_ok','c_stop'].every(k=>!$(k)||$(k).checked);if($('go'))$('go').disabled=BUSY||!need;
+if($('h_forget')){const ok=($('ap_pass').value||'').length>=8;$('h_forget').disabled=!ok;if(!ok)$('h_forget').checked=false}}
+async function fetchAll(){const out={};for(const n of PLAN.write){const f=REL.files.find(x=>x.name===n);log('Downloading '+esc(n)+'&hellip;');const t=await ftxt(BASE+f.path),e=verifyFile(f,t);if(e)throw new Error(e);out[n]=t}return out}
+async function putScript(L,n,t,f){let id=idOf(L,n);if(id===null){id=(await rpc('Script.Create',{name:n})).id;L.push({id:id,name:n})}
+const cs=chunks(t,4000);for(let i=0;i<cs.length;i++)await rpc('Script.PutCode',{id:id,code:cs[i],append:i>0});
+if(await code(id)!==t)throw new Error(n+': stored code differs from the download');
+await rpc('Script.SetConfig',{id:id,config:{enable:!!f.enable}});return id}
+async function stopS(L,n){const id=idOf(L,n);if(id!==null)await rpc('Script.Stop',{id:id}).catch(()=>{})}
+async function run(){const upd=PLAN.mode==='update';let wrote=false,stopped=[];
+try{
+const files=await fetchAll();
+if(upd&&!await idle())throw new Error('The plug started charging. Nothing was changed; try again when the car is unplugged.');
+const L=await list(),own=['Led','Page','Meter'];
+for(const n of PLAN.stop){log('Stopping '+esc(n));await stopS(L,n);stopped.push(n)}
+for(const n of PLAN.disable){const id=idOf(L,n);if(id!==null)await rpc('Script.SetConfig',{id:id,config:{enable:false}})}
+wrote=true;
+for(const n of PLAN.write){log('Writing '+esc(n)+' ('+files[n].length+' bytes)&hellip;');await putScript(L,n,files[n],REL.files.find(x=>x.name===n))}
+try{await rpc('KVS.Get',{key:'cc:cfg'})}catch(e){if(e.code!==-105)throw e;await rpc('KVS.Set',{key:'cc:cfg',value:DEF_CFG});log('Default settings stored.')}
+const tz=$('o_tz')&&$('o_tz').checked&&TZ;
+if(tz){await rpc('Sys.SetConfig',{config:{location:{tz:TZ}}});log('Time zone set to '+esc(TZ))}
+if(!upd){const on=k=>!!($(k)&&$(k).checked),b={cloud:on('h_cloud'),ble:on('h_ble'),mqtt:on('h_mqtt'),button:on('h_button')};
+for(const p of hardenPlan(CUR,b)){try{await rpc(p.rpc,p.params);log(esc(p.label),'ok')}catch(e){log(esc(p.label)+' failed: '+esc(e.message),'er')}}}
+log('Stopping the installer (3 scripts is the limit)&hellip;');
+if(SELF)await rpc('Script.Stop',{id:Number(SELF)}).catch(()=>{});
+const mid=idOf(L,'Meter');log('Starting the meter&hellip;');await rpc('Script.Start',{id:mid});
+let pid=null,up=false;
+for(let i=0;i<60&&!up;i++){await sleep(2000);const L2=await list().catch(()=>[]),p=L2.find(s=>s.name==='Page'&&s.running);if(p){pid=p.id;up=await g('/script/'+pid+'/data').then(d=>d&&d.w!==undefined).catch(()=>false)}}
+if(!up)log('The page did not answer within two minutes. The meter may still be starting: reload this address in a minute.','wn');else log('The page answers.','ok');
+let tail='';
+if(!upd){const pw=$('ap_pass').value,ss=$('ap_ssid').value.trim();
+if(pw&&pw.length>=8&&ss&&ss.length<=32){
+if(viaAp(location.hostname))log('You are connected through the access point: the next step disconnects you; reconnect to the new network.','wn');
+try{await rpc('WiFi.SetConfig',{config:{ap:{ssid:ss,pass:pw,is_open:false,enable:true}}});log('Access point '+esc(ss)+' is on.','ok');
+if($('h_forget').checked){await rpc('WiFi.SetConfig',{config:{sta:{enable:false}}});log('Home Wi-Fi forgotten: connect to '+esc(ss)+' and open http://192.168.33.1/script/'+pid+'/ui?p=setup','wn');tail='ap'}}
+catch(e){log('Access point failed: '+esc(e.message),'er')}}
+else if(pw)log('The access point password must have at least 8 characters: skipped.','wn')}
+if(pid!==null&&tail!=='ap'){const u='/script/'+pid+'/ui'+(upd?'':'?p=setup');log((upd?'Updated. ':'Installed. ')+'<a href="'+u+'">Open '+(upd?'the daily page':'the setup page')+'</a>','ok');
+if(up)setTimeout(()=>{location.href=u},2500)}
+}catch(e){log('Stopped: '+esc(e.message)+(wrote?' Some scripts may be half written: run the installer again (nothing is deleted).':''),'er');
+if(!wrote&&stopped.length){try{const L=await list(),id=idOf(L,'Meter');if(id!==null)await rpc('Script.Start',{id:id});log('The meter was started again.')}catch(x){log('Start the meter by hand in the plug web UI (Scripts).','er')}}
+BUSY=false;sync()}}
+document.addEventListener('click',e=>{const id=e.target.id;
+if(id==='go'){BUSY=true;$('go').disabled=true;$('e_go').textContent='';run()}
+if(id==='again')init();
+if(id==='back')leave();
+if(id==='newer')loadTag(LAT.tag).catch(x=>{$('e_go').textContent='Could not load '+LAT.tag+': '+x.message})});
+document.addEventListener('input',sync);document.addEventListener('change',sync);
+init();
+</script></body></html>

@@ -234,7 +234,7 @@ ck('ap_on','Access point on',ap.enable)+'<button id="apx">Apply access point</bu
 '<div class="mu" style="margin-top:8px">Fix applies the ticked items.</div><button id="hf">Fix</button><div id="hr_res"></div></div>'+
 '<div class="c"><div class="lab">Backup</div><div class="mu">Settings, mail template and device options. No passwords and no energy data.</div>'+
 '<button id="ex">Export configuration</button><button id="im">Import configuration</button><input type="file" id="imf" accept=".json,application/json" style="display:none"><div id="im_res"></div><div id="im_go"></div></div>'+
-'<div class="c"><div class="lab">About</div><div class="mu" id="ab">&hellip;</div><div style="margin-top:8px"><a href="https://github.com/pjrml/chargelens#readme" target="_blank" rel="noopener">Documentation</a></div><button id="up">Check for updates</button><div id="up_res" class="mu"></div></div>';
+'<div class="c"><div class="lab">About</div><div class="mu" id="ab">&hellip;</div><div style="margin-top:8px"><a href="https://github.com/pjrml/chargelens#readme" target="_blank" rel="noopener">Documentation</a></div><button id="up">Check for updates</button><div class="mu">Pauses this page and the LED while the installer runs (the plug runs at most 3 scripts). The meter keeps counting.</div><div id="up_res" class="mu"></div></div>';
 about()}
 let VER='dev';
 async function about(){let k='?',r='?';VER='dev';
@@ -268,7 +268,8 @@ if(id==='ex')exportNow();
 if(id==='im')$('imf').click();
 if(id==='ia'&&IMP){$('ia').disabled=true;await runPlan(writePlan(OLD,IMP),'im_res','Imported. Live within about a minute.');IMP=null;$('im_go').innerHTML='';try{await load()}catch(x){}}
 if(id==='up'){$('up_res').textContent='';try{const L=await g('/rpc/Script.List'),s=L.scripts.find(x=>x.name==='Installer');if(!s){$('up_res').textContent='The installer is not on this plug yet. See the documentation for how to update.';return}
-await rpc('Script.Start',{id:s.id}).catch(x=>{});location.href='/script/'+s.id+'/install'}catch(x){$('up_res').textContent='Could not start the installer: '+x.message}}});
+for(const n of['Led','Page']){const o=L.scripts.find(x=>x.name===n);if(o)await rpc('Script.Stop',{id:o.id}).catch(x=>{})}
+await rpc('Script.Start',{id:s.id});location.href='/script/'+s.id+'/install'}catch(x){$('up_res').textContent='Could not start the installer: '+x.message;try{const L=await g('/rpc/Script.List');for(const o of L.scripts)if((o.name==='Led'||o.name==='Page')&&!o.running)await rpc('Script.Start',{id:o.id}).catch(y=>{})}catch(y){}}}});
 document.addEventListener('change',e=>{if(e.target.id==='imf'&&e.target.files[0])importFile(e.target.files[0])});
 async function save(){const f=readForm(),v=validateForm(f,MODEL);
 document.querySelectorAll('.er').forEach(x=>x.textContent='');Object.keys(v.errors).forEach(k=>{const x=$('e_'+k);if(x)x.textContent=v.errors[k];else $('e_cfg').textContent=v.errors[k]});
