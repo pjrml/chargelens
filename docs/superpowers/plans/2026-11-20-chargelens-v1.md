@@ -484,7 +484,8 @@ Copy files only (no history). Behaviour unchanged except what the scrub removes.
 **Files:**
 - Create: `docs/shelly-setup.md`, `docs/install.md`, `docs/install-manual.md`, `docs/configuration.md`,
   `docs/usage.md`, `docs/how-it-works.md`, `docs/security.md`, `docs/troubleshooting.md`, `CHANGELOG.md`,
-  `docs/assets/logo-a.svg`, `logo-b.svg`, `logo-c.svg`
+  `docs/assets/logo.svg` (from the chosen draft)
+- Modify: `src/page.html`, `src/setup.html` (icon)
 - Modify: `README.md`, `docs/development.md`
 
 - [ ] **Step 1: Write the docs** per spec section 8. Must contain: the charger requirement (maximum charger
@@ -494,9 +495,11 @@ Copy files only (no history). Behaviour unchanged except what the scrub removes.
   `docs/security.md` and `docs/shelly-setup.md`; the security model (no device auth, WPA2 AP); KVS map and
   limits in `docs/how-it-works.md`; the Library URL path with screenshot placeholders (filled in Task 11);
   the manual path (7 scripts, exact names, only Meter on startup, raw links per file of the tag).
-- [ ] **Step 2: Draw 3 logo SVGs** (magnifier over a plug / charging socket; legible at 32 px); the owner picks
-  one; the chosen one becomes `docs/assets/logo.svg` and the page's home-screen icon (inline data URI in
-  `page.html`, ASCII).
+- [ ] **Step 2: Logo.** Three drafts exist since 2026-11-20 (`docs/assets/logo-a.svg`, `-b`, `-c`; the owner
+  chooses before this task, see `TODO.md`). The chosen one becomes `docs/assets/logo.svg` (drafts deleted), the
+  README header image, and the home-screen / favicon icon of the daily and setup pages (inline data URI, ASCII;
+  `apple-touch-icon` needs a PNG: render a 180 px PNG once and inline it as base64 if it stays under ~4 KB,
+  otherwise use the SVG favicon only).
 - [ ] **Step 3: README**: what/who/features/hardware/quick start/links, status updated, maintainer sections
   kept ("Secrets and where they live", "Recover on a new PC" with the baseline plugin install lines).
 - [ ] **Step 4: Run** `python tools/check_private.py` -> no hits. **Commit** `User documentation and logo
