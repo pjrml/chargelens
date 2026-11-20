@@ -1,7 +1,7 @@
 # Configuration
 
-Everything is set on the plug's **setup page**: `http://<plug-ip>/script/<PageId>/ui?p=setup` (also the *Setup*
-link on the daily page). Changes are live within about a minute: the meter reads the settings once a minute.
+Everything is set on the plug's **setup page**: `http://<plug-ip>/script/<PageId>/ui?p=setup` (or **Setup** at the top
+of the daily page). Changes are live within about a minute: the meter reads the settings once a minute.
 Nothing on the setup page switches the relay.
 
 > **Charger requirement.** The tested plugs are rated **12 A / 2500 W**. Set the car or charger to draw **at

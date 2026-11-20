@@ -28,7 +28,8 @@ The plug keeps working with no phone connected and with no internet. Power cuts 
 - **Sessions** of the chosen month, with start, duration, energy and cost.
 - **Send the monthly report by mail** and **Download CSV** for the chosen month.
 - **Events**: relay changes with their source, boots, script restarts (updates).
-- **Set the clock from this phone** and the **Setup** link at the top.
+- **Daily** / **Setup** at the top switch between this page and the setup page.
+- **Set the clock from this phone**.
 
 <img src="assets/screenshots/daily-page-full.png" alt="The whole daily page: now, relay, today, month, history, sessions, report buttons and events" width="300">
 

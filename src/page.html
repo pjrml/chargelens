@@ -8,7 +8,7 @@
 *{box-sizing:border-box}:root{--bg:#0b1221;--card:#131c2e;--line:#1f2a44;--tx:#e5e7eb;--mu:#94a3b8;--ok:#10b981;--warn:#f59e0b;--bad:#ef4444}
 body{margin:0;padding:16px;padding-top:max(16px,env(safe-area-inset-top));font:16px -apple-system,system-ui,sans-serif;background:var(--bg);color:var(--tx)}
 .w{max-width:480px;margin:0 auto}.c{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:12px}
-h1{font-size:18px;margin:0 0 4px}.mu{color:var(--mu);font-size:14px}.r{display:flex;justify-content:space-between;align-items:baseline;padding:6px 0}
+h1{font-size:18px;margin:0 0 4px}.hd{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px}.hd h1{margin:0}.nv{display:flex;flex:none;border:1px solid var(--line);border-radius:10px;overflow:hidden}.nv a{padding:7px 14px;font-size:15px;color:var(--mu);text-decoration:none}.nv a.on{background:#1d2a45;color:var(--tx)}.lg{width:32px;height:32px;vertical-align:-8px;margin-right:8px}.mu{color:var(--mu);font-size:14px}.r{display:flex;justify-content:space-between;align-items:baseline;padding:6px 0}
 .big{font-size:26px;font-weight:700}.lab{color:var(--mu);font-size:13px;letter-spacing:.05em;text-transform:uppercase}
 .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-left:8px}
 button,select{width:100%;padding:13px;margin-top:8px;border-radius:10px;border:1px solid var(--line);background:#1d2a45;color:var(--tx);font-size:16px}
@@ -17,7 +17,7 @@ button,select{width:100%;padding:13px;margin-top:8px;border-radius:10px;border:1
 input{width:100%;padding:10px;margin-top:6px;border-radius:10px;border:1px solid var(--line);background:#1d2a45;color:var(--tx);font-size:16px}
 input[type=checkbox]{width:20px;height:20px;margin:0 10px 0 0;padding:0;vertical-align:middle}a{color:var(--warn)}button:disabled{opacity:.4}
 </style></head><body><div class="w">
-<div class="c"><h1>&#9889; ChargeLens</h1><div class="mu" id="clk">&hellip;</div><button id="ts" class="sm">&#128339; Set the clock from this phone</button><div class="mu" id="tsr"></div><div class="mu" style="margin-top:8px"><a href="ui?p=setup">Setup</a></div></div>
+<div class="c"><div class="hd"><h1><img class="lg" alt="">ChargeLens</h1><nav class="nv"><a class="on" aria-current="page">Daily</a><a href="ui?p=setup">Setup</a></nav></div><div class="mu" id="clk">&hellip;</div><button id="ts" class="sm">&#128339; Set the clock from this phone</button><div class="mu" id="tsr"></div></div>
 <div class="c">
 <div class="r"><span class="lab">Now</span><span class="big" id="w">&ndash;</span></div>
 <div class="r"><span class="lab">Relay</span><span><span class="mu" id="rs"></span><button id="rel" class="sw" role="switch" aria-checked="false" aria-label="Relay"><span class="k">&#9889;&#xFE0E;</span></button></span></div>
@@ -31,6 +31,8 @@ input[type=checkbox]{width:20px;height:20px;margin:0 10px 0 0;padding:0;vertical
 <div class="c" id="undc" hidden><div class="lab">Undated</div><div class="mu">Charges without a time: pick the charges and the day (between the last known date before and the next one).</div><div id="und"></div><select id="udd"></select><button id="uda" disabled>Assign</button><div class="mu" id="udr"></div></div>
 <div class="c"><div class="lab">Events</div><div id="evs" class="mu">&hellip;</div></div>
 </div><script>
+document.querySelector('img.lg').src=document.querySelector('link[rel=icon]').href;
+
 /* ==== PURE ==== */
 /*@lib cfg_lib.js*/
 const pad=n=>String(n).padStart(2,'0');
