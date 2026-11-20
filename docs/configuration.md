@@ -97,11 +97,11 @@ mean the clock is unknown. Table with what to do for each colour: [usage.md](usa
 
 ## Mail
 
-Recipient (to, cc, bcc), subject and body of the monthly report. Placeholders:
+Recipient (to, cc, bcc), subject and body of the monthly report, and the language of the month name. Placeholders:
 
 | Placeholder | Replaced by |
 |---|---|
-| `{month_name}` | month name in your phone's language |
+| `{month_name}` | month name in the language set in **Language of {month_name}** (a tag such as `pt-PT` or `en-GB`), or in your phone's language when that field is empty |
 | `{month}` | month number, `MM` |
 | `{year}` | year |
 | `{total_kwh}` | energy of the month |

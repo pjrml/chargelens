@@ -67,8 +67,9 @@ clock in the same power-up next time.
 factory-reset the plug (a long press of the button, about 10 s on most models; check Shelly's guide for your model) and install again. A factory reset erases the plug's
 settings and scripts; the energy log is lost with it.
 
-**The mail button does nothing or the body is empty.** Long reports are copied to the clipboard and a short mail
-opens asking you to paste. Allow your browser to open the mail app. The CSV download is the alternative.
+**The mail button does nothing or the body is empty.** Very long reports (a mail link over 8000 characters) are
+copied to the clipboard and a short mail opens asking you to paste. Allow your browser to open the mail app. The CSV
+download is the alternative.
 
 ## Still stuck
 

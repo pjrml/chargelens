@@ -74,7 +74,8 @@ Object.keys(boots).forEach(b=>{const d=dayKeyOf(boots[b],off).replace(/(....)(..
 man.forEach(s=>{if(s.b===undefined)return;const bf=s.b<it.n||(s.b===it.n&&s.up<u);if(bf&&s.day>lo)lo=s.day;if(!bf&&s.day<hi)hi=s.day});return{lo:lo,hi:hi}}
 function rangeOf(rs){let lo='',hi='9999-12-31';rs.forEach(r=>{if(r.lo>lo)lo=r.lo;if(r.hi<hi)hi=r.hi});return{lo:lo,hi:hi,ok:lo<=hi}}
 /* mail: template MailTpl {to,cc,bcc,subject,body} with {placeholders}; sessions = parsed sessions of the month */
-function monthName(k,lang){const n=new Date(Date.UTC(+k.slice(0,4),+k.slice(4,6)-1,1)).toLocaleString(lang||navigator.language,{month:'long',timeZone:'UTC'});return n.charAt(0).toUpperCase()+n.slice(1)}
+function monthName(k,lang){const d=new Date(Date.UTC(+k.slice(0,4),+k.slice(4,6)-1,1)),o={month:'long',timeZone:'UTC'};let n;
+try{n=d.toLocaleString(lang||navigator.language,o)}catch(e){n=d.toLocaleString(navigator.language,o)}return n.charAt(0).toUpperCase()+n.slice(1)}
 function sessionsTable(l,c){return l.map(s=>fmtDate(s.day,c.df)+' | '+fmtNum(s.wh/1000,2,c.ds)+(hasPrice(c)?' | '+fmtCost(s.wh,c):'')).join('\n')}
 function mailVars(x){const c=x.cfg,sw=x.sessions.reduce((a,s)=>a+s.wh,0);
 return{month_name:monthName(x.k,x.lang),month:x.k.slice(4,6),year:x.k.slice(0,4),total_kwh:fmtNum(x.totalWh/1000,2,c.ds),total_cost:fmtCost(x.totalWh,c),
@@ -83,11 +84,17 @@ session_count:String(x.sessions.length),sessions_table:sessionsTable(x.sessions,
 /* default mail template: the same text as src/mail-default.json (a test compares them) */
 const MAILD={subject:'Charging report | {month_name} {year}',body:'Hello,\n\nHere is the charging report for {month_name} {year}.\n\nTotal: {total_kwh} kWh in {session_count} session(s).\n\nSessions:\n{sessions_table}\n\nEnergy outside sessions: {outside_kwh} kWh\n\nPlease confirm that you received this report.\n\nSignature: replace this line\n'};
 /* a stored template that lacks a subject or body (or is not an object) gets the default text, field by field */
-const mailTpl=m=>{m=m&&typeof m==='object'?m:{};const t=x=>typeof x==='string';return{to:t(m.to)?m.to:'',cc:t(m.cc)?m.cc:'',bcc:t(m.bcc)?m.bcc:'',subject:t(m.subject)?m.subject:MAILD.subject,body:t(m.body)?m.body:MAILD.body}};
+const mailTpl=m=>{m=m&&typeof m==='object'?m:{};const t=x=>typeof x==='string';return{to:t(m.to)?m.to:'',cc:t(m.cc)?m.cc:'',bcc:t(m.bcc)?m.bcc:'',subject:t(m.subject)?m.subject:MAILD.subject,body:t(m.body)?m.body:MAILD.body,lang:t(m.lang)?m.lang:''}};
+/* the plug serves http (no secure context, so no navigator.clipboard): copy through a selected textarea */
+function copyText(s){const a=document.createElement('textarea');a.value=s;a.setAttribute('readonly','');a.style.position='fixed';a.style.opacity='0';
+document.body.appendChild(a);a.select();let ok=false;try{ok=document.execCommand('copy')}catch(e){}document.body.removeChild(a);
+if(!ok&&navigator.clipboard)navigator.clipboard.writeText(s).catch(e=>{});return ok}
 function renderTpl(t,v){return String(t).replace(/\{(\w+)\}/g,(m,k)=>Object.prototype.hasOwnProperty.call(v,k)?String(v[k]):m)}
 const mu1=s=>encodeURIComponent(s||"").replace(/%2C/g,',').replace(/%40/g,'@');
+/* longest mailto opened as is (the private build sent ~3 KB reports whole); longer: body on the clipboard */
+const MAILTO_MAX=8000;
 function mailUrl(mt,subject,body){const u=b=>'mailto:'+mu1(mt.to)+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(b)+(mt.cc?'&cc='+mu1(mt.cc):'')+(mt.bcc?'&bcc='+mu1(mt.bcc):'');
-const url=u(body);return url.length>1800?{url:u('The report is on the clipboard: paste it here.'),copy:body}:{url:url,copy:''}}
+const url=u(body);return url.length>MAILTO_MAX?{url:u('The report is on the clipboard: paste it here.'),copy:body}:{url:url,copy:''}}
 /* CSV: machine friendly (ISO dates, dot decimals, comma, CRLF, no BOM); event text goes into the last column */
 const csvF=v=>/[",\r\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;
 function csvText(days,months,sessions,events){const r=a=>a.map(v=>csvF(String(v))).join(',')+'\r\n',k3=wh=>(wh/1000).toFixed(3);
@@ -167,9 +174,9 @@ catch(e){$('hist').textContent='Could not read the history ('+e+'). Reload the p
 $('mail').onclick=async()=>{const k=$('sel').value,m=months[k];if(!m)return;
 if(UI.length&&!confirm(UI.length+' undated charge(s) are not in the report. Send anyway?'))return;
 const mt=mailTpl(MT),l=sessOf(k);
-const v=mailVars({k:k,sessions:l,totalWh:monthWh(D,m,k,tkey()),cfg:CFG,name:DN});
+const v=mailVars({k:k,sessions:l,totalWh:monthWh(D,m,k,tkey()),cfg:CFG,name:DN,lang:mt.lang||undefined});
 const u=mailUrl(mt,renderTpl(mt.subject,v),renderTpl(mt.body,v));
-if(u.copy)try{await navigator.clipboard.writeText(u.copy)}catch(e){}
+if(u.copy&&!copyText(u.copy)&&!navigator.clipboard)alert('The report could not be copied. Use the CSV export instead.');
 location.href=u.url};
 $('csv').onclick=()=>{const tk=tkey(),ks=Object.keys(months).sort(),days=[],mos=[],ss=[],ev=[];
 ks.forEach(k=>{months[k].days.forEach((x,i)=>days.push([isoD(k+pad(i+1)),x]));mos.push([k.slice(0,4)+'-'+k.slice(4),Math.round(monthWh(D,months[k],k,tk))])});

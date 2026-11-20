@@ -91,7 +91,7 @@ clock from this phone* (or leave the plug on a Wi-Fi with internet).
 
 1. Choose the month in the list.
 2. Press **Send the monthly report by mail**. It opens your mail app with the template from the setup page (recipients,
-   subject, body with the sessions table). If the report is too long for a mail link, the page copies the body to
+   subject, body with the sessions table). If the report is very long (a mail link over 8000 characters), the page copies the body to
    the clipboard and opens a short mail asking you to paste it.
 3. Or press **Download CSV**. It saves a machine-friendly file (ISO dates, `.` decimals; types `day`, `month`, `session`,
    `event`) to attach or open in a spreadsheet.

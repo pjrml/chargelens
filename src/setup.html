@@ -34,7 +34,9 @@ const BSU=String.fromCharCode(92)+'u';
 function asciiEsc(s){let o='',i,c;for(i=0;i<s.length;i++){c=s.charCodeAt(i);o+=c>126?BSU+('0000'+c.toString(16)).slice(-4):s.charAt(i)}return o}
 const asciiJson=o=>asciiEsc(JSON.stringify(o));
 const storedCfg=c=>{const s=cfgJson(c);return s===null?null:asciiEsc(s)};
-const mailText=m=>asciiJson({v:1,to:String(m.to||''),cc:String(m.cc||''),bcc:String(m.bcc||''),subject:String(m.subject||''),body:String(m.body||'')});
+const mailText=m=>{const o={v:1,to:String(m.to||''),cc:String(m.cc||''),bcc:String(m.bcc||''),subject:String(m.subject||''),body:String(m.body||'')},l=String(m.lang||'').trim();if(l)o.lang=l;return asciiJson(o)};
+/* mail language: empty or a language tag the browser accepts (e.g. pt-PT) */
+const langOk=l=>{if(!l)return true;try{new Intl.DateTimeFormat(l);return /^[A-Za-z]{2,3}(-[A-Za-z0-9]{1,8})*$/.test(l)}catch(e){return false}};
 const RNG=k=>{const a=CFG_NUM.find(x=>x[0]===k);return a?'Between '+a[2]+' and '+a[3]+(k==='r'||k==='g'||k==='y'?', and residual < minimum < maximum':''):k==='cu'?'1 to 4 characters':k==='ds'?'Dot or comma':'Pick one'};
 /* f = form values (numbers as numbers); returns the stored cc:cfg text, MailTpl text and native values, or errors by field */
 function validateForm(f,model){
@@ -49,7 +51,8 @@ const name=String(f.name||'').trim();if(name.length>64)e.name='At most 64 charac
 if(f.ap&&f.ap.on&&String(f.ap.pass||'').length<8)e.ap_pass='At least 8 characters';
 let cfg=null,mail=null;
 if(!CFG_ORD.some(k=>e[k])){cfg=storedCfg(cfgFix(raw));if(cfg===null||cfg.length>253){e.cfg='The settings do not fit the 253 byte limit (shorten the currency)';cfg=null}}
-if(f.mail){mail=mailText(f.mail);if(mail.length>16000){e.body='Mail template too long';mail=null}}
+if(f.mail&&!langOk(String(f.mail.lang||'').trim()))e.lang='A language tag such as pt-PT or en-GB, or empty';
+else if(f.mail){mail=mailText(f.mail);if(mail.length>16000){e.body='Mail template too long';mail=null}}
 return{cfg:cfg,mail:mail,native:{current_limit:cl,power_limit:pl,in_mode:f.in_mode,tz:tz,name:name},errors:e}}
 /* the charger limit, as CHARGER_A in install.html (build.py checks they match) */
 const CHARGER_A=10;
@@ -79,7 +82,7 @@ function exportDoc(s,version,now){const n=s.native,m=JSON.parse(s.mail||'{}');de
 return{app:'chargelens',fv:1,version:version||'dev',exported:now.toISOString().slice(0,10),model:s.model,cfg:JSON.parse(s.cfg||'{"v":1}'),mail:m,
 native:{current_limit:n.current_limit,power_limit:n.power_limit,in_mode:n.in_mode,tz:n.tz,name:n.name,ap:{ssid:(n.ap||{}).ssid,enable:(n.ap||{}).enable},cloud:n.cloud,ble:n.ble,mqtt:n.mqtt}}}
 const exportFile=(s,now)=>'chargelens-config-'+String(s.native.name||s.model).replace(/[^A-Za-z0-9_-]+/g,'-').replace(/^-+|-+$/g,'')+'-'+now.getFullYear()+('0'+(now.getMonth()+1)).slice(-2)+('0'+now.getDate()).slice(-2)+'.json';
-const NATK=['current_limit','power_limit','in_mode','tz','name'],MAILK=['to','cc','bcc','subject','body'];
+const NATK=['current_limit','power_limit','in_mode','tz','name'],MAILK=['to','cc','bcc','subject','body','lang'];
 /* doc = parsed export file, model = the target device model entry, c = optional current state (as exportDoc takes) to list changes;
    returns {ok, errors, changes, next} where next feeds writePlan; unknown fields are ignored */
 function importCheck(doc,model,c){const er=[],ch=[];let next=null;
@@ -138,7 +141,7 @@ fl('r','Residual current (A)','At or below this the socket counts as idle.',c.r)
 '<div class="c"><div class="lab">Time</div>'+tx('tz','Time zone (e.g. Europe/Berlin)',n.tz)+'<button id="tzp" class="sm">Use this phone\'s time zone</button><div class="mu" id="clk" style="margin-top:10px"></div><button id="ts" class="sm">Set clock from this phone</button></div>'+
 '<div class="c"><div class="lab">LED ring</div><div class="f"><label><input type="checkbox" id="f_lo"'+(c.lo?' checked':'')+'>Use the LED ring</label></div>'+fl('lb','Brightness (5 to 100)','',c.lb)+
 '<div class="mu" style="margin-top:10px"><span class="dt" style="background:#3b82f6;margin-left:0"></span>idle<span class="dt" style="background:#ef4444"></span>on, not charging<span class="dt" style="background:#10b981"></span>charging<span class="dt" style="background:#f59e0b"></span>above normal<br><span class="dt" style="background:#a855f7;margin-left:0"></span>purple / <span class="dt" style="background:#f97316;margin-left:0"></span>orange: the clock is unknown, set it.</div></div>'+
-'<div class="c"><div class="lab">Mail</div>'+tx('to','To',mt.to)+tx('cc','Cc',mt.cc)+tx('bcc','Bcc',mt.bcc)+tx('subject','Subject',mt.subject)+
+'<div class="c"><div class="lab">Mail</div>'+tx('to','To',mt.to)+tx('cc','Cc',mt.cc)+tx('bcc','Bcc',mt.bcc)+tx('subject','Subject',mt.subject)+tx('lang','Language of {month_name} (e.g. pt-PT; empty = the phone\'s)',mt.lang)+
 '<div class="f"><label for="f_body">Body</label><textarea id="f_body" autocapitalize="sentences">'+esc(mt.body)+'</textarea><div class="er" id="e_body"></div></div>'+
 '<div class="mu" style="margin-top:8px">Placeholders: {month_name} {month} {year} {total_kwh} {total_cost} {currency} {price} {outside_kwh} {session_count} {sessions_table} {device_name}</div></div>';
 bands()}
@@ -146,7 +149,7 @@ const num=k=>{const s=$('f_'+k).value.trim().replace(',','.');return s===''?NaN:
 function readForm(){const f={},v=k=>$('f_'+k).value;
 ['r','g','y','h','hr','hs','sg','p','lb','current_limit','power_limit'].forEach(k=>f[k]=num(k));
 f.cu=v('cu').trim();f.ds=v('ds');f.df=v('df');f.lo=$('f_lo').checked?1:0;f.in_mode=v('in_mode');f.tz=v('tz');f.name=v('name');
-f.mail={to:v('to').trim(),cc:v('cc').trim(),bcc:v('bcc').trim(),subject:v('subject'),body:v('body').replace(/\r\n?/g,'\n')};return f}
+f.mail={to:v('to').trim(),cc:v('cc').trim(),bcc:v('bcc').trim(),subject:v('subject'),body:v('body').replace(/\r\n?/g,'\n'),lang:v('lang').trim()};return f}
 function bands(){const f=readForm(),r=f.r,a=f.g,y=f.y,m=Math.max(f.current_limit||MODEL.maxA,y||0,1),s=[[r,'#3b82f6'],[a-r,'#ef4444'],[y-a,'#10b981'],[m-y,'#f59e0b']],ok=s.every(x=>x[0]>=0);
 $('bar').innerHTML=ok?s.map(x=>'<div style="flex:'+x[0]+';background:'+x[1]+'"></div>').join(''):'';
 $('leg').textContent=ok?'0 A to '+m+' A':'Check the three thresholds.'}
@@ -157,7 +160,7 @@ const [mc,sw,ui,sy,di]=await Promise.all([scode('MailTpl').catch(e=>null),g('/rp
 MODEL=MODELS[di.model]||MODEL;
 const c=cfgParse(raw);let mt=null;try{mt=JSON.parse(mc)}catch(e){}if(!mt||typeof mt!=='object')mt=MAILD;
 const n={current_limit:sw.current_limit,power_limit:sw.power_limit,in_mode:((ui.controls||{})['switch:0']||{}).in_mode||'detached',tz:(sy.location||{}).tz||'',name:String((sy.device||{}).name||'')};
-const m={to:mt.to,cc:mt.cc,bcc:mt.bcc,subject:mt.subject===undefined?MAILD.subject:mt.subject,body:mt.body===undefined?MAILD.body:mt.body};
+const m={to:mt.to,cc:mt.cc,bcc:mt.bcc,subject:mt.subject===undefined?MAILD.subject:mt.subject,body:mt.body===undefined?MAILD.body:mt.body,lang:typeof mt.lang==='string'?mt.lang:''};
 const ex=await Promise.all(['WiFi','Cloud','BLE','MQTT'].map(x=>g('/rpc/'+x+'.GetConfig').catch(e=>null)));
 const ap=(ex[0]||{}).ap;n.ap=ap?{ssid:ap.ssid,enable:!!ap.enable}:null;n.cloud=ex[1]?!!ex[1].enable:null;n.ble=bleState(ex[2]);n.mqtt=ex[3]?!!ex[3].enable:null;n.dbg=dbgOn(sy);
 OLD={cfg:storedCfg(c),mail:mailText(m),native:n,name:n.name};DI=di;

@@ -59,9 +59,12 @@ t("tpl_render", function () {
 tb("tpl_month_name", function () {
   Object.defineProperty(navigator, "language", {value: "en-US", configurable: true});
   eq("november", mailVars(ctx({lang: undefined, k: "202611"})).month_name, "November");
-  delete navigator.language;
   eq("explicit lang", mailVars(ctx({lang: "en-US", k: "202603"})).month_name, "March");
+  eq("template lang pt-PT", mailVars(ctx({lang: "pt-PT", k: "202611"})).month_name, "Novembro");
+  eq("bad lang falls back", mailVars(ctx({lang: "not a tag!", k: "202611"})).month_name, "November");
+  delete navigator.language;
 });
+tb("copy_text_returns_boolean", function () { eq("bool", typeof copyText("x"), "boolean"); });
 t("mailto_cc_bcc", function () {
   let r = mailUrl({to: "a@example.com", cc: "b@example.com", bcc: "c@example.com"}, "Sub ject", "Line1\nLine2");
   eq("copy empty", r.copy, "");
@@ -70,12 +73,20 @@ t("mailto_cc_bcc", function () {
   eq("no cc/bcc", n.url, "mailto:?subject=S&body=B");
 });
 t("mailto_long", function () {
-  let l = []; for (let i = 0; i < 60; i++) l.push({day: "2026-11-" + pad(i % 28 + 1), wh: 1000 + i});
+  let l = []; for (let i = 0; i < 400; i++) l.push({day: "2026-11-" + pad(i % 28 + 1), wh: 1000 + i});
   let body = sessionsTable(l, cfgOf({p: 0.2}));
   let r = mailUrl({to: "a@example.com"}, "Report", body);
   eq("copy is the full body", r.copy, body);
-  eq("short", r.url.length < 1800, true);
+  eq("short", r.url.length <= MAILTO_MAX, true);
   eq("short body text", r.url.indexOf(encodeURIComponent("The report is on the clipboard: paste it here.")) > 0, true);
+});
+// a long Portuguese report (~3 KB URL) still goes whole in the mailto, as the private build did
+t("mailto_medium_whole", function () {
+  let body = new Array(200).join("Na sequ" + String.fromCharCode(234) + "ncia ");
+  let r = mailUrl({to: "a@example.com"}, "S", body);
+  eq("over the old 1800", r.url.length > 1800, true);
+  eq("no copy", r.copy, "");
+  eq("whole body", r.url.indexOf(encodeURIComponent(body)) > 0, true);
 });
 t("csv_header_iso", function () {
   let c = csvText([["2026-11-20", 1500]], [["2026-11", 1500]],
@@ -122,4 +133,7 @@ t("mailtpl_fallback", function () {
   eq("bad types", mailTpl({subject: 5, body: null}).body, MAILD.body);
   eq("empty subject kept", mailTpl({subject: "", body: "B"}).subject, "");
   eq("recipients default empty", mailTpl({}).to, "");
+  eq("lang default empty", mailTpl({}).lang, "");
+  eq("lang kept", mailTpl({lang: "pt-PT"}).lang, "pt-PT");
+  eq("lang bad type", mailTpl({lang: 5}).lang, "");
 });

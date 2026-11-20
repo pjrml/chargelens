@@ -294,3 +294,18 @@ t("limit_notes", function () {
   eq("above rating is an error, not a note", limitNotes(form({current_limit: 13, power_limit: 3000}), M2), {});
   eq("not a number: no note", limitNotes(form({current_limit: NaN}), M2), {});
 });
+
+// optional mail language (MailTpl "lang", used for {month_name}); empty = the phone's language, not stored
+t("mail_lang", function () {
+  let v = validateForm(form({mail: {to: "", cc: "", bcc: "", subject: "s", body: "b", lang: "pt-PT"}}), M2);
+  eq("stored", JSON.parse(v.mail).lang, "pt-PT");
+  let e = validateForm(form({mail: {to: "", cc: "", bcc: "", subject: "s", body: "b", lang: ""}}), M2);
+  eq("empty not stored", JSON.parse(e.mail).lang, undefined);
+  eq("no lang same text as before", e.mail, validateForm(form({}), M2).mail.replace('"S {year}","body":"B"', '"s","body":"b"'));
+  let b = validateForm(form({mail: {to: "", cc: "", bcc: "", subject: "s", body: "b", lang: "not a tag!"}}), M2);
+  eq("bad lang refused", typeof b.errors.lang, "string");
+  eq("no mail written", b.mail, null);
+});
+t("import_mail_lang", function () {
+  eq("lang is a mail key", MAILK.indexOf("lang") >= 0, true);
+});

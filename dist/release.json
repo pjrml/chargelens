@@ -32,16 +32,16 @@
       "path": "dist/PageHtml.html",
       "kind": "data",
       "enable": false,
-      "size": 28151,
-      "crc32": 1261207429
+      "size": 28714,
+      "crc32": 3550961541
     },
     {
       "name": "SetupHtml",
       "path": "dist/SetupHtml.html",
       "kind": "data",
       "enable": false,
-      "size": 32911,
-      "crc32": 3109340583
+      "size": 33382,
+      "crc32": 143467437
     },
     {
       "name": "MailTpl",
