@@ -538,6 +538,22 @@ to 300 s).
 - [ ] **Step 4:** Report. The main session records the results in the private TODO and decides the release with
   the owner (version bump, changelog, docs and screenshots are later work).
 
+## Execution notes (Tasks 1-15 done, 2026-11-23)
+
+- Task 1: the PM LED component is `plugpm_ui` (lowercase): `plugpm_ui.GetConfig` / `.SetConfig` (so `<PMUI>` =
+  `plugpm_ui`). The plug also lists `Button.*` methods, but no `Switch.*`.
+- Task 5: the `MODELS` change alters `dist/SetupHtml.html` and `dist/install.html` (plugs bytes), not only
+  `release.json`. Shared `Installer`/`InstallHtml` are built with the `relay` feature set (the install page has no
+  markers of its own; this keeps its bytes independent of the PM-only `cfg_lib` ceilings of Task 15).
+- Task 10: splitting the `show()` line adds one newline to `dist/PageHtml.html` (plugs), so it is not byte-identical.
+- Task 11 and 12: `dist/SetupHtml.html` (plugs) is byte-identical (markers wrap whole existing lines; variants are
+  duplicated lines).
+- Task 11 test "y = 15 is a range error" was replaced after Task 15 (PM ceiling 16 A): y = 15 ok, y = 17 error.
+- Marker errors name the line inside the resolved region (LIB or PURE block, or the whole file for tests), not the
+  file line, in `puretest.js`; `build.py` and `shelly.py` name the file.
+- `shelly.py install --build NAME` forces a build (default: chosen by device model); `--build` default for
+  `test`/`testpage`/`put` is `plugs`.
+
 ## Open questions (owner)
 
 1. Update gate on the PM: the plan keeps it (no update while a session is open or current > residual), reading
