@@ -64,7 +64,7 @@ DevTools protocol: phone viewport 390 px at 2x for the ChargeLens pages, 1280 px
 months of random energy and sessions written into the KVS with `Meter` stopped; the live power on the daily
 page faked by rewriting the `data` response in the browser; the MAC (and the dev plug's address) replaced in
 the DOM before each capture; the install page loaded with `?base=` on `main` (the developer-base notice
-hidden, since no tag existed). Retake them when a page changes visibly. Document
+hidden, since no tag existed). For 1.0.0-rc.8 `setup-thresholds.png` and `install-checks.png` were retaken on the Gen3 with `tools/drive.py` steps `phone`, `js:` (hide the device name, the test-source notice, the AP name and the time zone) and `shot:`; the install page from `?base=` on `dev` with the ChargeLens scripts removed (first-install view). Retake them when a page changes visibly. Document
 what the code does. There is no fixed charger limit in the code: the installer and the setup page show the
 relay protection values read from the plug (`Switch.GetConfig`), and the docs say "below the plug's relay
 protection values" (`README.md`, `docs/install.md`, `docs/install-manual.md`, `docs/shelly-setup.md`,
