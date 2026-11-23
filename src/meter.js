@@ -1,5 +1,5 @@
 // ChargeLens "Meter" - counts the energy delivered to the car charger and persists daily/monthly totals in KVS.
-// Shelly Plus Plug S (Gen2). No HTTP here (see page.js). Design:
+// Shelly Plus Plug S / Plug S Gen3 (metering switch:0) and Plug PM Gen3 (pm1:0, no relay events). No HTTP here (see page.js). Design:
 // docs/superpowers/specs/2026-11-19-chargelens-design.md
 //
 // KVS (Global Constraints of the plan):
@@ -455,7 +455,11 @@ function applyTick(st, month, total, unix, off, up, adj, maxWh) {
 // ==== END LIB ====
 
 // ==== DEVICE ====
-let SWITCH_ID = 0;
+//@if relay
+let MC = "switch:0";  // metering component
+//@else
+let MC = "pm1:0";
+//@end
 let TICK_MS = 60000;
 let FIRST_TICK_MS = 5000;
 let MAX_W = 4000;          // 16 A x 250 V: anything above is a counter glitch
@@ -588,12 +592,14 @@ function heartbeat() {
   st.hi = ringNext(st.hi, 3);
 }
 
+//@if relay
 Shelly.addStatusHandler(function (e) {
-  if (!st || !e || e.component !== "switch:" + SWITCH_ID || !e.delta || typeof e.delta.output !== "boolean") return;
+  if (!st || !e || e.component !== MC || !e.delta || typeof e.delta.output !== "boolean") return;
   let t = now();
   if (!e.delta.output && st.ss) st.ss.f = addFlag(st.ss.f, "o");
   logEv(fmtEv("R", stamp(t.unix, st.n, t.up), (e.delta.output ? "1/" : "0/") + (e.delta.source || "?")));
 });
+//@end
 
 // real boot: close a session left open by a power cut at the last sign of life of boot n-1 (newest of the
 // heartbeat ring and cc:state.u), log the boot event (reset reason / loss estimate), count the boot
@@ -657,7 +663,7 @@ function onDate(n, up, day) {
 
 function onBand(b) {
   let t = now();
-  let sw = Shelly.getComponentStatus("switch:" + SWITCH_ID);
+  let sw = Shelly.getComponentStatus(MC);
   let had = st.ss;
   let r = sessBand(st.ss, b, {stamp: stamp(t.unix, st.n, t.up), up: t.up, c: sw.aenergy.total});
   st.ss = r.ss;
@@ -716,7 +722,7 @@ function ensureMonth(mk, cb) {
 
 function tick() {
   let sys = Shelly.getComponentStatus("sys");
-  let sw = Shelly.getComponentStatus("switch:" + SWITCH_ID);
+  let sw = Shelly.getComponentStatus(MC);
   if (!sys || !sw || !sw.aenergy) return;
   cfgPoll();
   let unix = (typeof sys.unixtime === "number") ? sys.unixtime : 0;
@@ -752,10 +758,10 @@ function startTimers() {
   Timer.set(HB_MS, true, heartbeat);
 }
 
-// total < 0: read the counter now. Never keep a status object in a global: Shelly.getComponentStatus("switch:0")
+// total < 0: read the counter now. Never keep a status object in a global: Shelly.getComponentStatus(MC)
 // held by a global costs ~1.2 KB of script heap for the whole run (measured).
 function start(total) {
-  if (total < 0) { let sw0 = Shelly.getComponentStatus("switch:" + SWITCH_ID); total = sw0 && sw0.aenergy ? sw0.aenergy.total : 0; sw0 = null; }
+  if (total < 0) { let sw0 = Shelly.getComponentStatus(MC); total = sw0 && sw0.aenergy ? sw0.aenergy.total : 0; sw0 = null; }
   Shelly.call("KVS.Get", {key: "cc:adj"}, function (r, err) {
     if (monthLoadAction(err, null) === "skip") { Timer.set(5000, false, function () { start(total); }); return; }
     if (!err && r && r.value) { try { adj = JSON.parse(r.value); } catch (e) { adj = []; } }

@@ -8,8 +8,8 @@
       "path": "dist/Meter.js",
       "kind": "code",
       "enable": true,
-      "size": 21144,
-      "crc32": 188487202
+      "size": 21105,
+      "crc32": 2309291574
     },
     {
       "name": "Led",
@@ -80,8 +80,8 @@
           "path": "dist/Meter.js",
           "kind": "code",
           "enable": true,
-          "size": 21144,
-          "crc32": 188487202
+          "size": 21105,
+          "crc32": 2309291574
         },
         {
           "name": "Led",
@@ -151,8 +151,8 @@
           "path": "dist/plugpmg3/Meter.js",
           "kind": "code",
           "enable": true,
-          "size": 21144,
-          "crc32": 188487202
+          "size": 20801,
+          "crc32": 361664237
         },
         {
           "name": "Led",

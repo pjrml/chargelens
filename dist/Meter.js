@@ -361,7 +361,7 @@ if (aa > 0) aO(A, I, al, aa);
 A.t = aj;
 return ae;
 }
-let a8 = 0;
+let a8 = "switch:0";
 let dj = 60000;
 let dm = 5000;
 let dn = 4000;
@@ -478,7 +478,7 @@ aI("cc:hb" + String(A.hi), String(aG(D.unix, A.n, D.up)));
 A.hi = b9(A.hi, 3);
 }
 Shelly.addStatusHandler(function (P) {
-if (!A || !P || P.component !== "switch:" + a8 || !P.delta || typeof P.delta.output !== "boolean") return;
+if (!A || !P || P.component !== a8 || !P.delta || typeof P.delta.output !== "boolean") return;
 let D = av();
 if (!P.delta.output && A.ss) A.ss.f = a3(A.ss.f, "o");
 bc(a6("R", aG(D.unix, A.n, D.up), (P.delta.output ? "1/" : "0/") + (P.delta.source || "?")));
@@ -537,7 +537,7 @@ Shelly.call("KVS.Set", {key: "cc:m:" + W, value: bi(X)}, function () { cl(); });
 }
 function dz(ar) {
 let D = av();
-let aW = Shelly.getComponentStatus("switch:" + a8);
+let aW = Shelly.getComponentStatus(a8);
 let dA = A.ss;
 let C = cY(A.ss, ar, {stamp: aG(D.unix, A.n, D.up), up: D.up, c: aW.aenergy.total});
 A.ss = C.ss;
@@ -588,7 +588,7 @@ aU(true);
 }
 function cq() {
 let ag = Shelly.getComponentStatus("sys");
-let aW = Shelly.getComponentStatus("switch:" + a8);
+let aW = Shelly.getComponentStatus(a8);
 if (!ag || !aW || !aW.aenergy) return;
 dB();
 let aj = (typeof ag.unixtime === "number") ? ag.unixtime : 0;
@@ -621,7 +621,7 @@ Timer.set(dj, true, cq);
 Timer.set(dp, true, du);
 }
 function bf(R) {
-if (R < 0) { let bg = Shelly.getComponentStatus("switch:" + a8); R = bg && bg.aenergy ? bg.aenergy.total : 0; bg = null; }
+if (R < 0) { let bg = Shelly.getComponentStatus(a8); R = bg && bg.aenergy ? bg.aenergy.total : 0; bg = null; }
 Shelly.call("KVS.Get", {key: "cc:adj"}, function (C, H) {
 if (bp(H, null) === "skip") { Timer.set(5000, false, function () { bf(R); }); return; }
 if (!H && C && C.value) { try { ai = JSON.parse(C.value); } catch (P) { ai = []; } }
