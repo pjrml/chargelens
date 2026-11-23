@@ -64,8 +64,8 @@
       "path": "dist/install.html",
       "kind": "data",
       "enable": false,
-      "size": 28475,
-      "crc32": 3278641643
+      "size": 29155,
+      "crc32": 2303108003
     }
   ],
   "builds": {
@@ -136,8 +136,8 @@
           "path": "dist/install.html",
           "kind": "data",
           "enable": false,
-          "size": 28475,
-          "crc32": 3278641643
+          "size": 29155,
+          "crc32": 2303108003
         }
       ]
     },
@@ -207,8 +207,8 @@
           "path": "dist/install.html",
           "kind": "data",
           "enable": false,
-          "size": 28475,
-          "crc32": 3278641643
+          "size": 29155,
+          "crc32": 2303108003
         }
       ]
     }

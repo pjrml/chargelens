@@ -277,3 +277,32 @@ t("loader_action", function () {
   eq("download missing", loaderAction("7", e, "old", undefined), "skip");
   eq("stored unreadable still written", loaderAction("7", e, null, "new"), "write");
 });
+
+// ---- rc.9: per-model builds ----
+function FP(name, kind, en) { return {name: name, path: "dist/plugpmg3/" + name, kind: kind, enable: en, size: 1, crc32: 1}; }
+let SH = [F("Installer", "code", false), F("InstallHtml", "data", false)];
+let PMF = [FP("Meter", "code", true), FP("Led", "code", false), FP("Page", "code", false), FP("PageHtml", "data", false),
+  FP("SetupHtml", "data", false), FP("MailTpl", "data", false)].concat(SH);
+let REL2 = {version: "1.0.0", tag: "v1.0.0", repo: "x/y", files: REL.files, builds: {
+  plugs: {models: ["SNPL-00112EU", "EF3PL-00112EU"], files: REL.files}, plugpmg3: {models: ["S3PL-30116EU"], files: PMF}}};
+t("relFor", function () {
+  let pm = relFor(REL2, "plugpmg3");
+  eq("pm files", pm.files, PMF);
+  eq("keeps version", [pm.version, pm.tag, pm.repo], ["1.0.0", "v1.0.0", "x/y"]);
+  eq("plugs files", relFor(REL2, "plugs").files, REL.files);
+  eq("old release plugs", relFor(REL, "plugs"), REL);
+  eq("old release pm", relFor(REL, "plugpmg3"), null);
+  eq("unknown build", relFor(REL2, "nope"), null);
+  eq("proto key", relFor(REL2, "constructor"), null);
+});
+t("meterUrl", function () {
+  eq("relay", meterUrl(MODELS["SNPL-00112EU"]), "/rpc/Switch.GetStatus?id=0");
+  eq("pm", meterUrl(MODELS["S3PL-30116EU"]), "/rpc/PM1.GetStatus?id=0");
+});
+t("plan_pm_build", function () {
+  let r = relFor(REL2, "plugpmg3"), p = planInstall([], {}, r);
+  eq("mode", p.mode, "fresh");
+  eq("writes the six pm files", p.write, ["Meter", "Led", "Page", "PageHtml", "SetupHtml", "MailTpl"]);
+  eq("loader", loaderEntry(r).name, "Installer");
+  eq("pm path", r.files[0].path, "dist/plugpmg3/Meter");
+});

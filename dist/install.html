@@ -162,6 +162,8 @@ return P}
 function planLine(mode,inst,ver,files){if(mode!=='update')return{ok:true,btn:'Install',t:'First installation of ChargeLens '+ver+': '+files+'.'};
 if(inst===ver)return{ok:true,btn:'Reinstall',t:'ChargeLens '+ver+' is installed and up to date. Reinstall writes the same version again (repair): '+files+'.'};
 return{ok:null,btn:'Update',t:'Update of ChargeLens '+(inst||'?')+' to '+ver+': '+files+'.'}}
+const relFor=(rel,b)=>rel&&rel.builds&&Object.prototype.hasOwnProperty.call(rel.builds,b)?Object.assign({},rel,{files:rel.builds[b].files}):rel&&!rel.builds&&b==='plugs'?rel:null;
+const meterUrl=m=>m&&m.relay?'/rpc/Switch.GetStatus?id=0':'/rpc/PM1.GetStatus?id=0';
 const loaderEntry=r=>(r&&r.files||[]).find(f=>f.name==='Installer'&&f.kind==='code')||null;
 const loaderAction=(self,e,stored,text)=>!self||!e||typeof text!=='string'?'skip':stored===text?'same':'write';
 const $=i=>document.getElementById(i),esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
@@ -183,12 +185,12 @@ $('app').innerHTML='<div class="c">Left without changes.'+(p?' <a href="/script/
 let HM='',DI={},MODEL=null,CUT=null,REL=null,PLAN=null,LAT=null,CUR={},BASE=CL.base,TZ='',BUSY=false;
 function loadTag(tag){if(!tagOk(tag)||!SELF)throw new Error('bad tag');location.href='/script/'+SELF+'/install?tag='+tag}
 async function idle(){const ss=await rpc('KVS.Get',{key:'cc:ss'}).then(r=>ssState(0,r.value),e=>ssState(e.code||-1,''));
-const sw=await g('/rpc/Switch.GetStatus?id=0'),raw=await g('/rpc/KVS.Get?key=cc:cfg').then(r=>r.value).catch(()=>null);
+const sw=await g(meterUrl(MODEL)),raw=await g('/rpc/KVS.Get?key=cc:cfg').then(r=>r.value).catch(()=>null);
 return idleOk(null,ss,sw.current,cfgParse(raw))}
 async function gather(){const L=await list(),H={};
 for(const f of REL.files)if(OWN.indexOf(f.name)<0&&f.name!=='MailTpl'){const id=idOf(L,f.name);if(id!==null)H[f.name]=(await g('/rpc/Script.GetCode?id='+id+'&offset=0&len=80').then(r=>hdrLine(r.data),()=>undefined))}
 return{L:L,H:H}}
-async function curState(){const x=await Promise.all(['Cloud','MQTT','BLE','Sys'].map(n=>g('/rpc/'+n+'.GetConfig').catch(()=>null))),ui=await g('/rpc/PLUGS_UI.GetConfig').catch(()=>null);
+async function curState(){const x=await Promise.all(['Cloud','MQTT','BLE','Sys'].map(n=>g('/rpc/'+n+'.GetConfig').catch(()=>null))),ui=MODEL.relay?await g('/rpc/PLUGS_UI.GetConfig').catch(()=>null):null;
 const sw=ui&&ui.controls&&ui.controls['switch:0'];
 return{cloud:x[0]?!!x[0].enable:null,mqtt:x[1]?!!x[1].enable:null,ble:bleState(x[2]),in_mode:sw?sw.in_mode:null,dbg:dbgOn(x[3])}}
 const ck=(k,l,on,x)=>'<div class="f"><label><input type="checkbox" id="'+k+'"'+(on?' checked':'')+'>'+l+'</label>'+(x?'<div class="mu">'+x+'</div>':'')+'</div>';
@@ -196,16 +198,17 @@ async function init(){
 if(!CL.base){$('dev').innerHTML='<span class="er">Open this page through the ChargeLens Installer script on the plug (see the documentation).</span>';return}
 let h='';
 try{
-DI=await g('/rpc/Shelly.GetDeviceInfo');MODEL=modelOf(DI);CUT=await g('/rpc/Switch.GetConfig?id=0').catch(()=>null);
+DI=await g('/rpc/Shelly.GetDeviceInfo');MODEL=modelOf(DI);CUT=MODEL&&MODEL.relay?await g('/rpc/Switch.GetConfig?id=0').catch(()=>null):null;
 $('dev').textContent=(DI.model||'?')+', firmware '+(DI.fw_id||DI.ver||'?');
-h+=MODEL?row(true,'Tested model: '+esc(DI.model)):row(false,'This plug ('+esc(DI.model||'unknown')+') is not one of the models ChargeLens v1 was tested on (Shelly Plus Plug S and Plug S Gen3 only).');
+h+=MODEL?row(true,'Tested model: '+esc(DI.model)):row(false,'This plug ('+esc(DI.model||'unknown')+') is not one of the models ChargeLens v1 was tested on (Shelly Plus Plug S, Plug S Gen3 and Plug PM Gen3 only).');
 if(!MODEL){halt(h);return}
 $('app').innerHTML='<div class="c">'+h+row(null,'Checking the firmware (a few seconds)&hellip;')+'</div>';
 const cu=await g('/rpc/Shelly.CheckForUpdate').catch(()=>null);
 if(!fwUpToDate(cu)){h+=row(false,'The firmware is not up to date'+(cu&&cu.stable?' (version '+esc(cu.stable.version)+' is offered)':' (the update check failed; is the plug online?)')+'.')+
 '<div class="mu">Update it first (Shelly app or the plug web UI, Settings, Firmware). Updates come in steps: update, wait for the restart (a few minutes), check again, and repeat until no update is offered. Then open this page again.</div>';halt(h);return}
 h+=row(true,'Firmware is up to date.');
-REL=JSON.parse(await ftxt(BASE+'dist/release.json'));
+REL=relFor(JSON.parse(await ftxt(BASE+'dist/release.json')),MODEL.build);
+if(!REL){halt(h+row(false,'This release has no build for this plug ('+esc(DI.model)+'). Use a newer version.'));return}
 if(isDefaultBase(BASE,CL.repo,CL.tag)){try{LAT=JSON.parse(await ftxt('https://raw.githubusercontent.com/'+CL.repo+'/main/dist/latest.json'))}catch(e){LAT=null}}
 else h+=row(null,'<b>Test source:</b> ChargeLens will be installed from '+esc(BASE)+', not from the official ChargeLens release. That is expected only if you are testing ChargeLens yourself; otherwise close this page.');
 const o=await gather();PLAN=planInstall(o.L,o.H,REL);HM=o.H.Meter;
@@ -219,7 +222,7 @@ CUR=await curState();TZ=(()=>{try{return Intl.DateTimeFormat().resolvedOptions()
 const PL=planLine(PLAN.mode,hdrVer(HM)===null?null:esc(hdrVer(HM)),esc(REL.version),PLAN.write.map(esc).join(', '));h+=row(PL.ok,PL.t);
 if(upd)h+='<div class="mu">Your settings, mail template and energy log are kept.</div>';
 let f='<div class="c">'+h+'</div>';
-f+='<div class="c"><div class="lab">Charger</div>'+'<div class="mu">'+(cutText(CUT)?'The plug cuts the power above '+cutText(CUT)+' (its relay protection, set in the Shelly web UI).':"The plug's relay protection could not be read: check it in the Shelly web UI (Output protections).")+'</div>'+ck('c_ok','My charger is limited below these values.',false)+'</div>';
+f+=!MODEL.relay?'<div class="c"><div class="lab">No cut-off</div><div class="mu" style="color:var(--warn)">&#9888; '+NOCUT+'</div>'+ck('c_ok','I understand: this plug cannot switch the power off.',false)+'</div>':'<div class="c"><div class="lab">Charger</div>'+'<div class="mu">'+(cutText(CUT)?'The plug cuts the power above '+cutText(CUT)+' (its relay protection, set in the Shelly web UI).':"The plug's relay protection could not be read: check it in the Shelly web UI (Output protections).")+'</div>'+ck('c_ok','My charger is limited below these values.',false)+'</div>';
 if(PLAN.stop.length||PLAN.disable.length){const ns=PLAN.stop.filter(n=>['Led','Page','Meter'].indexOf(n)<0);
 if(ns.length||PLAN.disable.length)f+='<div class="c"><div class="lab">Other scripts</div><div class="mu">The plug runs at most 3 scripts and ChargeLens needs all 3. Nothing is deleted.</div>'+
 (ns.length?'<div class="r">To stop: '+ns.map(esc).join(', ')+'</div>':'')+(PLAN.disable.length?'<div class="r">Not to start at power-up: '+PLAN.disable.map(esc).join(', ')+'</div>':'')+ck('c_stop','Yes, stop and disable them (I can start them again later).',false)+'</div>'}
@@ -235,7 +238,7 @@ f+='<div class="c"><div class="lab">Setup</div>'+ck('o_tz','Set the time zone fr
 (n.dbg===true?ck('h_dbg','<span class="wn">&#9888;</span> Turn the websocket debug logs off',true,'The installer turned them on to show its address in the plug&#39;s script console. ChargeLens does not need them.'):'')+
 (n.in_mode&&n.in_mode!=='detached'?ck('h_button','<span class="wn">&#9888;</span> Make the button do nothing (it toggles the relay)',true):'')+
 ck('h_forget','Forget the home Wi-Fi at the end (recommended)',false,'Only with the access point set up. Nobody on your network can then reach the plug, but the plug has no internet clock and the next update needs it joined to a Wi-Fi again. You will have to connect to the access point to use it.')+'</div>'}
-f+='<div class="c"><button id="go" disabled>'+PL.btn+'</button><div class="er" id="e_go"></div><div id="busy" class="mu" style="display:none;margin-top:8px"><progress style="width:100%"></progress><div>Working&hellip; keep this page open. This takes about a minute; the steps are listed below.</div></div><button id="back">Leave without changes</button><div class="mu" style="margin-top:8px">Nothing here switches the relay.</div></div>';
+f+='<div class="c"><button id="go" disabled>'+PL.btn+'</button><div class="er" id="e_go"></div><div id="busy" class="mu" style="display:none;margin-top:8px"><progress style="width:100%"></progress><div>Working&hellip; keep this page open. This takes about a minute; the steps are listed below.</div></div><button id="back">Leave without changes</button>'+(MODEL.relay?'<div class="mu" style="margin-top:8px">Nothing here switches the relay.</div>':'')+'</div>';
 $('app').innerHTML=f;sync()}
 function sync(){const need=['c_ok','c_stop'].every(k=>!$(k)||$(k).checked);if($('go'))$('go').disabled=BUSY||!need;
 if($('h_forget')){const ok=($('ap_pass').value||'').length>=8;$('h_forget').disabled=!ok;if(!ok)$('h_forget').checked=false}}
