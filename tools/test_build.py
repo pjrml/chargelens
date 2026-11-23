@@ -42,5 +42,24 @@ try:
             text = open(os.path.join(dp, fn), "rb").read().decode("ascii")
             for bad in ("@if ", "@else", "@end"):
                 assert bad not in text, "%s contains %r" % (fn, bad)
+    # pick_files: the build follows the device model
+    bl = shelly.load_builds()
+    assert shelly.pick_files(rel, bl, "S3PL-30116EU", None)[0] == "plugpmg3"
+    assert shelly.pick_files(rel, bl, "EF3PL-00112EU", None)[0] == "plugs"
+    assert shelly.pick_files(rel, bl, "SNPL-00112EU", None) == ("plugs", rel["builds"]["plugs"]["files"])
+    assert shelly.pick_files(rel, bl, "S3PL-30116EU", "plugs")[0] == "plugs"
+    assert shelly.pick_files(rel, bl, "S3PL-30116EU", None)[1] == rel["builds"]["plugpmg3"]["files"]
+
+    def exits(*args):
+        try:
+            shelly.pick_files(*args)
+        except SystemExit:
+            return True
+        return False
+    assert exits(rel, bl, "SNSW-001X16EU", None)
+    assert exits(rel, bl, "S3PL-30116EU", "nope")
+    old = {k: v for k, v in rel.items() if k != "builds"}
+    assert shelly.pick_files(old, bl, "SNPL-00112EU", None) == ("plugs", old["files"])
+    assert exits(old, bl, "S3PL-30116EU", None)
 finally:
     shutil.rmtree(tmp, ignore_errors=True)

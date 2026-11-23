@@ -634,12 +634,37 @@ def run_page_tests(htmlfile, testfile, browser=None, build="plugs"):
 PAGE_ONLY = ("InstallHtml",)
 
 
-def install(ip, dist):
-    """Same writes as the installer page, from a PC. Never overwrites an existing MailTpl; enables only Meter."""
+def pick_files(rel, builds, model, override):
+    """(build name, file list) of release REL for a device MODEL (or the OVERRIDE build). A release without a
+    'builds' map (older tag) only has the plugs build in its top-level 'files'."""
+    name = override
+    if name is None:
+        for n, b in builds.items():
+            if model in b["models"]:
+                name = n
+                break
+        if name is None:
+            raise SystemExit("model %r has no ChargeLens build (known: %s); pass --build NAME to force one" % (
+                model, ", ".join(m for b in builds.values() for m in b["models"])))
+    if "builds" in rel:
+        if name not in rel["builds"]:
+            raise SystemExit("release.json has no build %r (has: %s)" % (name, ", ".join(sorted(rel["builds"]))))
+        return name, rel["builds"][name]["files"]
+    if name == "plugs":
+        return name, rel["files"]
+    raise SystemExit("this release.json has no builds map: it only has the plugs build, not %r" % name)
+
+
+def install(ip, dist, build=None):
+    """Same writes as the installer page, from a PC. Never overwrites an existing MailTpl; enables only Meter.
+    The build comes from the device model (Shelly.GetDeviceInfo) unless BUILD is given."""
     import zlib
     rel = json.load(open(os.path.join(dist, "release.json"), encoding="ascii"))
+    model = None if build else rpc(ip, "Shelly.GetDeviceInfo").get("model")
+    bname, rfiles = pick_files(rel, load_builds(), model, build)
+    print("build: %s" % bname)
     files = []
-    for f in rel["files"]:
+    for f in rfiles:
         if f["name"] in PAGE_ONLY:
             continue
         data = open(os.path.join(os.path.dirname(os.path.abspath(dist)), f["path"]), "rb").read()
@@ -694,12 +719,12 @@ def main():
     ap.add_argument("--temp", action="store_true", help="put: do not enable (start at boot)")
     ap.add_argument("--store", action="store_true", help="put: store as data, never enable/start")
     ap.add_argument("--mangle", action="store_true", help="put/test: shorten declared identifiers before upload")
-    ap.add_argument("--build", default="plugs", help="test/testpage/put: build of tools/builds.json whose features resolve the //@if markers (default plugs)")
+    ap.add_argument("--build", default=None, help="test/testpage/put: build of tools/builds.json whose features resolve the //@if markers (default plugs); install: force a build instead of choosing it by device model")
     a = ap.parse_args()
     if a.cmd == "testpage":  # testpage HTMLFILE TESTFILE (local, headless Edge)
         if not a.method or not a.params:
             sys.exit("testpage needs HTMLFILE TESTFILE")
-        sys.exit(0 if run_page_tests(a.method, a.params, a.browser, a.build) else 1)
+        sys.exit(0 if run_page_tests(a.method, a.params, a.browser, a.build or "plugs") else 1)
     if a.cmd == "serve":
         serve(a.port)
         return
@@ -711,12 +736,12 @@ def main():
     elif a.cmd == "backup":
         backup(ip, a.out)
     elif a.cmd == "install":
-        install(ip, a.dist)
+        install(ip, a.dist, a.build)
     elif a.cmd == "put":  # put NAME FILE
         if not a.method or not a.params:
             sys.exit("put needs NAME FILE")
         code = strip_test_only(apply_features(expand_libs(a.params, expand_includes(a.params, open(a.params, encoding="utf-8").read())),
-                                              build_features(a.build), a.params))
+                                              build_features(a.build or "plugs"), a.params))
         hdr = header(a.method, src_version(), a.params.endswith(".html")) if a.method in CL_NAMES else ""  # so a dev plug is not seen as legacy
         if a.store:  # data stored as a script (e.g. PageHtml): never enabled or started, not minified
             print("stored %s id=%d" % (a.method, put(ip, a.method, code, start=False, enable=False, mini=False, hdr=hdr)))
@@ -725,7 +750,7 @@ def main():
     elif a.cmd == "delscript":
         delscript(ip, a.method)
     elif a.cmd == "test":  # test LIBFILE TESTFILE
-        sys.exit(0 if run_tests(ip, a.method, a.params, a.mangle, a.build) else 1)
+        sys.exit(0 if run_tests(ip, a.method, a.params, a.mangle, a.build or "plugs") else 1)
     else:
         if not a.method:
             sys.exit("rpc needs METHOD")
