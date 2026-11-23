@@ -395,6 +395,60 @@ def delscript(ip, name_or_id):
     print("deleted script %s" % sid)
 
 
+FEATURES_KNOWN = ("relay",)
+FEATURE_MARK = re.compile(r"^[ 	]*(?://|<!--)[ 	]*@(if|else|end)(?:[ 	]+(!?)(\w+))?[ 	]*(?:-->)?[ 	]*$")
+
+
+def apply_features(code, features, where=""):
+    """Resolve whole-line markers (//@if FLAG, //@if !FLAG, //@else, //@end, or the <!--@if FLAG--> form) for the
+    given feature list. Marker lines and dropped lines disappear. No nesting, one @else per block; any mistake
+    raises ValueError naming WHERE and the 1-based line number."""
+    out = []
+    state = None  # None = outside a block, else [keep_if_branch, in_else, opened_line]
+    for n, line in enumerate(code.split(chr(10)), 1):
+        m = FEATURE_MARK.match(line)
+        if not m:
+            if state is None or (state[0] != state[1]):
+                out.append(line)
+            continue
+        kind, neg, flag = m.group(1), m.group(2), m.group(3)
+        here = "%s line %d" % (where, n)
+        if kind == "if":
+            if flag is None or flag not in FEATURES_KNOWN:
+                raise ValueError("%s: unknown feature flag %r" % (here, flag))
+            if state is not None:
+                raise ValueError("%s: nested @if (opened at line %d)" % (here, state[2]))
+            has = flag in features
+            state = [has != bool(neg), False, n]
+        else:
+            if flag is not None:
+                raise ValueError("%s: @%s takes no flag" % (here, kind))
+            if state is None:
+                raise ValueError("%s: @%s without @if" % (here, kind))
+            if kind == "else":
+                if state[1]:
+                    raise ValueError("%s: second @else" % here)
+                state[1] = True
+            else:
+                state = None
+    if state is not None:
+        raise ValueError("%s line %d: @if never closed with @end" % (where, state[2]))
+    return chr(10).join(out)
+
+
+def load_builds():
+    """tools/builds.json: the list of builds (dir, features, models)."""
+    with open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "builds.json"), encoding="utf-8") as f:
+        return json.load(f)
+
+
+def build_features(name):
+    b = load_builds()
+    if name not in b:
+        raise SystemExit("unknown build %r (known: %s)" % (name, ", ".join(sorted(b))))
+    return list(b[name]["features"])
+
+
 def strip_test_only(code):
     """Drop '// ==== TEST ONLY ====' .. '// ==== END TEST ONLY ====' regions (code only tests use) from deployed scripts."""
     return re.sub(r"// ==== TEST ONLY ====.*?// ==== END TEST ONLY ====" + chr(92) + "n?", "", code, flags=re.S)

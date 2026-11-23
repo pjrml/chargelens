@@ -1,0 +1,4 @@
+{
+  "plugs":    {"dir": "dist",          "features": ["relay"], "models": ["SNPL-00112EU", "EF3PL-00112EU"]},
+  "plugpmg3": {"dir": "dist/plugpmg3", "features": [],        "models": ["S3PL-30116EU"]}
+}
