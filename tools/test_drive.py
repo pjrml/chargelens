@@ -7,6 +7,7 @@ from drive import parse_step, update_steps  # noqa: E402
 
 CASES = [
     ("dump", ("dump", "", None)),
+    ("confirm", ("confirm", "", None)),
     ("open:/script/4/ui?p=setup", ("open", "/script/4/ui?p=setup", None)),
     ("click:up", ("click", "up", None)),
     ("click?:newer", ("click?", "newer", None)),

@@ -133,7 +133,8 @@ Without Node installed, VS Code's bundled one works:
 The `Installer` loader (in `src/installer.js`) fetches `dist/install.html` from `main` while `main/dist/release.json`
 has its own tag, otherwise from its tag, and falls back to `main` when that tag has no `install.html` (a safety
 net: every published version has its tag). An explicit `?tag=` or `?base=` never falls back; a failed load names
-the URL.
+the URL. After an install or update, the install page rewrites the `Installer` script with the installed
+release's `dist/installer.js` (only when it differs), so the loader's tag follows the installed version.
 
 Manual checks with a phone and a plug (install, setup page, daily page, update): [manual-tests.md](manual-tests.md).
 

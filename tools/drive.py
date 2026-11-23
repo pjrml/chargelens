@@ -14,6 +14,7 @@ Steps run in order and stop at the first failed wait:
                        a text that ends in ':<digits>' needs the explicit timeout)
   waiturl:<frag>[:sec] wait until the address contains <frag>
   dump                 print the address and the page text
+  confirm              answer OK to every confirm() of the pages opened after it (e.g. the loader's ?base= prompt)
   sleep:<sec>
 Exit code 0 when every step passed.
 """
@@ -31,7 +32,7 @@ import urllib.request
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-COMMANDS = ("open", "click", "click?", "check", "wait", "waiturl", "dump", "sleep")
+COMMANDS = ("open", "click", "click?", "check", "wait", "waiturl", "dump", "sleep", "confirm")
 NEEDS_ARG = ("open", "click", "click?", "check", "wait", "waiturl", "sleep")
 
 
@@ -192,6 +193,8 @@ def run(ip, steps, browser=None, port=9333):
             elif cmd == "dump":
                 print("   URL:", ev(ws, "location.href"))
                 print("   " + (ev(ws, "document.body?document.body.innerText:''") or "").replace("\n", "\n   "))
+            elif cmd == "confirm":
+                ws.call("Page.addScriptToEvaluateOnNewDocument", {"source": "window.confirm=function(){return true}"})
             elif cmd == "sleep":
                 time.sleep(float(arg))
         return ok

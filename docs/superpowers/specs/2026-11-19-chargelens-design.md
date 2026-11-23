@@ -293,6 +293,12 @@ The manifest format is not documented by Shelly; **spike S3** derives it from Sh
 7. Updates: stops Led and Page, then Meter, writes, starts Meter. Meter's KVS state is untouched; schema
    migrations (`cc:state.sv`) run in Meter at start, idempotent, tested.
 
+8. Then (rc.7) it rewrites its own `Installer` script (by id, already stopped; the page runs in the browser) with
+   the release's `dist/installer.js` when the stored code differs, so the loader always has the installed tag
+   and the next *Check for updates* loads the matching install page. Before rc.7 the loader of the first install
+   stayed, and its old install page offered the installed version as "newer" next to the downgrade refusal. A
+   failure in this step is only a warning (the old loader still works through *Use version*).
+
 The installer stays stored and disabled after use (for updates; *Check for updates* on the setup page starts it).
 
 ### 7.3 Manual path and developer path

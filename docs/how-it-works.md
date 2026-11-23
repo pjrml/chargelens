@@ -19,7 +19,8 @@ Everything runs as Shelly scripts, found by **name**, never by id.
 
 Seven stored scripts of the ten allowed. `ui` is a small loader that reads `PageHtml` (or `SetupHtml` with
 `?p=setup`) through `Script.GetCode` and writes it into the document. The install page is not stored on the plug:
-the `Installer` loader fetches it from GitHub for the tag it was built for.
+the `Installer` loader fetches it from GitHub for the tag it was built for. Every install or update also
+rewrites the `Installer` with the installed version's loader.
 
 ## Device limits that shape the code
 

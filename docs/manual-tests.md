@@ -100,7 +100,9 @@ maintainer publishes it when the test is due). Start from a plug installed by te
   energy log are unchanged).
 - [ ] **4.3 Same version.** Open the install page again after the update.
 
-  Expected: *ChargeLens X is installed and up to date* with a check mark; the button says **Reinstall**.
+  Expected: *ChargeLens X is installed and up to date* with a check mark; the button says **Reinstall**; no
+  *A newer version is available* row and no *newer than the version of this installer* error (fixed in rc.7: the
+  update rewrites the `Installer`; its log ends with *Installer updated.* or *The installer is up to date.*).
 - [ ] **4.4 Leave without changes.**
   1. Press **Leave without changes**.
 

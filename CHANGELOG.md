@@ -8,7 +8,7 @@
   install), so *Check for updates* after an update shows the installed version as up to date instead of offering it
   again next to a "newer than this installer" error.
 - Developer CLI: `tools/drive.py` runs the update (or any click sequence) through a plug's pages in headless
-  Edge.
+  Edge; its `confirm` step answers OK to the loader's test-source prompt (`?base=`).
 
 ## 1.0.0-rc.6 (2026-11-23)
 
