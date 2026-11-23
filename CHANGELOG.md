@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+- Developer CLI: `tools/drive.py` runs the update (or any click sequence) through a plug's pages in headless
+  Edge.
+
 ## 1.0.0-rc.6 (2026-11-23)
 
 - No functional change: a test release for the update procedure (install page, *Check for updates*).

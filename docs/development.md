@@ -137,6 +137,20 @@ the URL.
 
 Manual checks with a phone and a plug (install, setup page, daily page, update): [manual-tests.md](manual-tests.md).
 
+The update can also be run from a PC, through the plug's real pages in headless Edge (DevTools protocol, stdlib
+only; Edge as for the page tests):
+
+```
+python tools/drive.py --ip <ip> update     # setup page -> Check for updates -> newest version if offered -> Update
+python tools/drive.py --ip <ip> steps "open:/script/<PageId>/ui?p=setup" click:up "waiturl:/install:30" dump
+```
+
+`update` finds the `Page` script id, ticks the charger box and waits for *Open the daily page*; exit code 0 when
+every step passed. `steps` takes any sequence (`open`, `click`, `click?`, `check`, `wait`, `waiturl`, `dump`,
+`sleep`; `python tools/drive.py -h`). It changes the plug like a user would, so only on a dev plug: take a backup
+first (`shelly.py backup`) and compare the KVS afterwards. Unit tests of the step parser:
+`python tools/test_drive.py`.
+
 ### Versions and publishing (design B2)
 
 Versions are semver, and **every build that reaches `main` has its own version number** (owner rule,

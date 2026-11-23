@@ -17,6 +17,8 @@ jobs:
         run: python tools/build.py --check
       - name: mangler unit tests
         run: python tools/test_mangle.py
+      - name: page driver unit tests
+        run: python tools/test_drive.py
       - name: no private or personal data
         run: python tools/check_private.py --generic-only
       - name: pure logic tests (Node)
