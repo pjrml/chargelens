@@ -18,6 +18,9 @@ CASES = [
     ("wait:a:b", ("wait", "a:b", None)),  # a non-number after the last colon is part of the text
     ("waiturl:/install:30", ("waiturl", "/install", 30)),
     ("sleep:2.5", ("sleep", "2.5", None)),
+    ("phone", ("phone", "", None)),
+    ("js:document.title='a:b'", ("js", "document.title='a:b'", None)),
+    ("shot:docs/x.png", ("shot", "docs/x.png", None)),
 ]
 
 

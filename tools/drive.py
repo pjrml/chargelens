@@ -16,6 +16,9 @@ Steps run in order and stop at the first failed wait:
   dump                 print the address and the page text
   confirm              answer OK to every confirm() of the pages opened after it (e.g. the loader's ?base= prompt)
   sleep:<sec>
+  phone                phone viewport for the pages opened after it (390 px wide, 2x), as the doc screenshots
+  js:<expr>            evaluate JavaScript in the page and print the result (e.g. hide a MAC before a shot)
+  shot:<file>          PNG of the whole page content (up to the end of <body>) into <file>
 Exit code 0 when every step passed.
 """
 import argparse
@@ -32,8 +35,8 @@ import urllib.request
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-COMMANDS = ("open", "click", "click?", "check", "wait", "waiturl", "dump", "sleep", "confirm")
-NEEDS_ARG = ("open", "click", "click?", "check", "wait", "waiturl", "sleep")
+COMMANDS = ("open", "click", "click?", "check", "wait", "waiturl", "dump", "sleep", "confirm", "phone", "js", "shot")
+NEEDS_ARG = ("open", "click", "click?", "check", "wait", "waiturl", "sleep", "js", "shot")
 
 
 def parse_step(step):
@@ -197,6 +200,19 @@ def run(ip, steps, browser=None, port=9333):
                 ws.call("Page.addScriptToEvaluateOnNewDocument", {"source": "window.confirm=function(){return true}"})
             elif cmd == "sleep":
                 time.sleep(float(arg))
+            elif cmd == "phone":
+                ws.call("Emulation.setDeviceMetricsOverride", {"width": 390, "height": 844, "deviceScaleFactor": 2,
+                                                               "mobile": True})
+            elif cmd == "js":
+                print("   =", ev(ws, arg))
+            elif cmd == "shot":
+                w, h = ev(ws, "[document.documentElement.clientWidth,Math.ceil(document.body.getBoundingClientRect().bottom+"
+                              "parseFloat(getComputedStyle(document.body).marginBottom))]")
+                r = ws.call("Page.captureScreenshot", {"format": "png", "captureBeyondViewport": True,
+                                                       "clip": {"x": 0, "y": 0, "width": w, "height": h, "scale": 1}})
+                with open(arg, "wb") as f:
+                    f.write(base64.b64decode(r["data"]))
+                print("   saved", arg)
         return ok
     finally:
         p.terminate()

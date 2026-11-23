@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## 1.0.0-rc.8 (2026-11-23)
+
+- Setup: the Relay protection card now only shows the plug's own cut-off values (current, power, voltage), with a
+  warning to limit the charger below them and a link that opens *Output protections* in the Shelly web UI.
+  ChargeLens no longer changes these values (setup and import); the export keeps them for information.
+- Setup: when no maximum normal current is saved, the page proposes 90% of the relay current cut-off
+  (12 A -> 10.8 A); a maximum at or above the cut-off is an error.
+- Installer: the charger confirmation shows the cut-off values read from the plug instead of a fixed 10 A.
+- Developer CLI: `tools/drive.py` steps `phone`, `js:` and `shot:` for the doc screenshots.
+
 ## 1.0.0-rc.7 (2026-11-23)
 
 - Update: the install page now also updates the `Installer` script on the plug (it kept the version of the first
