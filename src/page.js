@@ -7,13 +7,14 @@
 // /rpc/Script.GetCode and writes it into the document.
 // Endpoints (http://<ip>/script/<id>/...):
 //   ui[?p=setup]    loader for the page (PageHtml), or for the setup page (SetupHtml) with p=setup
-//   data[?m=YYYYMM] {w,a,v,on,e,unix,off,up,st,k,m,er}  live switch (er = switch:0 errors) (e = firmware counter Wh) + sys, cc:state, month
+//   data[?m=YYYYMM] {w,a,v,on,e,unix,off,up,st,k,m,er}  live meter (e = firmware counter Wh) + sys, cc:state, month;
+//                   on (relay output) and er (switch:0 errors) only on the relay plugs; the Plug PM Gen3 build reads pm1:0
 //   list            {months:[YYYYMM...], adj:[...], tadj:[...]}
 //   time?set=<unix> {ok,prev}   sets the clock; logs corrections > 300 s of a set clock in cc:tadj
 //   log[?m=YYYYMM]  v2 {k,s:[cc:s:m,-2,-3 present],su,ev:[ev0..2],ei,boot,hb:[hb0..2],n,l} (missing keys null)
 //   time?boot=N&up=UP|T&day=YYYYMMDD {ok}  v2.1: dates one undated item of cc:su (session N,UP or boot N's T line);
 //                   Meter does the writes (event cc_date)
-// The relay toggle on the page calls /rpc/Switch.Set directly.
+// The relay toggle on the page (relay plugs only) calls /rpc/Switch.Set directly.
 
 let CLOCK_MIN = 1700000000;
 let TADJ_MAX = 5;
@@ -65,15 +66,24 @@ HTTPServer.registerEndpoint("ui", function (req, res) {
 });
 
 HTTPServer.registerEndpoint("data", function (req, res) {
+  //@if relay
   let sw = Shelly.getComponentStatus("switch:0");
+  //@else
+  let sw = Shelly.getComponentStatus("pm1:0");
+  //@end
   let sys = Shelly.getComponentStatus("sys");
   kvsGet("cc:state", function (sv) {
     let st = parseOr(sv, null);
     if (!st) st = {c: 0, o: 0, t: 0, pb: 0, po: 0, dk: "", dw: 0};
     let m = q(req, "m");
     if (!validMonth(m)) m = st.dk ? st.dk.slice(0, 6) : "";
+    //@if relay
     let out = {w: sw.apower, a: sw.current, v: sw.voltage, on: sw.output, e: sw.aenergy.total,
       unix: sys.unixtime || 0, off: sys.utc_offset || 0, up: sys.uptime, st: st, k: m, m: "", er: sw.errors || []};
+    //@else
+    let out = {w: sw.apower, a: sw.current, v: sw.voltage, e: sw.aenergy.total,
+      unix: sys.unixtime || 0, off: sys.utc_offset || 0, up: sys.uptime, st: st, k: m, m: ""};
+    //@end
     if (!m) { json(res, out); return; }
     kvsGet("cc:m:" + m, function (mv) { out.m = mv || ""; json(res, out); });
   });

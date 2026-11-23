@@ -167,8 +167,8 @@
           "path": "dist/plugpmg3/Page.js",
           "kind": "code",
           "enable": false,
-          "size": 4478,
-          "crc32": 1188538621
+          "size": 4441,
+          "crc32": 91800293
         },
         {
           "name": "PageHtml",
