@@ -183,8 +183,8 @@
           "path": "dist/plugpmg3/SetupHtml.html",
           "kind": "data",
           "enable": false,
-          "size": 32929,
-          "crc32": 3320791230
+          "size": 31104,
+          "crc32": 4018222831
         },
         {
           "name": "MailTpl",

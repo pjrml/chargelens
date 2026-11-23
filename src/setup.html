@@ -18,7 +18,11 @@ input[type=checkbox]{width:20px;height:20px;margin:0 10px 0 0;padding:0;vertical
 <div class="c"><div class="hd"><h1><img class="lg" alt="">ChargeLens</h1><nav class="nv"><a href="ui">Daily</a><a class="on" aria-current="page">Setup</a></nav></div><div class="mu" id="dev">&hellip;</div></div>
 <div id="app"></div>
 <div class="c"><button id="save" disabled>Save</button><div class="er" id="e_cfg"></div><div id="res" class="mu"></div>
+<!--@if relay-->
 <div class="mu" style="margin-top:8px">Changes are live within about a minute (the meter reads the settings once a minute). Nothing on this page switches the relay.</div></div>
+<!--@else-->
+<div class="mu" style="margin-top:8px">Changes are live within about a minute (the meter reads the settings once a minute).</div></div>
+<!--@end-->
 <div id="more"></div>
 </div><script>
 document.querySelector('img.lg').src=document.querySelector('link[rel=icon]').href;
@@ -156,20 +160,35 @@ const g=u=>fetch(u).then(r=>r.json());
 async function rpc(m,p){const r=await(await fetch('/rpc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:1,method:m,params:p||{}})})).json();if(r.error)throw new Error(r.error.message||('error '+r.error.code));return r.result}
 async function scode(n){const L=await g('/rpc/Script.List'),s=L.scripts.find(x=>x.name===n);if(!s)return null;let h='',o=0,r;
 do{r=await g('/rpc/Script.GetCode?id='+s.id+'&offset='+o);h+=r.data;o+=r.data.length}while(r.left>0&&r.data.length);return h}
+//@if relay
 let MODEL={gen:0,maxA:12,maxW:2500},OLD=null,DI={},IMP=null,CUT=cutOf(null),PROP=false;
+//@else
+let MODEL={gen:0,maxA:12,maxW:2500},OLD=null,DI={},IMP=null,CUT=null,PROP=false;
+//@end
 const fl=(k,l,h,v,x)=>'<div class="f"><label for="f_'+k+'">'+l+'</label><input id="f_'+k+'" value="'+esc(v)+'" '+(x||'inputmode="decimal" autocomplete="off"')+'>'+(h?'<div class="mu">'+h+'</div>':'')+'<div class="er" id="e_'+k+'"></div><div class="wl" id="w_'+k+'"></div></div>';
 const sl=(k,l,o,v)=>'<div class="f"><label for="f_'+k+'">'+l+'</label><select id="f_'+k+'">'+o.map(x=>'<option value="'+x[0]+'"'+(x[0]===v?' selected':'')+'>'+x[1]+'</option>').join('')+'</select><div class="er" id="e_'+k+'"></div></div>';
 const tx=(k,l,v)=>fl(k,l,'',v,'autocomplete="off" autocapitalize="off"');
 function draw(c,n,mt){
 $('app').innerHTML=
 '<div class="c"><div class="lab">Thresholds</div><div class="bar" id="bar"></div><div class="mu" id="leg"></div>'+
+//@if relay
 fl('r','Residual current (A)','At or below this the socket counts as idle.',c.r)+fl('g','Minimum charging current (A)','A charging session starts above this.',c.g)+fl('y','Maximum normal current (A)','Above this the ring turns yellow. Proposed: 90% of the relay current cut-off'+(CUT.current_limit>0?' ('+CUT.current_limit+' A &rarr; '+yProposal(CUT)+' A, from this plug\'s value)':'')+'. Set it from your charger: a little above the current it draws, and below the cut-off.',c.y)+
+//@else
+fl('r','Residual current (A)','At or below this the socket counts as idle.',c.r)+fl('g','Minimum charging current (A)','A charging session starts above this.',c.g)+fl('y','Maximum normal current (A)','Above this the ring turns yellow. Set it from your charger: a little above the current it draws.',c.y)+
+//@end
 '<details><summary>Advanced</summary>'+fl('h','Hysteresis (A)','',c.h)+fl('hr','Residual hysteresis (A)','',c.hr)+fl('hs','Band hold time (s)','',c.hs)+fl('sg','Session gap (s)','A session ends after this long without charging current.',c.sg)+'</details></div>'+
+//@if !relay
+'<div class="c"><div class="lab">No cut-off</div><div class="mu" style="color:var(--warn)">&#9888; '+NOCUT+'</div></div>'+
+//@end
+//@if relay
 '<div class="c"><div class="lab">Relay protection</div>'+[['current_limit','Current','A'],['power_limit','Power','W'],['voltage_limit','Voltage','V']].map(x=>'<div style="margin-top:4px">'+x[1]+' cut-off: <b>'+(CUT[x[0]]===null?'unknown':CUT[x[0]]+' '+x[2])+'</b></div>').join('')+
 '<div class="mu" style="color:var(--warn);margin:16px 0 6px">&#9888; Limit your charger below these values. Above them the plug\'s relay switches the power off by itself, and it stays off until you switch it on again.</div><div class="mu">These are the plug\'s own settings; ChargeLens does not change them.</div>'+
 '<div class="f"><a href="'+cutLink(location.host)+'" target="_blank" rel="noopener">Open the plug settings</a><div class="mu">Opens the Shelly web UI in a new tab: Output protections.</div></div></div>'+
+//@end
 '<div class="c"><div class="lab">Device</div>'+tx('name','Device name (optional, up to 64 characters)',n.name)+'</div>'+
+//@if relay
 '<div class="c"><div class="lab">Button</div>'+sl('in_mode','The button',[['detached','does nothing'],['momentary','toggles the relay']],n.in_mode)+'</div>'+
+//@end
 '<div class="c"><div class="lab">Price</div>'+fl('p','Price per kWh (0 = not set)','',c.p)+tx('cu','Currency label (1 to 4 characters)',c.cu)+sl('ds','Decimal separator',[['.','Dot (1.50)'],[',','Comma (1,50)']],c.ds)+sl('df','Date format',[['YMD','2026-11-20'],['DMY','20/11/2026'],['MDY','11/20/2026']],c.df)+'</div>'+
 '<div class="c"><div class="lab">Time</div>'+tx('tz','Time zone (e.g. Europe/Berlin)',n.tz)+'<button id="tzp" class="sm">Use this phone\'s time zone</button><div class="mu" id="clk" style="margin-top:10px"></div><button id="ts" class="sm">Set clock from this phone</button></div>'+
 '<div class="c"><div class="lab">LED ring</div><div class="f"><label><input type="checkbox" id="f_lo"'+(c.lo?' checked':'')+'>Use the LED ring</label></div>'+fl('lb','Brightness (5 to 100)','',c.lb)+
@@ -181,25 +200,49 @@ bands()}
 const num=k=>{const s=$('f_'+k).value.trim().replace(',','.');return s===''?NaN:Number(s)};
 function readForm(){const f={},v=k=>$('f_'+k).value;
 ['r','g','y','h','hr','hs','sg','p','lb'].forEach(k=>f[k]=num(k));
+//@if relay
 f.cu=v('cu').trim();f.ds=v('ds');f.df=v('df');f.lo=$('f_lo').checked?1:0;f.in_mode=v('in_mode');f.tz=v('tz');f.name=v('name');
+//@else
+f.cu=v('cu').trim();f.ds=v('ds');f.df=v('df');f.lo=$('f_lo').checked?1:0;f.tz=v('tz');f.name=v('name');
+//@end
 f.mail={to:v('to').trim(),cc:v('cc').trim(),bcc:v('bcc').trim(),subject:v('subject'),body:v('body').replace(/\r\n?/g,'\n'),lang:v('lang').trim()};return f}
+//@if relay
 function bands(){const f=readForm(),r=f.r,a=f.g,y=f.y,m=Math.max(CUT.current_limit||MODEL.maxA,y||0,1),s=[[r,'#3b82f6'],[a-r,'#ef4444'],[y-a,'#10b981'],[m-y,'#f59e0b']],ok=s.every(x=>x[0]>=0);
+//@else
+function bands(){const f=readForm(),r=f.r,a=f.g,y=f.y,m=Math.max(MODEL.maxA,y||0,1),s=[[r,'#3b82f6'],[a-r,'#ef4444'],[y-a,'#10b981'],[m-y,'#f59e0b']],ok=s.every(x=>x[0]>=0);
+//@end
 $('bar').innerHTML=ok?s.map(x=>'<div style="flex:'+x[0]+';background:'+x[1]+'"></div>').join(''):'';
 $('leg').textContent=ok?'0 A to '+m+' A':'Check the three thresholds.'}
 function clock(){return g('/rpc/Sys.GetStatus').then(s=>{$('clk').innerHTML=s.unixtime>1.7e9?'Clock: '+new Date((s.unixtime+(s.utc_offset||0))*1000).toISOString().slice(0,16).replace('T',' ')+(s.utc_offset===undefined?' (UTC)':'')+' <span class="ok">&#10003;</span>':'<span style="color:var(--warn)">&#9888; Clock unknown.</span>'}).catch(e=>{})}
 async function load(){
 const raw=await g('/rpc/KVS.Get?key=cc:cfg').then(r=>r.value).catch(e=>null);
+//@if relay
 const [mc,sw,ui,sy,di]=await Promise.all([scode('MailTpl').catch(e=>null),g('/rpc/Switch.GetConfig?id=0').catch(e=>null),g('/rpc/PLUGS_UI.GetConfig'),g('/rpc/Sys.GetConfig'),g('/rpc/Shelly.GetDeviceInfo')]);
+//@else
+const [mc,sy,di]=await Promise.all([scode('MailTpl').catch(e=>null),g('/rpc/Sys.GetConfig'),g('/rpc/Shelly.GetDeviceInfo')]);
+//@end
 MODEL=MODELS[di.model]||MODEL;
 const c=cfgParse(raw);let mt=null;try{mt=JSON.parse(mc)}catch(e){}if(!mt||typeof mt!=='object')mt=MAILD;
+//@if relay
 CUT=cutOf(sw);let o=null;try{o=JSON.parse(raw)}catch(e){}PROP=!(o&&typeof o.y==='number')&&yProposal(CUT)!==cfgDef('y');
+//@else
+PROP=false;
+//@end
+//@if relay
 const n={in_mode:((ui.controls||{})['switch:0']||{}).in_mode||'detached',tz:(sy.location||{}).tz||'',name:String((sy.device||{}).name||'')};
+//@else
+const n={tz:(sy.location||{}).tz||'',name:String((sy.device||{}).name||'')};
+//@end
 const m={to:mt.to,cc:mt.cc,bcc:mt.bcc,subject:mt.subject===undefined?MAILD.subject:mt.subject,body:mt.body===undefined?MAILD.body:mt.body,lang:typeof mt.lang==='string'?mt.lang:''};
 const ex=await Promise.all(['WiFi','Cloud','BLE','MQTT'].map(x=>g('/rpc/'+x+'.GetConfig').catch(e=>null)));
 const ap=(ex[0]||{}).ap;n.ap=ap?{ssid:ap.ssid,enable:!!ap.enable}:null;n.cloud=ex[1]?!!ex[1].enable:null;n.ble=bleState(ex[2]);n.mqtt=ex[3]?!!ex[3].enable:null;n.dbg=dbgOn(sy);
 OLD={cfg:storedCfg(c),mail:mailText(m),native:n,cut:CUT,name:n.name};DI=di;
 $('dev').textContent=(n.name?n.name+' - ':'')+di.model+' (gen '+di.gen+')';
+//@if relay
 draw(PROP?Object.assign({},c,{y:yProposal(CUT)}):c,n,m);if(PROP)$('w_y').textContent='⚠ Proposal, not saved yet: the plug uses '+cfgDef('y')+' A until you save.';more();clock();lims();$('save').disabled=false}
+//@else
+draw(c,n,m);more();clock();lims();$('save').disabled=false}
+//@end
 /* ---- access point, hardening, backup, about ---- */
 const ck=(k,l,on)=>'<div class="f"><label><input type="checkbox" id="'+k+'"'+(on?' checked':'')+'>'+l+'</label></div>';
 function more(){const n=OLD.native,ap=n.ap||{},hs=[['cloud','Cloud',"Cloud off: no Shelly app access from outside the plug's networks."],['ble','Bluetooth',''],['mqtt','MQTT',''],['dbg','websocket debug logs','Only needed to see script output in the console of the Shelly web UI.']];
@@ -209,7 +252,9 @@ tx('ap_ssid','Network name (SSID)',ap.ssid||apSsid(DI.mac))+
 '<div class="f"><label for="ap_pass">Password (at least 8 characters)</label><input id="ap_pass" type="password" autocomplete="new-password"><div class="er" id="e_ap_pass"></div></div>'+
 ck('ap_on','Access point on',ap.enable)+'<button id="apx">Apply access point</button><div id="ap_res"></div></div>'+
 '<div class="c"><div class="lab">Hardening</div>'+hs.map(x=>{const on=x[0]==='ble'?bleOn(n.ble):n[x[0]];return on===null?'<div class="f">'+x[1]+': <span class="mu">unknown</span></div>':'<div class="f"><label>'+(on?'<input type="checkbox" id="hb_'+x[0]+'" checked><span style="color:var(--warn)">&#9888;</span> Turn '+x[1]+' off (on now)':'<span class="ok">&#10003;</span> '+x[1]+': off')+'</label>'+(x[2]&&on?'<div class="mu">'+x[2]+'</div>':'')+'</div>'}).join('')+
+//@if relay
 '<div class="f"><label>'+(n.in_mode==='detached'?'<span class="ok">&#10003;</span> The button does nothing':'<input type="checkbox" id="hb_button" checked><span style="color:var(--warn)">&#9888;</span> Make the button do nothing (it toggles the relay)')+'</label></div>'+
+//@end
 '<div class="mu" style="margin-top:8px">Fix applies the ticked items.</div><button id="hf">Fix</button><div id="hr_res"></div></div>'+
 '<div class="c"><div class="lab">Backup</div><div class="mu">Settings, mail template and device options. No passwords and no energy data.</div>'+
 '<button id="ex">Export configuration</button><button id="im">Import configuration</button><input type="file" id="imf" accept=".json,application/json" style="display:none"><div id="im_res"></div><div id="im_go"></div></div>'+
@@ -243,12 +288,20 @@ if(id==='tzp')$('f_tz').value=Intl.DateTimeFormat().resolvedOptions().timeZone||
 if(id==='ts'){try{await g(B+'time?set='+Math.floor(Date.now()/1000));clock()}catch(x){$('clk').textContent='Could not set the clock'}}
 if(id==='save')save();
 if(id==='apx')apApply();
+//@if relay
 if(id==='hf'){const P=hardenPlan({cloud:OLD.native.cloud,ble:OLD.native.ble,mqtt:OLD.native.mqtt,in_mode:OLD.native.in_mode,dbg:OLD.native.dbg},['cloud','ble','mqtt','button','dbg'].reduce((a,k)=>{const x=$('hb_'+k);a[k]=!!(x&&x.checked);return a},{}));if(!P.length){$('hr_res').innerHTML='<div class="mu">Nothing to fix.</div>';return}await runPlan(P,'hr_res','Done.');try{await load()}catch(x){}}
+//@else
+if(id==='hf'){const P=hardenPlan({cloud:OLD.native.cloud,ble:OLD.native.ble,mqtt:OLD.native.mqtt,dbg:OLD.native.dbg},['cloud','ble','mqtt','dbg'].reduce((a,k)=>{const x=$('hb_'+k);a[k]=!!(x&&x.checked);return a},{}));if(!P.length){$('hr_res').innerHTML='<div class="mu">Nothing to fix.</div>';return}await runPlan(P,'hr_res','Done.');try{await load()}catch(x){}}
+//@end
 if(id==='ex')exportNow();
 if(id==='im')$('imf').click();
 if(id==='ia'&&IMP){$('ia').disabled=true;await runPlan(writePlan(OLD,IMP),'im_res','Imported. Live within about a minute.');IMP=null;$('im_go').innerHTML='';try{await load()}catch(x){}}
 if(id==='up'){$('up_res').textContent='';try{const L=await g('/rpc/Script.List'),s=L.scripts.find(x=>x.name==='Installer');if(!s){$('up_res').textContent='The installer is not on this plug yet. See the documentation for how to update.';return}
+//@if relay
 const ss=await rpc('KVS.Get',{key:'cc:ss'}).then(r=>ssState(0,r.value),e=>ssState(e.code||-1,'')),sw=await g('/rpc/Switch.GetStatus?id=0'),cr=await g('/rpc/KVS.Get?key=cc:cfg').then(r=>r.value).catch(()=>null);
+//@else
+const ss=await rpc('KVS.Get',{key:'cc:ss'}).then(r=>ssState(0,r.value),e=>ssState(e.code||-1,'')),sw=await g('/rpc/PM1.GetStatus?id=0'),cr=await g('/rpc/KVS.Get?key=cc:cfg').then(r=>r.value).catch(()=>null);
+//@end
 if(!idleOk(null,ss,sw.current,cfgParse(cr))){$('up_res').textContent='An open charging session or current above the residual threshold: update after charging.';return}
 for(const n of['Led','Page']){const o=L.scripts.find(x=>x.name===n);if(o)await rpc('Script.Stop',{id:o.id}).catch(x=>{})}
 await rpc('Script.Start',{id:s.id});location.href='/script/'+s.id+'/install'}catch(x){$('up_res').textContent='Could not start the installer: '+x.message;try{const L=await g('/rpc/Script.List');for(const o of L.scripts)if((o.name==='Led'||o.name==='Page')&&!o.running)await rpc('Script.Start',{id:o.id}).catch(y=>{})}catch(y){}}}});
