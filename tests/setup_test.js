@@ -371,7 +371,8 @@ t("pm_validate", function () {
   v = validateForm(f, MP);
   eq("no errors", v.errors, {});
   eq("native", v.native, {tz: "Europe/Berlin", name: "Plug"});
-  eq("y 15 still out of range", typeof validateForm(form({y: 15}), MP).errors.y, "string");
+  eq("y 15 ok (PM ceiling 16 A)", validateForm(form({y: 15}), MP).errors, {});
+  eq("y 17 out of range", typeof validateForm(form({y: 17}), MP).errors.y, "string");
   eq("no cut-off check", validateForm(form({y: 12}), MP, {current_limit: 12}).errors, {});
 });
 t("pm_write_plan", function () {

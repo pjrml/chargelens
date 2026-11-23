@@ -190,7 +190,7 @@ def build(out_root):
                 "size": len(data), "crc32": zlib.crc32(data) & 0xFFFFFFFF}
     if have_installer:
         for name, src, dst, kind, enable in INSTALLER:  # model-agnostic, written once into dist/
-            data = make_blob(name, src, kind, ver, tag, [])
+            data = make_blob(name, src, kind, ver, tag, ["relay"])  # no markers of its own; cfg_lib's table is irrelevant to it
             assert len(data) <= MAX_FILE, "%s: %d B > %d" % (dst, len(data), MAX_FILE)
             blobs["dist/" + dst] = data
             shared.append(entry(name, "dist/" + dst, kind, enable, data))

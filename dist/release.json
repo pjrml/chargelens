@@ -152,7 +152,7 @@
           "kind": "code",
           "enable": true,
           "size": 20801,
-          "crc32": 361664237
+          "crc32": 2161806037
         },
         {
           "name": "Led",
@@ -176,7 +176,7 @@
           "kind": "data",
           "enable": false,
           "size": 27986,
-          "crc32": 1545547448
+          "crc32": 3309553852
         },
         {
           "name": "SetupHtml",
@@ -184,7 +184,7 @@
           "kind": "data",
           "enable": false,
           "size": 31104,
-          "crc32": 4018222831
+          "crc32": 3000664950
         },
         {
           "name": "MailTpl",

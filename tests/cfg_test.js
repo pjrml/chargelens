@@ -98,3 +98,17 @@ t("cfg_diff", function () {
   eq("diff", cfgDiff(a, b), ["g", "cu"]);
   eq("same", cfgDiff(a, a), []);
 });
+
+// ---- rc.9: threshold ceilings per build (Plug PM Gen3: 16 A plug, g <= 15 A, y <= 16 A) ----
+t("cfg_ceilings", function () {
+  //@if relay
+  eq("y 16 refused", cfgParse('{"r":0.1,"g":10,"y":16}').y, 11);
+  eq("y 12 ok", cfgParse('{"r":0.1,"g":10,"y":12}').y, 12);
+  eq("g 12 range", cfgBad({g: 12, y: 12}), ["g"]);
+  //@else
+  eq("y 16 ok", cfgParse('{"r":0.1,"g":10,"y":16}').y, 16);
+  eq("y 17 refused", cfgParse('{"r":0.1,"g":10,"y":17}').y, 11);
+  eq("g 15 ok", cfgParse('{"r":0.1,"g":15,"y":16}').g, 15);
+  eq("g 16 range", cfgBad({g: 16, y: 16}), ["g"]);
+  //@end
+});
