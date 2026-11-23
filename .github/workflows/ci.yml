@@ -21,16 +21,23 @@ jobs:
         run: python tools/test_drive.py
       - name: no private or personal data
         run: python tools/check_private.py --generic-only
-      - name: pure logic tests (Node)
+      - name: feature marker tests
+        run: python tools/test_features.py
+      - name: build tests (per-model builds, release.json)
+        run: python tools/test_build.py
+      - name: pure logic tests (Node), every build
         run: |
           set -e
-          node tools/puretest.js src/cfg_lib.js tests/cfg_test.js
-          for t in meter meter_review stamp session session2 session3 event meter_cfg; do
-            node tools/puretest.js src/meter.js tests/${t}_test.js
+          for b in plugs plugpmg3; do
+            node tools/puretest.js --build $b tests/features_fixture.js tests/features_test.js
+            node tools/puretest.js --build $b src/cfg_lib.js tests/cfg_test.js
+            for t in meter meter_review stamp session session2 session3 event meter_cfg; do
+              node tools/puretest.js --build $b src/meter.js tests/${t}_test.js
+            done
+            node tools/puretest.js --build $b src/led.js tests/led_test.js
+            for t in page page2 page3 page_mail; do
+              node tools/puretest.js --build $b src/page.html tests/${t}_test.js
+            done
+            node tools/puretest.js --build $b src/setup.html tests/setup_test.js
+            node tools/puretest.js --build $b src/install.html tests/install_test.js
           done
-          node tools/puretest.js src/led.js tests/led_test.js
-          for t in page page2 page3 page_mail; do
-            node tools/puretest.js src/page.html tests/${t}_test.js
-          done
-          node tools/puretest.js src/setup.html tests/setup_test.js
-          node tools/puretest.js src/install.html tests/install_test.js
