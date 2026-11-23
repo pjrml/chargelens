@@ -103,16 +103,17 @@ def min_html(s):
     return "\n".join(out) + "\n"
 
 
-def build_script(rel):
+def build_script(rel, features=()):
     path = os.path.join(ROOT, "src", rel)
-    code = shelly.strip_test_only(shelly.expand_libs(path, read(rel)))  # .js: core cfg_lib only
+    code = shelly.expand_libs(path, read(rel))  # .js: core cfg_lib only
+    code = shelly.strip_test_only(shelly.apply_features(code, features, rel))
     code = shelly.minify(code)
     return shelly.mangle(code) if rel in MANGLE else code
 
 
-def build_page(rel):
+def build_page(rel, features=()):
     path = os.path.join(ROOT, "src", rel)
-    return min_html(shelly.expand_libs(path, read(rel)))  # pages get the full lib
+    return min_html(shelly.apply_features(shelly.expand_libs(path, read(rel)), features, rel))  # pages get the full lib
 
 
 def build_mail(rel):
@@ -127,6 +128,26 @@ def models_literal(text):
     return m.group(1) if m else None
 
 
+def check_models(builds):
+    """MODELS (identical in setup.html and install.html): every model is listed under its build in builds.json,
+    and relay is 1 exactly when that build has the relay feature."""
+    a, b = models_literal(read("setup.html")), models_literal(read("install.html"))
+    assert a and a == b, "MODELS differs between setup.html and install.html"
+    models = json.loads(re.sub(r"([{,])(\w+):", r'\1"\2":', a))
+    for model, m in models.items():
+        assert m["build"] in builds, "MODELS %s: unknown build %s" % (model, m["build"])
+        assert model in builds[m["build"]]["models"], "MODELS %s: not listed in builds.json under %s" % (model, m["build"])
+        assert m["relay"] == (1 if "relay" in builds[m["build"]]["features"] else 0), "MODELS %s: relay flag" % model
+    for name, bd in builds.items():
+        for model in bd["models"]:
+            assert model in models and models[model]["build"] == name, "builds.json %s: %s missing in MODELS" % (name, model)
+
+
+def const_line(text, name):
+    m = re.search(r"const " + name + r"=.*?;\n", text)
+    return m.group(0) if m else None
+
+
 def gate_lines(text):
     """The update-gate code copied into setup.html from install.html (idleOk, ssState): must be identical."""
     a = re.search(r"const idleOk=.*?;\n", text)
@@ -134,60 +155,81 @@ def gate_lines(text):
     return (a.group(0), b.group(0)) if a and b else None
 
 
+def make_blob(name, src, kind, ver, tag, features):
+    if src.endswith(".json"):
+        text = build_mail(src)  # user data: no header
+    elif src.endswith(".html"):
+        text = ascii_html(shelly.header(name, ver, True) + build_page(src, features))
+    else:
+        body = build_script(src, features)
+        if src == "installer.js":
+            body = body.replace("@REPO@", REPO).replace("@TAG@", tag)
+        text = shelly.header(name, ver) + js_escape(body)
+    bad = [i for i, ch in enumerate(text) if ord(ch) > 127]
+    assert not bad, "%s: non-ASCII at %d" % (src, bad[0])
+    return text.encode("ascii")
+
+
 def build(out_root):
+    """Write every build of tools/builds.json under OUT_ROOT. Returns (build entries, per-build code totals)."""
     ver = version()
     tag = "v" + ver
-    dist = os.path.join(out_root, "dist")
-    os.makedirs(dist)
-    files = list(FILES)
+    builds = shelly.load_builds()
     have_installer = os.path.isfile(os.path.join(ROOT, "src", "installer.js"))
     if have_installer:
-        files += INSTALLER
-    entries, blobs = [], {}
-    for name, src, dst, kind, enable in files:
-        if src.endswith(".json"):
-            text = build_mail(src)  # user data: no header
-        elif src.endswith(".html"):
-            text = ascii_html(shelly.header(name, ver, True) + build_page(src))
-        else:
-            body = build_script(src)
-            if src == "installer.js":
-                body = body.replace("@REPO@", REPO).replace("@TAG@", tag)
-            text = shelly.header(name, ver) + js_escape(body)
-        bad = [i for i, ch in enumerate(text) if ord(ch) > 127]
-        assert not bad, "%s: non-ASCII at %d" % (dst, bad[0])
-        data = text.encode("ascii")
-        assert len(data) <= MAX_FILE, "%s: %d B > %d" % (dst, len(data), MAX_FILE)
-        blobs[dst] = data
-        entries.append({"name": name, "path": "dist/" + dst, "kind": kind, "enable": enable,
-                        "size": len(data), "crc32": zlib.crc32(data) & 0xFFFFFFFF})
-    total = sum(len(blobs[d]) for d in ("Meter.js", "Led.js", "Page.js"))
-    assert total <= MAX_CODE_TOTAL, "Meter+Led+Page = %d B > %d" % (total, MAX_CODE_TOTAL)
-    if have_installer:
-        a, b = models_literal(read("setup.html")), models_literal(read("install.html"))
-        assert a and a == b, "MODELS differs between setup.html and install.html"
+        check_models(builds)
         a, b = gate_lines(read("setup.html")), gate_lines(read("install.html"))
         assert a and a == b, "idleOk/ssState differ between setup.html and install.html"
-    for dst, data in blobs.items():
-        with open(os.path.join(dist, dst), "wb") as f:
+        a, b = const_line(read("setup.html"), "NOCUT"), const_line(read("install.html"), "NOCUT")
+        assert a == b, "NOCUT differs between setup.html and install.html"
+    os.makedirs(os.path.join(out_root, "dist"))
+    blobs, shared, per_build, totals = {}, [], {}, {}
+
+    def entry(name, path, kind, enable, data):
+        return {"name": name, "path": path, "kind": kind, "enable": enable,
+                "size": len(data), "crc32": zlib.crc32(data) & 0xFFFFFFFF}
+    if have_installer:
+        for name, src, dst, kind, enable in INSTALLER:  # model-agnostic, written once into dist/
+            data = make_blob(name, src, kind, ver, tag, [])
+            assert len(data) <= MAX_FILE, "%s: %d B > %d" % (dst, len(data), MAX_FILE)
+            blobs["dist/" + dst] = data
+            shared.append(entry(name, "dist/" + dst, kind, enable, data))
+    for bname, bd in builds.items():
+        feats, entries, code = bd["features"], [], 0
+        for name, src, dst, kind, enable in FILES:
+            data = make_blob(name, src, kind, ver, tag, feats)
+            assert len(data) <= MAX_FILE, "%s: %s: %d B > %d" % (bname, dst, len(data), MAX_FILE)
+            path = bd["dir"] + "/" + dst
+            blobs[path] = data
+            entries.append(entry(name, path, kind, enable, data))
+            if dst in ("Meter.js", "Led.js", "Page.js"):
+                code += len(data)
+        assert code <= MAX_CODE_TOTAL, "build %s: Meter+Led+Page = %d B > %d" % (bname, code, MAX_CODE_TOTAL)
+        per_build[bname] = {"models": bd["models"], "files": entries + shared}
+        totals[bname] = code
+    for path, data in blobs.items():
+        full = os.path.join(out_root, *path.split("/"))
+        os.makedirs(os.path.dirname(full), exist_ok=True)
+        with open(full, "wb") as f:
             f.write(data)
 
     def dump(path, obj):
         with open(path, "w", encoding="ascii", newline="\n") as f:
             json.dump(obj, f, indent=2)
             f.write("\n")
-    dump(os.path.join(dist, "release.json"), {"version": ver, "tag": tag, "repo": REPO, "files": entries})
-    dump(os.path.join(dist, "latest.json"), {
+    dump(os.path.join(out_root, "dist", "release.json"), {
+        "version": ver, "tag": tag, "repo": REPO, "files": per_build["plugs"]["files"], "builds": per_build})
+    dump(os.path.join(out_root, "dist", "latest.json"), {
         "version": ver, "tag": tag,
         "changelog": "https://github.com/%s/blob/%s/CHANGELOG.md" % (REPO, tag)})
     if have_installer:
         lib = os.path.join(out_root, "library")
         os.makedirs(lib)
-        shutil.copyfile(os.path.join(dist, "installer.js"), os.path.join(lib, "chargelens-installer.js"))
+        shutil.copyfile(os.path.join(out_root, "dist", "installer.js"), os.path.join(lib, "chargelens-installer.js"))
         dump(os.path.join(lib, "manifest.json"), [{
             "fname": "chargelens-installer.js", "title": "ChargeLens Installer",
             "description": "Installs or updates ChargeLens on this plug."}])
-    return entries, total
+    return per_build, totals
 
 
 def tree(base):
@@ -223,17 +265,19 @@ def main():
         sys.exit(check())
     tmp = tempfile.mkdtemp()
     try:
-        entries, total = build(tmp)
+        per_build, totals = build(tmp)
         for sub in ("dist", "library"):
             shutil.rmtree(os.path.join(ROOT, sub), ignore_errors=True)
             if os.path.isdir(os.path.join(tmp, sub)):
                 shutil.copytree(os.path.join(tmp, sub), os.path.join(ROOT, sub))
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
-    for e in entries:
-        print("%-10s %-22s %6d B  crc32=%08x%s" % (e["name"], e["path"], e["size"], e["crc32"],
-                                                    "  enable" if e["enable"] else ""))
-    print("Meter+Led+Page code: %d B (max %d)" % (total, MAX_CODE_TOTAL))
+    for bname, bd in per_build.items():
+        print("build %s (%s)" % (bname, ", ".join(bd["models"])))
+        for e in bd["files"]:
+            print("  %-10s %-26s %6d B  crc32=%08x%s" % (e["name"], e["path"], e["size"], e["crc32"],
+                                                          "  enable" if e["enable"] else ""))
+        print("  Meter+Led+Page code: %d B (max %d)" % (totals[bname], MAX_CODE_TOTAL))
 
 
 if __name__ == "__main__":

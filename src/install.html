@@ -22,7 +22,7 @@ document.querySelector('img.lg').src=document.querySelector('link[rel=icon]').hr
 
 /* ==== PURE ==== */
 /*@lib cfg_lib.js*/
-const MODELS={"SNPL-00112EU":{gen:2,maxA:12,maxW:2500},"EF3PL-00112EU":{gen:3,maxA:12,maxW:2500}};
+const MODELS={"SNPL-00112EU":{gen:2,maxA:12,maxW:2500,build:"plugs",relay:1},"EF3PL-00112EU":{gen:3,maxA:12,maxW:2500,build:"plugs",relay:1},"S3PL-30116EU":{gen:3,maxA:16,maxW:3680,build:"plugpmg3",relay:0}};
 /* relay protection read from Switch.GetConfig, for the charger confirmation; null when unreadable */
 const cutText=sw=>{if(!sw||typeof sw!=='object')return null;const n=k=>typeof sw[k]==='number'?sw[k]:'?';return n('current_limit')+' A / '+n('power_limit')+' W / '+n('voltage_limit')+' V'};
 const DEF_CFG=cfgJson(cfgParse(null));

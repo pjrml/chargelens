@@ -16,10 +16,10 @@ let HS = {Meter: MHDR, Led: "// ChargeLens Led v1.0.0", Page: "// ChargeLens Pag
   SetupHtml: "<!-- ChargeLens SetupHtml v1.0.0 -->"};
 
 t("model_known_gen2", function () {
-  eq("gen2", modelOf({model: "SNPL-00112EU", gen: 2}), {gen: 2, maxA: 12, maxW: 2500});
+  eq("gen2", modelOf({model: "SNPL-00112EU", gen: 2}), {gen: 2, maxA: 12, maxW: 2500, build: "plugs", relay: 1});
 });
 t("model_known_gen3", function () {
-  eq("gen3", modelOf({model: "EF3PL-00112EU", gen: 3}), {gen: 3, maxA: 12, maxW: 2500});
+  eq("gen3", modelOf({model: "EF3PL-00112EU", gen: 3}), {gen: 3, maxA: 12, maxW: 2500, build: "plugs", relay: 1});
 });
 t("model_unknown", function () {
   eq("other", modelOf({model: "SNSW-001X16EU"}), null);
@@ -27,7 +27,14 @@ t("model_unknown", function () {
   eq("proto key", modelOf({model: "constructor"}), null);
 });
 t("models_literal", function () {
-  eq("gen2", MODELS["SNPL-00112EU"], {gen: 2, maxA: 12, maxW: 2500});
+  eq("gen2", MODELS["SNPL-00112EU"], {gen: 2, maxA: 12, maxW: 2500, build: "plugs", relay: 1});
+});
+t("model_build", function () {
+  eq("pm build", modelOf({model: "S3PL-30116EU"}).build, "plugpmg3");
+  eq("pm relay", modelOf({model: "S3PL-30116EU"}).relay, 0);
+  eq("plus relay", modelOf({model: "SNPL-00112EU"}).relay, 1);
+  eq("plus build", modelOf({model: "SNPL-00112EU"}).build, "plugs");
+  eq("gen3 plug build", modelOf({model: "EF3PL-00112EU"}).build, "plugs");
 });
 t("cut_text", function () {
   eq("full", cutText({current_limit: 12, power_limit: 2500, voltage_limit: 280}), "12 A / 2500 W / 280 V");

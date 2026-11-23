@@ -1,0 +1,271 @@
+<!-- ChargeLens PageHtml v1.0.0-rc.8 -->
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="ChargeLens"><meta name="theme-color" content="#0b1221">
+<title>ChargeLens</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cg transform='translate(40 16) rotate(-90) scale(0.5) translate(-32 -64)'%3E%3Crect x='21' y='3' width='5' height='15' rx='2.5' fill='%239fb3c8'/%3E%3Crect x='38' y='3' width='5' height='15' rx='2.5' fill='%239fb3c8'/%3E%3Crect x='11' y='16' width='42' height='7' rx='2' fill='%23334e68'/%3E%3Crect x='8.5' y='17.5' width='3.5' height='4' rx='1' fill='%239fb3c8'/%3E%3Crect x='52' y='17.5' width='3.5' height='4' rx='1' fill='%239fb3c8'/%3E%3Cpath d='M13 23 H51 L47.5 46 Q46.8 50 42.5 50 H21.5 Q17.2 50 16.5 46 Z' fill='%23334e68'/%3E%3Cpath d='M25 50 H39 L37 56 H27 Z' fill='%23243b53'/%3E%3Crect x='29' y='55' width='6' height='9' fill='%23243b53'/%3E%3C/g%3E%3Cpath d='M39 16 H40 Q44 16 44 24 V33' fill='none' stroke='%23243b53' stroke-width='3'/%3E%3Cline x1='53.5' y1='51.5' x2='60' y2='58' stroke='%230e7c86' stroke-width='6' stroke-linecap='round'/%3E%3Ccircle cx='44' cy='42' r='13' fill='%23e3f4f5' stroke='%230e7c86' stroke-width='4.5'/%3E%3Crect x='39' y='35' width='10' height='16' rx='2' fill='none' stroke='%23334e68' stroke-width='2.2'/%3E%3Crect x='42' y='32.5' width='4' height='2.8' rx='0.8' fill='%23334e68'/%3E%3Crect x='41.2' y='45' width='5.6' height='3.6' rx='0.6' fill='%23f5a524'/%3E%3Crect x='41.2' y='40.4' width='5.6' height='3.6' rx='0.6' fill='%23f5a524'/%3E%3C/svg%3E"><link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAC0BAMAAADP4xsBAAAAMFBMVEULEiEOfIYzTmjj9PUkO1P1pSSfs8goP1UgMkiJn62HnatthZajuMELEyIjOlK2ytG5nUgYAAAEJElEQVR42u2az0sUYRjHZ08OyYRTktmya05hhlpsS4KusAlLeamb5xBhD3ooQcpTuCGxlxU2oYuHkE7lqd1be+jgrS6zEpFBYdBhLwq1f0DNvDPvODs/1mWe54mE93tIM/j49H2f532f51FJEhISEhISEhISwpGsDVOhT+UXTyD6a35RpyErWq0yRnWKmjask6GvaE+K36jQhpbR6Q7a/Ngo6URoUyslMjTiofrR2hgd+hodWgNDvzw2tRyAhprdnWdaJEDfpkMP0aEf0aH3wtElhKzjd4cHvV7UqfJ6LTdTIkPn7p5I9KGhXAPmeQja1oxOgr5n/nFAh87pdOgDOvQMOrpRLBYP181voJPktWKGv0pTMrKB3ie6Q6LVpVxjqrS9+dYinePnTu7rT5HQHb0ycqSiGaJDP6NDd9SHKJDElv8tWiJDX6ZDj5Gh3VMBKtozy2ChAyYwFHTw3AhHh067UHSbcQ6CVkbebLeZ5kAv2F7bfQgI3W6LU/ypqmpvI+qj3h2K/j6o2lqJBlfuBLfpypLqEkZTHEzGZCvTqkcHWOQfqk+rOOi6n6yeQRnLFDVICQx0IRCtIoQtB5PV85hB1148yG8jnqQT9IVmmmkBzW2eHgNprnEkt3l6nDOYWaNNfu9iJ1CCjpvh3jAeihHzk5T1xV4Y2r48Nkzib/PVZJ68RThI+cjoD2xm0GrvdhxLQI7ELEbTDtmS8bdf7Mt98KQ2gp5yNT7XnbAhOWIRdlqCZn6X2T88hFrdb6AqbnQ1nc5AzbZS76yR0kba/bH0UdMuGd/LulqhVjeZ1VVejczs9BzQ7GleLhOa9oqjK9qoUzarsFM0k3pS0zZa0VOwc7QukGog2jK7B5Yg88HoLdB70MXQ6WA0K8gkqMzjIegUKPti/KYOQk+y/xKoYgZC0OOI6OysqfscnQWhC3aZW+ibDD3bitZPGDoNqvQO0P+hIfXj0TjJ50FPgdCx1pJhj0wTp2Ri/GUMqsYMHK22u576cC5Vj9ewS7X1KfCgt0DdgsJ7hSA07AGTBvmF7UdPMHT0VXmBm+1Hp4B9SJ2b7UdvgXKPp8hAANoq82R0tD3JBLwyKXDvPm03Ob7GDD5x1O3xy9tOZuCt+2kLMW80wVdtcsZsgsvwWdo2u9/TuttB90DQfEKvtg4cKDOp7Yi64CKPzuGM0vYOLv78CF12lgswR/j4H9+0wSObWPsWZz0Uf8kSJFvGWxO59kO119uoayJFbacEitsE2y3v1hMzbJkubGnXx+vbxdolFnxrT2UQa5dY8JnQhVSSkrTuAifNOI/CTgLRkvKU21zyHgB8u6oUD5dcPw06CvuWhC0n7IvoaL4DBJ9jaJcCWm4dF/a+RBY2ye/MLiGt38Me5X0StHmXJyQiKbokJCQkJCQkJNSp/gLLX45HaN2itAAAAABJRU5ErkJggg==">
+<style>
+*{box-sizing:border-box}:root{--bg:#0b1221;--card:#131c2e;--line:#1f2a44;--tx:#e5e7eb;--mu:#94a3b8;--ok:#10b981;--warn:#f59e0b;--bad:#ef4444}
+body{margin:0;padding:16px;padding-top:max(16px,env(safe-area-inset-top));font:16px -apple-system,system-ui,sans-serif;background:var(--bg);color:var(--tx)}
+.w{max-width:480px;margin:0 auto}.c{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:12px}
+h1{font-size:18px;margin:0 0 4px}.hd{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:4px}.hd h1{margin:0}.nv{display:flex;flex:none;border:1px solid var(--line);border-radius:10px;overflow:hidden}.nv a{padding:7px 14px;font-size:15px;color:var(--mu);text-decoration:none}.nv a.on{background:#1d2a45;color:var(--tx)}.lg{width:32px;height:32px;vertical-align:-8px;margin-right:8px}.mu{color:var(--mu);font-size:14px}.r{display:flex;justify-content:space-between;align-items:baseline;padding:6px 0}
+.big{font-size:26px;font-weight:700}.lab{color:var(--mu);font-size:13px;letter-spacing:.05em;text-transform:uppercase}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-left:8px}
+button,select{width:100%;padding:13px;margin-top:8px;border-radius:10px;border:1px solid var(--line);background:#1d2a45;color:var(--tx);font-size:16px}
+.sw{width:64px;height:34px;padding:0;margin:0 0 0 12px;border-radius:17px;position:relative;background:#374151;vertical-align:middle}.sw .k{position:absolute;top:3px;left:3px;width:26px;height:26px;border-radius:50%;background:#1f2937;color:#6b7280;font-size:16px;line-height:26px;text-align:center}.sw.on{background:#065f46}.sw.on .k{left:33px;color:#facc15;background:#0b1221}.sw.cut{background:#7f1d1d}.sw.cut .k{color:#ef4444}.sm{font-size:14px;padding:9px}.m{cursor:pointer;border-top:1px solid var(--line)}.d{font-size:14px;color:var(--mu);padding:2px 0 8px 12px}.adj{font-size:13px;color:var(--warn)}
+.t{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}.t td,.t th{padding:4px 2px;text-align:right}.t td:first-child,.t th:first-child{text-align:left}.t th{color:var(--mu);font-weight:400}
+input{width:100%;padding:10px;margin-top:6px;border-radius:10px;border:1px solid var(--line);background:#1d2a45;color:var(--tx);font-size:16px}
+input[type=checkbox]{width:20px;height:20px;margin:0 10px 0 0;padding:0;vertical-align:middle}a{color:var(--warn)}button:disabled{opacity:.4}
+</style></head><body><div class="w">
+<div class="c"><div class="hd"><h1><img class="lg" alt="">ChargeLens</h1><nav class="nv"><a class="on" aria-current="page">Daily</a><a href="ui?p=setup">Setup</a></nav></div><div class="mu" id="clk">&hellip;</div><button id="ts" class="sm">&#128339; Set the clock from this phone</button><div class="mu" id="tsr"></div></div>
+<div class="c">
+<div class="r"><span class="lab">Now</span><span class="big" id="w">&ndash;</span></div>
+<div class="r"><span class="lab">Relay</span><span><span class="mu" id="rs"></span><button id="rel" class="sw" role="switch" aria-checked="false" aria-label="Relay"><span class="k">&#9889;&#xFE0E;</span></button></span></div>
+<div class="r"><span class="lab">Today</span><span class="big" id="td">&ndash;</span></div>
+<div class="r"><span class="lab" id="mn">Month</span><span class="big" id="mt">&ndash;</span></div>
+<div class="adj" id="pend"></div></div>
+<div class="c"><div class="lab">History</div><div id="hist" class="mu">Loading&hellip;</div><div id="adjs"></div></div>
+<div class="c"><select id="sel"></select>
+<div class="lab" style="margin-top:12px">Sessions</div><div id="ses" class="mu">Loading&hellip;</div>
+<button id="mail">&#9993; Send the monthly report by mail</button><button id="csv">&#11015; Download CSV</button></div>
+<div class="c" id="undc" hidden><div class="lab">Undated</div><div class="mu">Charges without a time: pick the charges and the day (between the last known date before and the next one).</div><div id="und"></div><select id="udd"></select><button id="uda" disabled>Assign</button><div class="mu" id="udr"></div></div>
+<div class="c"><div class="lab">Events</div><div id="evs" class="mu">&hellip;</div></div>
+<div class="c"><div class="lab">About</div><div id="abt" class="mu">&hellip;</div></div>
+</div><script>
+document.querySelector('img.lg').src=document.querySelector('link[rel=icon]').href;
+function cfgNum() {
+let t = "r,0.1,0.02,1;g,5,1,11;y,11,1,12;h,0.3,0.05,1;hr,0.05,0.01,0.5;hs,10,2,60;sg,600,60,3600;p,0,0,10;lo,1,0,1;lb,50,5,100".split(";");
+let out = [], i, p;
+for (i = 0; i < t.length; i++) { p = t[i].split(","); out.push([p[0], Number(p[1]), Number(p[2]), Number(p[3])]); }
+return out;
+}
+let cfgX = null;
+function cfgFix(o) {
+let T = cfgNum(), c = {v: 1}, i, a, x;
+if (typeof o !== "object" || o === null) o = {};
+for (i = 0; i < T.length; i++) {
+a = T[i]; x = o[a[0]];
+c[a[0]] = (typeof x === "number" && x >= a[2] && x <= a[3]) ? x : a[1];
+}
+if (!(c.r < c.g && c.g < c.y)) { c.r = T[0][1]; c.g = T[1][1]; c.y = T[2][1]; }
+return cfgX ? cfgX(c, o) : c;
+}
+function cfgParse(text) {
+let o = null;
+try { o = JSON.parse(text); } catch (e) { o = null; }
+return cfgFix(o);
+}
+let CFG_NUM = cfgNum();
+let CFG_ORD = ["r", "g", "y", "h", "hr", "hs", "sg", "p", "cu", "ds", "df", "lo", "lb"];
+let U8B = JSON.parse('"' + String.fromCharCode(92) + 'u00e9"').length === 2;
+function u8len(s) {
+if (U8B) return s.length;
+let n = 0, i, c;
+for (i = 0; i < s.length; i++) {
+c = s.charCodeAt(i);
+if (c < 128) n += 1; else if (c < 2048) n += 2; else if (c >= 55296 && c < 56320) { n += 4; i++; } else n += 3;
+}
+return n;
+}
+function u8chars(s) {
+let n = 0, i, c;
+for (i = 0; i < s.length; i++) {
+c = s.charCodeAt(i);
+if (U8B ? (c & 192) !== 128 : (c < 56320 || c > 57343)) n++;
+}
+return n;
+}
+function cfgDef(k) {
+let i;
+for (i = 0; i < CFG_NUM.length; i++) if (CFG_NUM[i][0] === k) return CFG_NUM[i][1];
+return k === "cu" ? "EUR" : k === "ds" ? "." : "YMD";
+}
+function cfgStrOk(k, v) {
+if (k === "cu") { let n; if (typeof v !== "string") return false; n = u8chars(v); return n >= 1 && n <= 4; }
+if (k === "ds") return v === "." || v === ",";
+return v === "YMD" || v === "DMY" || v === "MDY";
+}
+cfgX = function (c, o) {
+let n = {v: 1}, i, k;
+for (i = 0; i < CFG_ORD.length; i++) {
+k = CFG_ORD[i];
+n[k] = typeof c[k] === "number" ? c[k] : (cfgStrOk(k, o[k]) ? o[k] : cfgDef(k));
+}
+return n;
+};
+function cfgBad(o) {
+let bad = [], c = cfgFix(o), i, k;
+if (typeof o !== "object" || o === null) return bad;
+for (i = 0; i < CFG_ORD.length; i++) {
+k = CFG_ORD[i];
+if (typeof o[k] !== "undefined" && JSON.stringify(o[k]) !== JSON.stringify(c[k])) bad.push(k);
+}
+return bad;
+}
+function cfgDiff(a, b) {
+let d = [], i, k;
+for (i = 0; i < CFG_ORD.length; i++) {
+k = CFG_ORD[i];
+if (JSON.stringify(a[k]) !== JSON.stringify(b[k])) d.push(k);
+}
+return d;
+}
+function cfgJson(cfg) {
+let s = '{"v":1', i, k;
+for (i = 0; i < CFG_ORD.length; i++) {
+k = CFG_ORD[i];
+if (JSON.stringify(cfg[k]) !== JSON.stringify(cfgDef(k))) s += ',"' + k + '":' + JSON.stringify(cfg[k]);
+}
+s += "}";
+return u8len(s) > 253 ? null : s;
+}
+const pad=n=>String(n).padStart(2,'0');
+function fmtNum(x,dec,ds){return x.toFixed(dec).replace('.',ds||'.')}
+function fmtW(w,ds){return Math.round(w*100)/100<1000?fmtNum(w,2,ds)+' W':fmtNum(w/1000,2,ds)+' kW'}
+function fmtWh(wh,ds){return Math.round(wh*100)/100<1000?fmtNum(wh,2,ds)+' Wh':fmtNum(wh/1000,2,ds)+' kWh'}
+function fmtKwh(wh,ds){return fmtNum(wh/1000,2,ds)+' kWh'}
+function fmtDate(k,df){const d=String(k).replace(/\D/g,''),y=d.slice(0,4),m=d.slice(4,6),x=d.slice(6,8);return df==='DMY'?x+'/'+m+'/'+y:df==='MDY'?m+'/'+x+'/'+y:y+'-'+m+'-'+x}
+function fmtShort(k,df){const d=String(k).replace(/\D/g,''),m=d.slice(4,6),x=d.slice(6,8);return df==='DMY'?x+'/'+m:df==='MDY'?m+'/'+x:m+'-'+x}
+function dayKeyOf(u,off){const t=new Date((u+off)*1000);return t.getUTCFullYear()+pad(t.getUTCMonth()+1)+pad(t.getUTCDate())}
+function prevMonth(k){let y=+k.slice(0,4),m=+k.slice(4)-1;if(m<1){m=12;y--}return y+pad(m)}
+function unsavedWh(D){const u=D.e-D.st.c;return u>0&&u<100000?u:0}
+function todayWh(D,m,tk){const u=unsavedWh(D);if(D.st.dk===tk)return D.st.dw+u;if(m&&tk.slice(0,6)===D.k)return (m.days[+tk.slice(6)-1]||0)+u;return u}
+function monthWh(D,m,k,tk){let t=0;m.days.forEach((x,i)=>{t+=(D.st.dk===k+pad(i+1))?D.st.dw:x});return t+(k===tk.slice(0,6)?unsavedWh(D):0)}
+function defaultMonth(ks,tk){const cur=tk.slice(0,6),p=prevMonth(cur);if(+tk.slice(6)<=5&&ks.indexOf(p)>=0)return p;return ks.indexOf(cur)>=0?cur:ks[0]}
+const hasPrice=c=>c.p>0;
+const costOf=(wh,c)=>Math.round(wh/1000*c.p*100)/100;
+const fmtCost=(wh,c)=>hasPrice(c)?fmtNum(costOf(wh,c),2,c.ds):"";
+const esc=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+function daysIn(lo,hi,max){const out=[],e=Date.parse(hi+'T00:00:00Z');let t=lo?Date.parse(lo+'T00:00:00Z'):e-(max-1)*864e5;
+if(e-t>(max-1)*864e5)t=e-(max-1)*864e5;for(;t<=e;t+=864e5)out.push(new Date(t).toISOString().slice(0,10));return out}
+function fmtDur(min){return Math.floor(min/60)+'h'+pad(min%60)}
+function parseSessions(vals,m){const out=[];vals.forEach(v=>{if(!v)return;v.split(';').forEach(l=>{const p=l.split(','),h=p[1];
+const s={day:m.slice(0,4)+'-'+m.slice(4)+'-'+p[0],hhmm:h==='----'||h[0]==='~'?null:h.slice(0,2)+':'+h.slice(2),min:+p[2],wh:+p[3],f:p[4]||''};
+if(h[0]==='~'){const x=h.slice(1).split('.');s.b=+x[0];s.up=+x[1]}out.push(s)})});return out}
+const sortS=l=>l.slice().sort((a,b)=>a.day<b.day?-1:a.day>b.day?1:(a.hhmm||'')<(b.hhmm||'')?-1:(a.hhmm||'')>(b.hhmm||'')?1:0);
+const hmMin=h=>+h.slice(0,2)*60+ +h.slice(3);
+function endHm(s){if(!s.hhmm)return '';const e=(hmMin(s.hhmm)+s.min)%1440;return pad(Math.floor(e/60))+':'+pad(e%60)}
+function pairInterrupted(l){l.forEach((s,i)=>{const n=l[i+1];s.int=!!(s.f.indexOf('p')>=0&&n&&s.hhmm&&n.hhmm&&n.day===s.day&&hmMin(n.hhmm)-(hmMin(s.hhmm)+s.min)<=30)});return l}
+const upN=u=>u==='T'?1e12:+u;
+function undatedItems(su,cur){const L=su?su.split(';').map(l=>{const p=l.split(',');return{n:+p[0],up:p[1],min:+p[2],wh:+p[3],f:p[4]||''}}):[];
+const hs={};L.forEach(x=>{if(x.up!=='T')hs[x.n]=1});return L.filter(x=>x.n!==cur&&(x.up!=='T'||!hs[x.n])).sort((a,b)=>a.n-b.n||upN(a.up)-upN(b.up))}
+function boundsOf(it,boots,man,today,first,off){let lo=first,hi=today;const u=upN(it.up);
+Object.keys(boots).forEach(b=>{const d=dayKeyOf(boots[b],off).replace(/(....)(..)(..)/,'$1-$2-$3');if(+b<it.n&&d>lo)lo=d;if(+b>it.n&&d<hi)hi=d});
+man.forEach(s=>{if(s.b===undefined)return;const bf=s.b<it.n||(s.b===it.n&&s.up<u);if(bf&&s.day>lo)lo=s.day;if(!bf&&s.day<hi)hi=s.day});return{lo:lo,hi:hi}}
+function rangeOf(rs){let lo='',hi='9999-12-31';rs.forEach(r=>{if(r.lo>lo)lo=r.lo;if(r.hi<hi)hi=r.hi});return{lo:lo,hi:hi,ok:lo<=hi}}
+function monthName(k,lang){const d=new Date(Date.UTC(+k.slice(0,4),+k.slice(4,6)-1,1)),o={month:'long',timeZone:'UTC'};let n;
+try{n=d.toLocaleString(lang||navigator.language,o)}catch(e){n=d.toLocaleString(navigator.language,o)}return n.charAt(0).toUpperCase()+n.slice(1)}
+function sessionsTable(l,c){return l.map(s=>fmtDate(s.day,c.df)+' | '+fmtNum(s.wh/1000,2,c.ds)+(hasPrice(c)?' | '+fmtCost(s.wh,c):'')).join('\n')}
+function mailVars(x){const c=x.cfg,sw=x.sessions.reduce((a,s)=>a+s.wh,0);
+return{month_name:monthName(x.k,x.lang),month:x.k.slice(4,6),year:x.k.slice(0,4),total_kwh:fmtNum(x.totalWh/1000,2,c.ds),total_cost:fmtCost(x.totalWh,c),
+currency:c.cu,price:String(c.p).replace('.',c.ds),outside_kwh:fmtNum(Math.max(0,Math.round(x.totalWh-sw))/1000,2,c.ds),
+session_count:String(x.sessions.length),sessions_table:sessionsTable(x.sessions,c),device_name:x.name||''}}
+const MAILD={subject:'Charging report | {month_name} {year}',body:'Hello,\n\nHere is the charging report for {month_name} {year}.\n\nTotal: {total_kwh} kWh in {session_count} session(s).\n\nSessions:\n{sessions_table}\n\nEnergy outside sessions: {outside_kwh} kWh\n\nPlease confirm that you received this report.\n\nSignature: replace this line\n'};
+const mailTpl=m=>{m=m&&typeof m==='object'?m:{};const t=x=>typeof x==='string';return{to:t(m.to)?m.to:'',cc:t(m.cc)?m.cc:'',bcc:t(m.bcc)?m.bcc:'',subject:t(m.subject)?m.subject:MAILD.subject,body:t(m.body)?m.body:MAILD.body,lang:t(m.lang)?m.lang:''}};
+function copyText(s){const a=document.createElement('textarea');a.value=s;a.setAttribute('readonly','');a.style.position='fixed';a.style.opacity='0';
+document.body.appendChild(a);a.select();let ok=false;try{ok=document.execCommand('copy')}catch(e){}document.body.removeChild(a);
+if(!ok&&navigator.clipboard)navigator.clipboard.writeText(s).catch(e=>{});return ok}
+function renderTpl(t,v){return String(t).replace(/\{(\w+)\}/g,(m,k)=>Object.prototype.hasOwnProperty.call(v,k)?String(v[k]):m)}
+const mu1=s=>encodeURIComponent(s||"").replace(/%2C/g,',').replace(/%40/g,'@');
+const MAILTO_MAX=8000;
+function mailUrl(mt,subject,body){const u=b=>'mailto:'+mu1(mt.to)+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(b)+(mt.cc?'&cc='+mu1(mt.cc):'')+(mt.bcc?'&bcc='+mu1(mt.bcc):'');
+const url=u(body);return url.length>MAILTO_MAX?{url:u('The report is on the clipboard: paste it here.'),copy:body}:{url:url,copy:''}}
+const csvF=v=>/[",\r\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;
+function csvText(days,months,sessions,events){const r=a=>a.map(v=>csvF(String(v))).join(',')+'\r\n',k3=wh=>(wh/1000).toFixed(3);
+let c=r(['type','date','start','end','min','wh','kwh','cost','flags']);
+days.forEach(d=>c+=r(['day',d[0],'','','',d[1],k3(d[1]),'','']));months.forEach(d=>c+=r(['month',d[0],'','','',d[1],k3(d[1]),'','']));
+sessions.forEach(s=>c+=r(['session',s.day,s.hhmm||'',s.end||'',s.min,s.wh,k3(s.wh),s.cost===undefined?'':s.cost,s.f||'']));
+events.forEach(e=>c+=r(['event',e.date,e.time,'','','','','',e.text]));return c}
+function relayIcon(sw){const e=sw.errors||[];return e.indexOf('overcurrent')>=0||e.indexOf('overpower')>=0?'cut':sw.output?'on':'off'}
+function evText(l){const p=l.split(','),x=(p[2]||'').split('/');
+if(p[0]==='R')return 'Relay '+(x[0]==='1'?'on':'off')+' ('+(x[1]||'?')+')';
+if(p[0]==='B')return 'Boot (reason '+x[0]+')';
+if(p[0]==='U')return 'Script restarted (update)';
+if(p[0]==='L')return 'Old data format found';
+return l}
+function bootsOf(s){const b={};(s||'').split(';').forEach(x=>{const p=x.split(':');if(p.length===3)b[p[0]]=+p[1]});return b}
+function resolveSt(st,b){if(st&&st[0]==='~'){const p=st.slice(1).split('.');return b[p[0]]!==undefined?b[p[0]]+ +p[1]:null}return st?+st:null}
+function evLines(ev,ei,bs){const b=bootsOf(bs),out=[];for(let k=1;k<=3;k++){const v=ev[(ei+k)%3];if(!v)continue;v.split(';').forEach(l=>{const p=l.split(','),x=(p[2]||'').split('/');
+const o={when:resolveSt(p[1],b),text:evText(l)};if(p[0]==='B')o.loss=resolveSt(x[1],b);out.push(o)})}return out}
+const aboutHtml=(v,ap,path)=>{const u='http://192.168.33.1'+path;return '<div>ChargeLens '+(v?esc(v):'(version unknown)')+'</div><div>'+
+(!ap?'Access point: unknown':ap.enable?'Access point <b>'+esc(ap.ssid||'')+'</b>: <a href="'+esc(u)+'">'+esc(u)+'</a><div class="mu">Join that Wi-Fi network, then open this address.</div>':'Access point: off (Setup, Wi-Fi access point)')+'</div>'};
+const B=location.pathname.replace(/\/ui$/,'/');
+const AJ={u:'undated energy (assigned to the day the clock was set)',m:'energy of the previous month added to day 1',s:'counter jump ignored',b:'counter went back (energy lost)'};
+const $=i=>document.getElementById(i);const g=u=>fetch(u).then(r=>r.json());const j=u=>g(B+u);
+let CFG=cfgParse(null),MT=null,DN='';
+const mon=x=>fmtNum(x,2,CFG.ds)+' '+esc(CFG.cu),fd=d=>fmtDate(d,CFG.df),mname=k=>monthName(k)+' '+k.slice(0,4),dname=(k,i)=>fd(k+pad(i+1));
+const pm=v=>{if(!v)return null;const p=v.split('|');return{s:+p[0],days:p[1]?p[1].split(',').map(Number):[]}};
+let D=null,months={},ADJ=[],LOGS={};
+async function scode(n){const L=await g('/rpc/Script.List'),s=L.scripts.find(x=>x.name===n);if(!s)return '';let h='',o=0,r;
+do{r=await g('/rpc/Script.GetCode?id='+s.id+'&offset='+o);h+=r.data;o+=r.data.length}while(r.left>0&&r.data.length);return h}
+const tms=u=>{const t=new Date((u+D.off)*1000);return fmtShort(dayKeyOf(u,D.off),CFG.df)+' '+pad(t.getUTCHours())+':'+pad(t.getUTCMinutes())};
+const sessOf=k=>LOGS[k]?pairInterrupted(sortS(parseSessions(LOGS[k].s,k))):[];let UI=[];
+function sumS(l){let wh=0,c=0;l.forEach(s=>{wh+=s.wh;c+=costOf(s.wh,CFG)});return{wh:wh,c:Math.round(c*100)/100}}
+function showLog(){const k=$('sel').value,L=LOGS[k];if(!L){$('ses').textContent='no data';return}
+const l=sessOf(k),tot=sumS(l),m=months[k],P=hasPrice(CFG);
+let h=l.length?'<table class="t"><tr><th>Date</th><th>Start</th><th>End</th><th>Duration</th><th>kWh</th>'+(P?'<th>'+esc(CFG.cu)+'</th>':'')+'</tr>'+l.map(s=>'<tr'+(s.int?' style="color:var(--warn)"':'')+'><td>'+fmtShort(s.day,CFG.df)+'</td><td>'+(s.hhmm||'&ndash;')+'</td><td>'+(endHm(s)||'&ndash;')+'</td><td>'+(s.hhmm||s.min?fmtDur(s.min):'&ndash;')+'</td><td>'+fmtNum(s.wh/1000,2,CFG.ds)+'</td>'+(P?'<td>'+fmtCost(s.wh,CFG)+'</td>':'')+'</tr>').join('')+'</table>':'<div>no sessions</div>';
+h+='<div class="r"><span>Total</span><span>'+fmtKwh(tot.wh,CFG.ds)+(P?' &middot; '+mon(tot.c):'')+'</span></div>';
+if(P)h+='<div>Price '+String(CFG.p).replace('.',CFG.ds)+' '+esc(CFG.cu)+'/kWh</div>';
+if(m){const out=Math.round(monthWh(D,m,k,tkey()))-tot.wh;if(out>0)h+='<div>Outside sessions: '+fmtKwh(out,CFG.ds)+(P?' ('+mon(costOf(out,CFG))+')':'')+'</div>'}
+const y=k.slice(0,4);let yw=0,yc=0;Object.keys(LOGS).forEach(x=>{if(x.slice(0,4)===y){const t=sumS(sessOf(x));yw+=t.wh;yc+=t.c}});
+h+='<div>Year '+y+': '+fmtKwh(yw,CFG.ds)+(P?' &middot; '+mon(yc):'')+'</div>';
+if(l.some(s=>s.int))h+='<div class="adj">Orange: charge interrupted by a power cut (continues on the next line).</div>';
+if(L.l)h+='<div class="adj">'+L.l+' record(s) lost: memory full.</div>';$('ses').innerHTML=h;
+showUnd(L);
+const e=evLines(L.ev,L.ei,L.boot).reverse();
+$('evs').innerHTML=e.length?e.map(x=>'<div>'+(x.when?tms(x.when):'?')+' &middot; '+esc(x.text)+(x.loss?' &ndash; no power since ~'+tms(x.loss):'')+'</div>').join(''):'no events'}
+async function loadLogs(){try{for(const o of $('sel').options)LOGS[o.value]=await j('log?m='+o.value);showLog()}catch(e){$('ses').textContent='Could not read the sessions ('+e+').'}}
+async function refLog(){const k=$('sel').value;if(!k)return;try{LOGS[k]=await j('log?m='+k);showLog()}catch(e){}}
+const isoD=k=>k.replace(/(....)(..)(..)/,'$1-$2-$3');
+function showUnd(L){const cur=D&&D.unix>1.7e9&&D.st.nb?D.st.n:-1,man=[],ks=Object.keys(LOGS).sort();UI=undatedItems(L.su,cur);
+ks.forEach(x=>parseSessions(LOGS[x].s,x).forEach(s=>man.push(s)));const first=ks.length?isoD(ks[0]+'01'):'',bt=bootsOf(L.boot);let wh=0;
+UI.forEach(x=>{x.r=boundsOf(x,bt,man,isoD(tkey()),first,D.off);wh+=x.wh});$('undc').hidden=!UI.length;
+$('pend').innerHTML=UI.length?'<a href="#undc">&#9888; '+UI.length+' undated charge(s) ('+fmtKwh(wh,CFG.ds)+') &ndash; assign</a>':'';
+$('und').innerHTML=UI.map((x,i)=>'<label class="r m"><span><input type="checkbox" class="uc" data-i="'+i+'" onchange="selUnd()">Boot '+x.n+(x.up==='T'?' &middot; outside sessions':x.min?' &middot; '+fmtDur(x.min):'')+'</span><span>'+fmtKwh(x.wh,CFG.ds)+'</span></label><div class="d">'+(x.r.lo?'between '+fd(x.r.lo)+' and ':'until ')+fd(x.r.hi)+'</div>').join('');selUnd()}
+const selU=()=>[...document.querySelectorAll('.uc')].filter(c=>c.checked).map(c=>UI[+c.dataset.i]);
+function selUnd(){const sel=selU(),r=rangeOf(sel.map(x=>x.r)),d=$('udd'),v=d.value;
+d.innerHTML='<option value="">Pick the day</option>'+(sel.length&&r.ok?daysIn(r.lo,r.hi,120).map(x=>'<option value="'+x+'"'+(x===v?' selected':'')+'>'+fd(x)+'</option>').join(''):'');
+$('uda').disabled=!sel.length||!r.ok;
+$('udr').textContent=sel.length&&!r.ok?'The chosen charges do not fit on the same day.':''}
+const nowU=()=>D&&D.unix>1.7e9?D.unix:Math.floor(Date.now()/1000);const tkey=()=>dayKeyOf(nowU(),D?D.off:0);
+async function sync(){const now=Math.floor(Date.now()/1000);if(!(D.unix>1.7e9)||Math.abs(D.unix-now)>60){await j('time?set='+now);D=await j('data?m='+tkey().slice(0,6))}}
+function show(){const t=new Date((D.unix+D.off)*1000);const ok=D.unix>1.7e9;
+$('clk').innerHTML=ok?t.toLocaleDateString(navigator.language,{weekday:'short',timeZone:'UTC'})+' '+fd(tkey())+' &middot; '+pad(t.getUTCHours())+':'+pad(t.getUTCMinutes())+' <span style="color:var(--ok)">&#10003;</span>':'<span style="color:var(--warn)">&#9888; clock unknown &ndash; setting&hellip;</span>';
+$('w').textContent=fmtW(D.w,CFG.ds);const R=$('rel'),ic=relayIcon({output:D.on,errors:D.er});R.className='sw '+ic;R.setAttribute('aria-checked',D.on?'true':'false');$('rs').textContent=ic==='cut'?'Cut by protection':D.on?'On':'Off';
+const tk=tkey(),mk=tk.slice(0,6);let m=pm(D.m);if(D.k!==mk)m=null;if(m)months[mk]=m;else m={s:0,days:[]};
+$('td').textContent=fmtWh(todayWh(D,D.k===mk?m:null,tk),CFG.ds);$('mn').textContent=mname(mk);$('mt').textContent=fmtWh(monthWh(D,m,mk,tk),CFG.ds)}
+async function tick(){try{const was=D?D.on:null;D=await j('data'+(D?'?m='+tkey().slice(0,6):''));show();if(was!==null&&was!==D.on)setTimeout(refLog,2500)}catch(e){$('clk').textContent='no connection to the plug'}}
+async function hist(){try{const L=await j('list');const ks=L.months.sort().reverse();let h='',o='';const tk=tkey();
+for(const k of ks){if(!months[k]){const r=await j('data?m='+k);months[k]=pm(r.m)||{s:0,days:[]}}const m=months[k];
+const ds=m.days.map((x,i)=>x?'<div>'+dname(k,i)+' &nbsp; '+fmtWh(x,CFG.ds)+'</div>':'').join('');
+h+='<div class="m r" onclick="this.nextSibling.hidden=!this.nextSibling.hidden"><span>'+mname(k)+'</span><span>'+fmtWh(monthWh(D,m,k,tk),CFG.ds)+' &#9656;</span></div><div class="d" hidden>'+(ds||'no consumption')+'</div>';o+='<option value="'+k+'">'+mname(k)+'</option>'}
+$('hist').innerHTML=h||'no data';$('sel').innerHTML=o;if(ks.length)$('sel').value=defaultMonth(ks,tk);ADJ=(L.adj||[]).filter(x=>x[2]!=='u');loadLogs();
+const a=ADJ.map(x=>'<div class="adj">'+x[0]+': '+fmtWh(x[1],CFG.ds)+' &ndash; '+(AJ[x[2]]||x[2])+'</div>');$('adjs').innerHTML=a.length?'<div class="lab" style="margin-top:10px">Adjustments</div>'+a.join(''):''}
+catch(e){$('hist').textContent='Could not read the history ('+e+'). Reload the page.'}}
+$('mail').onclick=async()=>{const k=$('sel').value,m=months[k];if(!m)return;
+if(UI.length&&!confirm(UI.length+' undated charge(s) are not in the report. Send anyway?'))return;
+const mt=mailTpl(MT),l=sessOf(k);
+const v=mailVars({k:k,sessions:l,totalWh:monthWh(D,m,k,tkey()),cfg:CFG,name:DN,lang:mt.lang||undefined});
+const u=mailUrl(mt,renderTpl(mt.subject,v),renderTpl(mt.body,v));
+if(u.copy&&!copyText(u.copy)&&!navigator.clipboard)alert('The report could not be copied. Use the CSV export instead.');
+location.href=u.url};
+$('csv').onclick=()=>{const tk=tkey(),ks=Object.keys(months).sort(),days=[],mos=[],ss=[],ev=[];
+ks.forEach(k=>{months[k].days.forEach((x,i)=>days.push([isoD(k+pad(i+1)),x]));mos.push([k.slice(0,4)+'-'+k.slice(4),Math.round(monthWh(D,months[k],k,tk))])});
+Object.keys(LOGS).sort().forEach(k=>sessOf(k).forEach(s=>{s.end=endHm(s);s.cost=hasPrice(CFG)?costOf(s.wh,CFG):'';ss.push(s)}));
+const L=LOGS[$('sel').value];if(L)evLines(L.ev,L.ei,L.boot).forEach(x=>{const d=x.when?new Date((x.when+D.off)*1000).toISOString():'';ev.push({date:d.slice(0,10),time:d.slice(11,16),text:x.text+(x.loss?' (no power since ~'+tms(x.loss)+')':'')})});
+const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csvText(days,mos,ss,ev)],{type:'text/csv;charset=utf-8'}));a.download='chargelens-'+tk+'.csv';document.body.appendChild(a);a.click();a.remove()};
+$('sel').onchange=showLog;
+async function about(){let v=null,ap=null;try{const m=(await g('/rpc/Script.List')).scripts.find(x=>x.name==='Meter');if(m){const q=/^\/\/ ChargeLens Meter v(\S+)/.exec((await g('/rpc/Script.GetCode?id='+m.id+'&offset=0&len=64')).data);if(q)v=q[1]}}catch(e){}
+try{ap=(await g('/rpc/WiFi.GetConfig')).ap||null}catch(e){}$('abt').innerHTML=aboutHtml(v,ap,location.pathname)}
+$('uda').onclick=async()=>{const sel=selU(),v=$('udd').value,r=rangeOf(sel.map(x=>x.r));
+if(!sel.length||!v||v<r.lo||v>r.hi){$('udr').textContent='Pick the day from the list.';return}
+$('uda').disabled=true;$('udr').textContent='assigning...';
+try{for(const x of sel)await j('time?boot='+x.n+'&up='+x.up+'&day='+v.replace(/-/g,''))}catch(e){$('udr').textContent='Failed ('+e+')';$('uda').disabled=false;return}
+setTimeout(async()=>{months={};await hist();$('udr').textContent='Assigned to '+fd(v)+'.'},1500+800*sel.length)};
+$('rel').onclick=async()=>{if(!D)return;const on=!D.on;if(!on&&!confirm('Turn the socket off? Charging stops.'))return;await fetch('/rpc/Switch.Set?id=0&on='+on);tick()};
+$('ts').onclick=async()=>{const now=Math.floor(Date.now()/1000);try{const r=await j('time?set='+now);$('tsr').textContent='Clock set'+(r.prev>1.7e9?' (difference: '+(now-r.prev)+' s)':'');tick()}catch(e){$('tsr').textContent='Could not set the clock'}};
+(async()=>{try{CFG=cfgParse((await g('/rpc/KVS.Get?key=cc:cfg')).value)}catch(e){}
+scode('MailTpl').then(c=>{try{MT=JSON.parse(c)}catch(e){}}).catch(e=>{});g('/rpc/Shelly.GetDeviceInfo').then(r=>{DN=r.name||''}).catch(e=>{});
+await tick();if(D){await sync();show();hist()}setInterval(tick,5000);about()})();
+</script></body></html>

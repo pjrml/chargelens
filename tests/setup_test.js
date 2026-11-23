@@ -14,8 +14,9 @@ function U(h) { return String.fromCharCode(parseInt(h, 16)); }
 function esc(n) { return String.fromCharCode(92) + "u" + n; }
 
 t("models_literal", function () {
-  eq("gen2", MODELS["SNPL-00112EU"], {gen: 2, maxA: 12, maxW: 2500});
-  eq("gen3", MODELS["EF3PL-00112EU"], {gen: 3, maxA: 12, maxW: 2500});
+  eq("gen2", MODELS["SNPL-00112EU"], {gen: 2, maxA: 12, maxW: 2500, build: "plugs", relay: 1});
+  eq("gen3", MODELS["EF3PL-00112EU"], {gen: 3, maxA: 12, maxW: 2500, build: "plugs", relay: 1});
+  eq("pm max A", MODELS["S3PL-30116EU"].maxA, 16);
 });
 t("validate_ok_defaults", function () {
   let v = validateForm(form({}), M2);

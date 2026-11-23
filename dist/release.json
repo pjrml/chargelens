@@ -40,8 +40,8 @@
       "path": "dist/SetupHtml.html",
       "kind": "data",
       "enable": false,
-      "size": 33847,
-      "crc32": 3995224850
+      "size": 33957,
+      "crc32": 3617751927
     },
     {
       "name": "MailTpl",
@@ -64,8 +64,153 @@
       "path": "dist/install.html",
       "kind": "data",
       "enable": false,
-      "size": 28152,
-      "crc32": 2595784208
+      "size": 28262,
+      "crc32": 3773893825
     }
-  ]
+  ],
+  "builds": {
+    "plugs": {
+      "models": [
+        "SNPL-00112EU",
+        "EF3PL-00112EU"
+      ],
+      "files": [
+        {
+          "name": "Meter",
+          "path": "dist/Meter.js",
+          "kind": "code",
+          "enable": true,
+          "size": 21144,
+          "crc32": 188487202
+        },
+        {
+          "name": "Led",
+          "path": "dist/Led.js",
+          "kind": "code",
+          "enable": false,
+          "size": 2532,
+          "crc32": 1465366831
+        },
+        {
+          "name": "Page",
+          "path": "dist/Page.js",
+          "kind": "code",
+          "enable": false,
+          "size": 4478,
+          "crc32": 1188538621
+        },
+        {
+          "name": "PageHtml",
+          "path": "dist/PageHtml.html",
+          "kind": "data",
+          "enable": false,
+          "size": 28714,
+          "crc32": 1715520515
+        },
+        {
+          "name": "SetupHtml",
+          "path": "dist/SetupHtml.html",
+          "kind": "data",
+          "enable": false,
+          "size": 33957,
+          "crc32": 3617751927
+        },
+        {
+          "name": "MailTpl",
+          "path": "dist/MailTpl.json",
+          "kind": "data",
+          "enable": false,
+          "size": 371,
+          "crc32": 768663793
+        },
+        {
+          "name": "Installer",
+          "path": "dist/installer.js",
+          "kind": "code",
+          "enable": false,
+          "size": 3251,
+          "crc32": 3184423068
+        },
+        {
+          "name": "InstallHtml",
+          "path": "dist/install.html",
+          "kind": "data",
+          "enable": false,
+          "size": 28262,
+          "crc32": 3773893825
+        }
+      ]
+    },
+    "plugpmg3": {
+      "models": [
+        "S3PL-30116EU"
+      ],
+      "files": [
+        {
+          "name": "Meter",
+          "path": "dist/plugpmg3/Meter.js",
+          "kind": "code",
+          "enable": true,
+          "size": 21144,
+          "crc32": 188487202
+        },
+        {
+          "name": "Led",
+          "path": "dist/plugpmg3/Led.js",
+          "kind": "code",
+          "enable": false,
+          "size": 2532,
+          "crc32": 1465366831
+        },
+        {
+          "name": "Page",
+          "path": "dist/plugpmg3/Page.js",
+          "kind": "code",
+          "enable": false,
+          "size": 4478,
+          "crc32": 1188538621
+        },
+        {
+          "name": "PageHtml",
+          "path": "dist/plugpmg3/PageHtml.html",
+          "kind": "data",
+          "enable": false,
+          "size": 28714,
+          "crc32": 1715520515
+        },
+        {
+          "name": "SetupHtml",
+          "path": "dist/plugpmg3/SetupHtml.html",
+          "kind": "data",
+          "enable": false,
+          "size": 33957,
+          "crc32": 3617751927
+        },
+        {
+          "name": "MailTpl",
+          "path": "dist/plugpmg3/MailTpl.json",
+          "kind": "data",
+          "enable": false,
+          "size": 371,
+          "crc32": 768663793
+        },
+        {
+          "name": "Installer",
+          "path": "dist/installer.js",
+          "kind": "code",
+          "enable": false,
+          "size": 3251,
+          "crc32": 3184423068
+        },
+        {
+          "name": "InstallHtml",
+          "path": "dist/install.html",
+          "kind": "data",
+          "enable": false,
+          "size": 28262,
+          "crc32": 3773893825
+        }
+      ]
+    }
+  }
 }

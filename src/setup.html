@@ -25,7 +25,7 @@ document.querySelector('img.lg').src=document.querySelector('link[rel=icon]').hr
 
 /* ==== PURE ==== */
 /*@lib cfg_lib.js*/
-const MODELS={"SNPL-00112EU":{gen:2,maxA:12,maxW:2500},"EF3PL-00112EU":{gen:3,maxA:12,maxW:2500}};
+const MODELS={"SNPL-00112EU":{gen:2,maxA:12,maxW:2500,build:"plugs",relay:1},"EF3PL-00112EU":{gen:3,maxA:12,maxW:2500,build:"plugs",relay:1},"S3PL-30116EU":{gen:3,maxA:16,maxW:3680,build:"plugpmg3",relay:0}};
 /* update gate, identical to src/install.html (tools/build.py checks both copies): no open session and current not above the residual threshold */
 const idleOk=(st,ss,current,cfg)=>(ss===null||ss===undefined)&&typeof current==='number'&&current<=cfg.r;
 function ssState(code,value){if(code)return code===-105?null:'?';try{return JSON.parse(value)}catch(e){return '?'}}
