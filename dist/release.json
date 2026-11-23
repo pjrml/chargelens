@@ -64,8 +64,8 @@
       "path": "dist/install.html",
       "kind": "data",
       "enable": false,
-      "size": 28262,
-      "crc32": 3773893825
+      "size": 28475,
+      "crc32": 3278641643
     }
   ],
   "builds": {
@@ -136,8 +136,8 @@
           "path": "dist/install.html",
           "kind": "data",
           "enable": false,
-          "size": 28262,
-          "crc32": 3773893825
+          "size": 28475,
+          "crc32": 3278641643
         }
       ]
     },
@@ -183,8 +183,8 @@
           "path": "dist/plugpmg3/SetupHtml.html",
           "kind": "data",
           "enable": false,
-          "size": 33957,
-          "crc32": 3617751927
+          "size": 32929,
+          "crc32": 3320791230
         },
         {
           "name": "MailTpl",
@@ -207,8 +207,8 @@
           "path": "dist/install.html",
           "kind": "data",
           "enable": false,
-          "size": 28262,
-          "crc32": 3773893825
+          "size": 28475,
+          "crc32": 3278641643
         }
       ]
     }

@@ -22,8 +22,13 @@ t("validate_ok_defaults", function () {
   let v = validateForm(form({}), M2);
   eq("no errors", v.errors, {});
   eq("cfg", v.cfg, '{"v":1}');
+  //@if relay
   eq("native", v.native, {in_mode: "detached", tz: "Europe/Berlin", name: "Plug"});
+  //@else
+  eq("native", v.native, {tz: "Europe/Berlin", name: "Plug"});
+  //@end
 });
+//@if relay
 t("validate_y_vs_cutoff", function () {
   let c = cutOf({current_limit: 12, power_limit: 2500, voltage_limit: 280});
   eq("below", validateForm(form({y: 11}), M2, c).errors, {});
@@ -36,11 +41,15 @@ t("validate_y_vs_cutoff", function () {
   eq("range error wins", validateForm(form({y: 99}), M2, c).errors.y, RNG("y"));
   eq("no limits in form", validateForm(form({current_limit: 99, power_limit: 0}), M2).errors, {});
 });
+//@end
+//@if relay
 t("cut_of", function () {
   eq("full", cutOf({current_limit: 12, power_limit: 2500, voltage_limit: 280, x: 1}), {current_limit: 12, power_limit: 2500, voltage_limit: 280});
   eq("null", cutOf(null), {current_limit: null, power_limit: null, voltage_limit: null});
   eq("non-number", cutOf({current_limit: "12", power_limit: undefined, voltage_limit: 280}), {current_limit: null, power_limit: null, voltage_limit: 280});
 });
+//@end
+//@if relay
 t("y_proposal", function () {
   eq("12", yProposal({current_limit: 12}), 10.8);
   eq("11", yProposal({current_limit: 11}), 9.9);
@@ -48,9 +57,12 @@ t("y_proposal", function () {
   eq("zero", yProposal({current_limit: 0}), 11);
   eq("cutOf null", yProposal(cutOf(null)), 11);
 });
+//@end
+//@if relay
 t("cut_link", function () {
   eq("link", cutLink("plug.local"), "http://plug.local/#/switch/0/settings/protections");
 });
+//@end
 t("validate_cfg_rules", function () {
   eq("g >= y", typeof validateForm(form({g: 8, y: 7}), M2).errors.g, "string");
   eq("r range", typeof validateForm(form({r: 2}), M2).errors.r, "string");
@@ -64,7 +76,11 @@ t("validate_cfg_rules", function () {
 });
 t("validate_misc", function () {
   eq("tz empty", typeof validateForm(form({tz: " "}), M2).errors.tz, "string");
+  //@if relay
   eq("in_mode", typeof validateForm(form({in_mode: "x"}), M2).errors.in_mode, "string");
+  //@else
+  eq("no in_mode check", validateForm(form({in_mode: "x"}), M2).errors, {});
+  //@end
   eq("ap short", typeof validateForm(form({ap: {on: true, pass: "short"}}), M2).errors.ap_pass, "string");
   eq("ap off", validateForm(form({ap: {on: false, pass: "x"}}), M2).errors, {});
   eq("ap ok", validateForm(form({ap: {on: true, pass: "12345678"}}), M2).errors, {});
@@ -112,6 +128,7 @@ t("write_plan_only_changed", function () {
   eq("params", pl[0].params, {key: "cc:cfg", value: '{"v":1,"p":0.3}'});
   eq("none when equal", writePlan(a, st({})), []);
 });
+//@if relay
 t("write_plan_never_switch_set", function () {
   let a = st({});
   let b = st({r: 0.2, g: 6, p: 1, y: 10, in_mode: "momentary", tz: "UTC", name: "X",
@@ -126,6 +143,7 @@ t("write_plan_never_switch_set", function () {
   eq("ui cfg", pl[2].params, {config: {controls: {"switch:0": {in_mode: "momentary"}}}});
   eq("sys cfg", pl[3].params, {config: {location: {tz: "UTC"}, device: {name: "X"}}});
 });
+//@end
 t("write_plan_native_partial", function () {
   let a = st({});
   eq("tz only", writePlan(a, st({tz: "UTC"}))[0].params, {config: {location: {tz: "UTC"}}});
@@ -191,9 +209,13 @@ t("export_no_password", function () {
   eq("fv", d.fv, 1);
   eq("version", d.version, "1.0.0");
   eq("model", d.model, "SNPL-00112EU");
+  //@if relay
   eq("native keys", Object.keys(d.native), ["current_limit", "power_limit", "voltage_limit", "in_mode", "tz", "name", "ap", "cloud", "ble", "mqtt"]);
   eq("cut shown", [d.native.current_limit, d.native.power_limit, d.native.voltage_limit], [12, 2500, 280]);
   eq("no cut: nulls", [exportDoc(cur({cut: undefined}), "dev", NOW).native.current_limit, exportDoc(cur({cut: undefined}), "dev", NOW).native.voltage_limit], [null, null]);
+  //@else
+  eq("native keys", Object.keys(d.native), ["tz", "name", "ap", "cloud", "ble", "mqtt"]);
+  //@end
   eq("ap keys", Object.keys(d.native.ap), ["ssid", "enable"]);
   eq("ble kept", d.native.ble, {en: false, rpc: false});
   eq("cfg obj", d.cfg, {v: 1, p: 0.3});
@@ -209,6 +231,7 @@ t("export_import_roundtrip", function () {
   eq("no changes", r.changes, []);
   eq("empty plan", writePlan({cfg: s.cfg, mail: s.mail, native: s.native}, r.next).length, 0);
 });
+//@if relay
 t("import_changes_listed", function () {
   let s = cur({}), d = JSON.parse(JSON.stringify(exportDoc(s, "dev", NOW)));
   d.cfg.p = 0.5; d.native.power_limit = 2000; d.native.name = "Other"; d.mail.subject = "T";
@@ -220,6 +243,7 @@ t("import_changes_listed", function () {
   let pl = writePlan({cfg: s.cfg, mail: s.mail, native: s.native}, r.next), n = pl.map(function (x) { return x.rpc; });
   eq("plan", n, ["KVS.Set", "Script.PutCode", "Sys.SetConfig"]);
 });
+//@end
 t("import_wrong_app", function () {
   let d = exportDoc(cur({}), "dev", NOW);
   d.app = "other";
@@ -236,6 +260,7 @@ t("import_other_fv", function () {
   d.fv = undefined;
   eq("missing", importCheck(d, M2, cur({})).ok, false);
 });
+//@if relay
 t("import_out_of_range", function () {
   let d = exportDoc(cur({}), "dev", NOW);
   d.native.current_limit = 20; d.cfg.r = 5; d.cfg.y = 13;
@@ -255,6 +280,7 @@ t("import_out_of_range", function () {
   let o = {"SNPL-00112EU": MODELS["SNPL-00112EU"]};
   eq("other family limits", importCheck(exportDoc(cur({}), "dev", NOW), {gen: 2, maxA: 16, maxW: 3500}, cur({})).ok, false);
 });
+//@end
 t("import_unknown_fields_ignored", function () {
   let d = exportDoc(cur({}), "dev", NOW);
   d.extra = 1; d.native.zzz = 2; d.cfg.zzz = 3;
@@ -275,10 +301,19 @@ t("ble_state", function () {
 });
 t("harden_plan_only_needed", function () {
   let c = {cloud: true, ble: {en: null, rpc: false}, mqtt: true, in_mode: "momentary"};
+  //@if relay
   eq("all boxes", hardenPlan(c, {cloud: true, ble: true, mqtt: true, button: true}).map(function (p) { return p.rpc; }),
     ["Cloud.SetConfig", "MQTT.SetConfig", "PLUGS_UI.SetConfig"]);
+  //@else
+  eq("all boxes", hardenPlan(c, {cloud: true, ble: true, mqtt: true, button: true}).map(function (p) { return p.rpc; }),
+    ["Cloud.SetConfig", "MQTT.SetConfig"]);
+  //@end
   eq("cloud params", hardenPlan(c, {cloud: true})[0].params, {config: {enable: false}});
+  //@if relay
   eq("button params", hardenPlan(c, {button: true})[0].params, {config: {controls: {"switch:0": {in_mode: "detached"}}}});
+  //@else
+  eq("no button item", hardenPlan(c, {button: true}), []);
+  //@end
   eq("unchecked skipped", hardenPlan(c, {ble: true, mqtt: false}), []);
   eq("already ok", hardenPlan({cloud: false, ble: {en: false, rpc: false}, mqtt: false, in_mode: "detached"}, {cloud: true, ble: true, mqtt: true, button: true}), []);
   eq("unknown state skipped", hardenPlan({cloud: null, ble: null}, {cloud: true, ble: true}), []);
@@ -326,3 +361,48 @@ t("mail_lang", function () {
 t("import_mail_lang", function () {
   eq("lang is a mail key", MAILK.indexOf("lang") >= 0, true);
 });
+
+// ---- rc.9: the Plug PM Gen3 build (no relay, no button) ----
+//@if !relay
+let MP = MODELS["S3PL-30116EU"];
+t("pm_validate", function () {
+  let f = form({}), v;
+  delete f.in_mode;
+  v = validateForm(f, MP);
+  eq("no errors", v.errors, {});
+  eq("native", v.native, {tz: "Europe/Berlin", name: "Plug"});
+  eq("y 15 still out of range", typeof validateForm(form({y: 15}), MP).errors.y, "string");
+  eq("no cut-off check", validateForm(form({y: 12}), MP, {current_limit: 12}).errors, {});
+});
+t("pm_write_plan", function () {
+  let pl = writePlan(st({}), st({tz: "UTC", name: "Z"})), n = pl.map(function (x) { return x.rpc; });
+  eq("sys only", n, ["Sys.SetConfig"]);
+  eq("no PLUGS_UI", n.indexOf("PLUGS_UI.SetConfig"), -1);
+  eq("no cut helpers", [typeof cutOf, typeof yProposal, typeof cutLink], ["undefined", "undefined", "undefined"]);
+});
+t("pm_natk", function () {
+  eq("natk", NATK, ["tz", "name"]);
+});
+t("pm_export", function () {
+  let d = exportDoc(cur({model: "S3PL-30116EU"}), "dev", NOW);
+  eq("no current_limit", Object.keys(d.native).indexOf("current_limit"), -1);
+  eq("no in_mode", Object.keys(d.native).indexOf("in_mode"), -1);
+  eq("keys", Object.keys(d.native), ["tz", "name", "ap", "cloud", "ble", "mqtt"]);
+});
+t("pm_import", function () {
+  let plus = exportDoc(cur({}), "dev", NOW), r = importCheck(plus, MP, cur({model: "S3PL-30116EU"}));
+  eq("plus file refused", r.ok, false);
+  eq("family text", r.errors.join("|").indexOf("different plug family") >= 0, true);
+  let pm = exportDoc(cur({model: "S3PL-30116EU"}), "dev", NOW), q = importCheck(pm, MP, cur({model: "S3PL-30116EU"}));
+  eq("pm file ok", q.ok, true);
+  eq("no relay text", q.relay, "");
+  eq("pm export into plus refused", importCheck(pm, M2, cur({})).ok, false);
+});
+t("pm_harden_no_button", function () {
+  eq("button ignored", hardenPlan({cloud: false, in_mode: "momentary"}, {button: true}), []);
+});
+t("pm_nocut_text", function () {
+  eq("string", typeof NOCUT, "string");
+  eq("circuit breaker", NOCUT.indexOf("circuit breaker") >= 0, true);
+});
+//@end

@@ -112,6 +112,7 @@ return u8len(s) > 253 ? null : s;
 const MODELS={"SNPL-00112EU":{gen:2,maxA:12,maxW:2500,build:"plugs",relay:1},"EF3PL-00112EU":{gen:3,maxA:12,maxW:2500,build:"plugs",relay:1},"S3PL-30116EU":{gen:3,maxA:16,maxW:3680,build:"plugpmg3",relay:0}};
 const idleOk=(st,ss,current,cfg)=>(ss===null||ss===undefined)&&typeof current==='number'&&current<=cfg.r;
 function ssState(code,value){if(code)return code===-105?null:'?';try{return JSON.parse(value)}catch(e){return '?'}}
+const NOCUT='This plug has no relay: it cannot cut the load, and ChargeLens cannot either. Overload protection is only the circuit breaker. Keep your charger below the plug rating (16 A) and the circuit rating.';
 const BSU=String.fromCharCode(92)+'u';
 function asciiEsc(s){let o='',i,c;for(i=0;i<s.length;i++){c=s.charCodeAt(i);o+=c>126?BSU+('0000'+c.toString(16)).slice(-4):s.charAt(i)}return o}
 const asciiJson=o=>asciiEsc(JSON.stringify(o));
@@ -119,27 +120,20 @@ const storedCfg=c=>{const s=cfgJson(c);return s===null?null:asciiEsc(s)};
 const mailText=m=>{const o={v:1,to:String(m.to||''),cc:String(m.cc||''),bcc:String(m.bcc||''),subject:String(m.subject||''),body:String(m.body||'')},l=String(m.lang||'').trim();if(l)o.lang=l;return asciiJson(o)};
 const langOk=l=>{if(!l)return true;try{new Intl.DateTimeFormat(l);return /^[A-Za-z]{2,3}(-[A-Za-z0-9]{1,8})*$/.test(l)}catch(e){return false}};
 const RNG=k=>{const a=CFG_NUM.find(x=>x[0]===k);return a?'Between '+a[2]+' and '+a[3]+(k==='r'||k==='g'||k==='y'?', and residual < minimum < maximum':''):k==='cu'?'1 to 4 characters':k==='ds'?'Dot or comma':'Pick one'};
-const cutOf=sw=>{const o={},s=sw||{};['current_limit','power_limit','voltage_limit'].forEach(k=>{o[k]=typeof s[k]==='number'?s[k]:null});return o};
-const yProposal=c=>typeof c.current_limit==='number'&&c.current_limit>0?Math.round(c.current_limit*9)/10:cfgDef('y');
-const cutLink=h=>'http://'+h+'/#/switch/0/settings/protections';
 function validateForm(f,model,cut){
 const e={},raw={};CFG_ORD.forEach(k=>{raw[k]=f[k]});
 cfgBad(raw).forEach(k=>{e[k]=RNG(k)});
-const cl=cut&&cut.current_limit;
-if(!e.y&&typeof cl==='number'&&raw.y>=cl)e.y='Below the relay current cut-off ('+cl+' A): lower it, or raise the cut-off in the plug settings';
 const tz=String(f.tz||'').trim();if(!tz)e.tz='Enter a time zone, e.g. Europe/Berlin';
-if(f.in_mode!=='detached'&&f.in_mode!=='momentary')e.in_mode='Pick one';
 const name=String(f.name||'').trim();if(name.length>64)e.name='At most 64 characters';
 if(f.ap&&f.ap.on&&String(f.ap.pass||'').length<8)e.ap_pass='At least 8 characters';
 let cfg=null,mail=null;
 if(!CFG_ORD.some(k=>e[k])){cfg=storedCfg(cfgFix(raw));if(cfg===null||cfg.length>253){e.cfg='The settings do not fit the 253 byte limit (shorten the currency)';cfg=null}}
 if(f.mail&&!langOk(String(f.mail.lang||'').trim()))e.lang='A language tag such as pt-PT or en-GB, or empty';
 else if(f.mail){mail=mailText(f.mail);if(mail.length>16000){e.body='Mail template too long';mail=null}}
-return{cfg:cfg,mail:mail,native:{in_mode:f.in_mode,tz:tz,name:name},errors:e}}
+return{cfg:cfg,mail:mail,native:{tz:tz,name:name},errors:e}}
 function writePlan(o,n){const P=[],a=o.native,b=n.native;
 if(n.cfg!==null&&n.cfg!==o.cfg)P.push({rpc:'KVS.Set',params:{key:'cc:cfg',value:n.cfg},label:'Settings (cc:cfg)'});
 if(n.mail!==null&&n.mail!==o.mail)for(let i=0;i<n.mail.length;i+=4000){const p={name:'MailTpl',code:n.mail.slice(i,i+4000)};if(i>0)p.append=true;P.push({rpc:'Script.PutCode',params:p,label:'Mail template'+(n.mail.length>4000?' ('+(i/4000+1)+'/'+Math.ceil(n.mail.length/4000)+')':'')})}
-if(b.in_mode!==a.in_mode)P.push({rpc:'PLUGS_UI.SetConfig',params:{config:{controls:{'switch:0':{in_mode:b.in_mode}}}},label:'Button'});
 const sy={};if(b.tz!==a.tz)sy.location={tz:b.tz};if(b.name!==a.name)sy.device={name:b.name};
 if(Object.keys(sy).length)P.push({rpc:'Sys.SetConfig',params:{config:sy},label:'Time zone / name'});
 return P}
@@ -147,11 +141,11 @@ const MAILD={subject:'Charging report | {month_name} {year}',body:'Hello,\n\nHer
 const skipItem=(p,failed)=>p.rpc==='Script.PutCode'&&failed.indexOf('Script.PutCode')>=0;
 const apSsid=m=>'chargelens-'+String(m||'').replace(/[^0-9a-fA-F]/g,'').slice(-4).toLowerCase();
 const viaAp=h=>h==='192.168.33.1';
-function exportDoc(s,version,now){const n=s.native,ct=cutOf(s.cut),m=JSON.parse(s.mail||'{}');delete m.v;
+function exportDoc(s,version,now){const n=s.native,m=JSON.parse(s.mail||'{}');delete m.v;
 return{app:'chargelens',fv:1,version:version||'dev',exported:now.toISOString().slice(0,10),model:s.model,cfg:JSON.parse(s.cfg||'{"v":1}'),mail:m,
-native:{current_limit:ct.current_limit,power_limit:ct.power_limit,voltage_limit:ct.voltage_limit,in_mode:n.in_mode,tz:n.tz,name:n.name,ap:{ssid:(n.ap||{}).ssid,enable:(n.ap||{}).enable},cloud:n.cloud,ble:n.ble,mqtt:n.mqtt}}}
+native:{tz:n.tz,name:n.name,ap:{ssid:(n.ap||{}).ssid,enable:(n.ap||{}).enable},cloud:n.cloud,ble:n.ble,mqtt:n.mqtt}}}
 const exportFile=(s,now)=>'chargelens-config-'+String(s.native.name||s.model).replace(/[^A-Za-z0-9_-]+/g,'-').replace(/^-+|-+$/g,'')+'-'+now.getFullYear()+('0'+(now.getMonth()+1)).slice(-2)+('0'+now.getDate()).slice(-2)+'.json';
-const NATK=['in_mode','tz','name'],MAILK=['to','cc','bcc','subject','body','lang'];
+const NATK=['tz','name'],MAILK=['to','cc','bcc','subject','body','lang'];
 function importCheck(doc,model,c){const er=[],ch=[];let next=null;
 if(!doc||typeof doc!=='object'||Array.isArray(doc))return{ok:false,errors:['Not a ChargeLens configuration file'],changes:ch,next:null};
 if(doc.app!=='chargelens')er.push('Not a ChargeLens configuration file');
@@ -173,15 +167,13 @@ if(c){const o=cfgParse(c.cfg),p=cfgParse(v.cfg),on=c.native,om=JSON.parse(c.mail
 CFG_ORD.forEach(k=>{if(o[k]!==p[k])ch.push({field:k,from:o[k],to:p[k]})});
 NATK.forEach(k=>{if(on[k]!==v.native[k])ch.push({field:k,from:on[k],to:v.native[k]})});
 MAILK.forEach(k=>{if(String(om[k]||'')!==String(nm[k]||''))ch.push({field:k,from:String(om[k]||''),to:String(nm[k]||'')})})}
-const a=nt.current_limit,w=nt.power_limit,q=x=>typeof x==='number'?x:'?';
-return{ok:true,errors:er,changes:ch,next:next,relay:typeof a==='number'||typeof w==='number'?'Relay protection in the file (shown only, not applied): '+q(a)+' A / '+q(w)+' W':''}}
+return{ok:true,errors:er,changes:ch,next:next,relay:''}}
 const bleState=c=>{if(!c)return null;const en=typeof c.enable==='boolean'?c.enable:null,rp=c.rpc&&typeof c.rpc.enable==='boolean'?c.rpc.enable:null;return en===null&&rp===null?null:{en:en,rpc:rp}};
 const bleOn=b=>b?(b.en===true||b.rpc===true):null;
 const dbgOn=c=>{const w=c&&c.debug&&c.debug.websocket;return w&&typeof w.enable==='boolean'?w.enable:null};
 function hardenPlan(cur,b){const P=[];
 [['cloud','Cloud','Cloud'],['mqtt','MQTT','MQTT']].forEach(x=>{if(b[x[0]]&&cur[x[0]]===true)P.push({rpc:x[1]+'.SetConfig',params:{config:{enable:false}},label:x[2]+' off'})});
 if(b.ble&&bleOn(cur.ble)){const k={};if(cur.ble.en===true)k.enable=false;if(cur.ble.rpc===true)k.rpc={enable:false};P.push({rpc:'BLE.SetConfig',params:{config:k},label:'Bluetooth off'})}
-if(b.button&&cur.in_mode&&cur.in_mode!=='detached')P.push({rpc:'PLUGS_UI.SetConfig',params:{config:{controls:{'switch:0':{in_mode:'detached'}}}},label:'Button does nothing'});
 if(b.dbg&&cur.dbg===true)P.push({rpc:'Sys.SetConfig',params:{config:{debug:{websocket:{enable:false}}}},label:'Websocket debug logs off'});
 return P}
 const $=i=>document.getElementById(i),esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
