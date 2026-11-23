@@ -91,6 +91,10 @@ return P}
 function planLine(mode,inst,ver,files){if(mode!=='update')return{ok:true,btn:'Install',t:'First installation of ChargeLens '+ver+': '+files+'.'};
 if(inst===ver)return{ok:true,btn:'Reinstall',t:'ChargeLens '+ver+' is installed and up to date. Reinstall writes the same version again (repair): '+files+'.'};
 return{ok:null,btn:'Update',t:'Update of ChargeLens '+(inst||'?')+' to '+ver+': '+files+'.'}}
+/* the Installer loader of the release (rc.7): written over the running page's own script (self = its id) after the
+   meter is up, so the next Check for updates loads this release's page; stored null = unreadable, write anyway */
+const loaderEntry=r=>(r&&r.files||[]).find(f=>f.name==='Installer'&&f.kind==='code')||null;
+const loaderAction=(self,e,stored,text)=>!self||!e||typeof text!=='string'?'skip':stored===text?'same':'write';
 /* ==== END PURE ==== */
 const $=i=>document.getElementById(i),esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const CL=window.CL||{repo:'',tag:'',base:''},SELF=(/\/script\/(\d+)\//.exec(location.pathname)||[])[1];
@@ -168,7 +172,12 @@ f+='<div class="c"><button id="go" disabled>'+PL.btn+'</button><div class="er" i
 $('app').innerHTML=f;sync()}
 function sync(){const need=['c_ok','c_stop'].every(k=>!$(k)||$(k).checked);if($('go'))$('go').disabled=BUSY||!need;
 if($('h_forget')){const ok=($('ap_pass').value||'').length>=8;$('h_forget').disabled=!ok;if(!ok)$('h_forget').checked=false}}
-async function fetchAll(){const out={};for(const n of PLAN.write){const f=REL.files.find(x=>x.name===n);log('Downloading '+esc(n)+'&hellip;');const t=await ftxt(BASE+f.path),e=verifyFile(f,t);if(e)throw new Error(e);out[n]=t}return out}
+async function fetchAll(){const out={},ld=loaderEntry(REL);for(const n of PLAN.write.concat(SELF&&ld?['Installer']:[])){const f=REL.files.find(x=>x.name===n);log('Downloading '+esc(n)+'&hellip;');const t=await ftxt(BASE+f.path),e=verifyFile(f,t);if(e)throw new Error(e);out[n]=t}return out}
+/* the page is client side: the stopped Installer script can be rewritten under it; a failure only means the old loader stays */
+async function putLoader(t){try{const id=Number(SELF),a=loaderAction(SELF,loaderEntry(REL),await code(id).catch(()=>null),t);if(a==='skip')return;if(a==='same'){log('The installer is up to date.','ok');return}
+log('Updating the installer&hellip;');const cs=chunks(t,4000);for(let i=0;i<cs.length;i++)await rpc('Script.PutCode',{id:id,code:cs[i],append:i>0});
+if(await code(id)!==t)throw new Error('stored code differs from the download');log('Installer updated.','ok')}
+catch(e){log('The installer could not be updated ('+esc(e.message)+'). ChargeLens works; the next Check for updates may first offer this version again (Use version).','wn')}}
 async function putScript(L,n,t,f){let id=idOf(L,n);if(id===null){id=(await rpc('Script.Create',{name:n})).id;L.push({id:id,name:n})}
 const cs=chunks(t,4000);for(let i=0;i<cs.length;i++)await rpc('Script.PutCode',{id:id,code:cs[i],append:i>0});
 if(await code(id)!==t)throw new Error(n+': stored code differs from the download');
@@ -196,6 +205,7 @@ try{await rpc('Script.Start',{id:mid})}catch(e){throw new Error('the meter did n
 let pid=null,up=false;
 for(let i=0;i<60&&!up;i++){await sleep(2000);const L2=await list().catch(()=>[]),p=L2.find(s=>s.name==='Page'&&s.running);if(p){pid=p.id;up=await g('/script/'+pid+'/data').then(d=>d&&d.w!==undefined).catch(()=>false)}}
 if(!up)log('The page did not answer within two minutes. The meter may still be starting: reload this address in a minute.','wn');else log('The page answers.','ok');
+await putLoader(files.Installer);
 let tail='';
 if(!upd){const pw=$('ap_pass').value,ss=$('ap_ssid').value.trim();
 if(pw&&pw.length>=8&&ss&&ss.length<=32){

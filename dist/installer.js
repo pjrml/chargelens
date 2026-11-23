@@ -1,6 +1,6 @@
-// ChargeLens Installer v1.0.0-rc.6
+// ChargeLens Installer v1.0.0-rc.7
 let REPO = "pjrml/chargelens";
-let TAG = "v1.0.0-rc.6";
+let TAG = "v1.0.0-rc.7";
 let BOOT = "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"utf-8\">" +
 "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>ChargeLens installer</title></head>" +
 "<body style=\"background:#0b1221;color:#94a3b8;font-family:sans-serif;padding:16px\"><div id=\"m\">Loading the installer...</div><script>" +

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 1.0.0-rc.7 (2026-11-23)
+
+- Update: the install page now also updates the `Installer` script on the plug (it kept the version of the first
+  install), so *Check for updates* after an update shows the installed version as up to date instead of offering it
+  again next to a "newer than this installer" error.
 - Developer CLI: `tools/drive.py` runs the update (or any click sequence) through a plug's pages in headless
   Edge.
 

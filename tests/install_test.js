@@ -248,3 +248,19 @@ t("planLine", function () {
   eq("same text", s.t, "ChargeLens 1.0.0-rc.2 is installed and up to date. Reinstall writes the same version again (repair): Meter.");
   eq("unknown installed", planLine("update", null, "1.0.0", "Meter").t, "Update of ChargeLens ? to 1.0.0: Meter.");
 });
+
+t("loader_entry", function () {
+  eq("found", loaderEntry(REL).name, "Installer");
+  eq("none", loaderEntry({files: [F("Meter", "code", true)]}), null);
+  eq("data named Installer", loaderEntry({files: [F("Installer", "data", false)]}), null);
+  eq("no release", loaderEntry(null), null);
+});
+t("loader_action", function () {
+  let e = F("Installer", "code", false);
+  eq("stale", loaderAction("7", e, "old", "new"), "write");
+  eq("same", loaderAction("7", e, "new", "new"), "same");
+  eq("not opened through the loader", loaderAction(undefined, e, "old", "new"), "skip");
+  eq("release without a loader", loaderAction("7", null, "old", "new"), "skip");
+  eq("download missing", loaderAction("7", e, "old", undefined), "skip");
+  eq("stored unreadable still written", loaderAction("7", e, null, "new"), "write");
+});
