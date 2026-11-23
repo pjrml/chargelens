@@ -51,6 +51,8 @@ Timer.set(1500, false, function () {
     // The console shows print() only with websocket debug logs on: turn them on if the user did not press Enable.
     let c = Shelly.getComponentConfig("sys");
     if (!(c && c.debug && c.debug.websocket && c.debug.websocket.enable)) {
+      // Remember that the installer (not the user) turned them on, so Leave can put them back.
+      Shelly.call("KVS.Set", {key: "cc:dbgon", value: "1"});
       Shelly.call("Sys.SetConfig", {config: {debug: {websocket: {enable: true}}}});
     }
     // Print the address at 0, 3, 10 and 30 s, so a console opened (or reloaded) after Start still shows it.

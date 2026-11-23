@@ -56,16 +56,16 @@
       "path": "dist/installer.js",
       "kind": "code",
       "enable": false,
-      "size": 3251,
-      "crc32": 2700390464
+      "size": 3306,
+      "crc32": 1777917765
     },
     {
       "name": "InstallHtml",
       "path": "dist/install.html",
       "kind": "data",
       "enable": false,
-      "size": 29155,
-      "crc32": 3925784740
+      "size": 30691,
+      "crc32": 3066407730
     }
   ],
   "builds": {
@@ -128,16 +128,16 @@
           "path": "dist/installer.js",
           "kind": "code",
           "enable": false,
-          "size": 3251,
-          "crc32": 2700390464
+          "size": 3306,
+          "crc32": 1777917765
         },
         {
           "name": "InstallHtml",
           "path": "dist/install.html",
           "kind": "data",
           "enable": false,
-          "size": 29155,
-          "crc32": 3925784740
+          "size": 30691,
+          "crc32": 3066407730
         }
       ]
     },
@@ -199,16 +199,16 @@
           "path": "dist/installer.js",
           "kind": "code",
           "enable": false,
-          "size": 3251,
-          "crc32": 2700390464
+          "size": 3306,
+          "crc32": 1777917765
         },
         {
           "name": "InstallHtml",
           "path": "dist/install.html",
           "kind": "data",
           "enable": false,
-          "size": 29155,
-          "crc32": 3925784740
+          "size": 30691,
+          "crc32": 3066407730
         }
       ]
     }

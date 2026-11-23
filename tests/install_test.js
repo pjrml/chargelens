@@ -306,3 +306,12 @@ t("plan_pm_build", function () {
   eq("loader", loaderEntry(r).name, "Installer");
   eq("pm path", r.files[0].path, "dist/plugpmg3/Meter");
 });
+
+t("fs_short", function () {
+  var fl = function (n, size) { return {name: n, size: size}; };
+  eq("fits, growth within free", fsShort(4096, [fl("A", 1000), fl("B", 500)], {A: 700, B: 600}), null);
+  eq("shrink needs nothing", fsShort(0, [fl("A", 100)], {A: 500}), null);
+  eq("new file too big", fsShort(4096, [fl("A", 6000)], {}), 1904);
+  eq("growth sums", fsShort(500, [fl("A", 1000), fl("B", 1000)], {A: 700, B: 700}), 100);
+  eq("unknown free = no check", fsShort(undefined, [fl("A", 99999)], {}), null);
+});

@@ -36,6 +36,7 @@ else if (r.scripts[i].name === "Installer") taken = true;
 if (me !== null && me !== "Installer" && !taken) Shelly.call("Script.SetConfig", {id: id, config: {name: "Installer"}});
 let c = Shelly.getComponentConfig("sys");
 if (!(c && c.debug && c.debug.websocket && c.debug.websocket.enable)) {
+Shelly.call("KVS.Set", {key: "cc:dbgon", value: "1"});
 Shelly.call("Sys.SetConfig", {config: {debug: {websocket: {enable: true}}}});
 }
 let gaps = [3000, 7000, 20000], k = 0;

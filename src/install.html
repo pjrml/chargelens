@@ -23,6 +23,7 @@ document.querySelector('img.lg').src=document.querySelector('link[rel=icon]').hr
 /* ==== PURE ==== */
 /*@lib cfg_lib.js*/
 const MODELS={"SNPL-00112EU":{gen:2,maxA:12,maxW:2500,build:"plugs",relay:1},"EF3PL-00112EU":{gen:3,maxA:12,maxW:2500,build:"plugs",relay:1},"S3PL-30116EU":{gen:3,maxA:16,maxW:3680,build:"plugpmg3",relay:0}};
+const RISK='ChargeLens is provided &quot;as is&quot;, without warranty of any kind, and the author accepts no responsibility or liability for any damage, injury, fire, loss of data, wrong readings or wrong bills. Charging a car draws high current for hours: check the ratings of the plug, the charger and the socket. You alone are responsible.';
 const NOCUT='This plug has no relay: it cannot cut the load, and ChargeLens cannot either. Overload protection is only the circuit breaker. Keep your charger below the plug rating (16 A) and the circuit rating.';
 /* relay protection read from Switch.GetConfig, for the charger confirmation; null when unreadable */
 const cutText=sw=>{if(!sw||typeof sw!=='object')return null;const n=k=>typeof sw[k]==='number'?sw[k]:'?';return n('current_limit')+' A / '+n('power_limit')+' W / '+n('voltage_limit')+' V'};
@@ -97,6 +98,9 @@ return{ok:null,btn:'Update',t:'Update of ChargeLens '+(inst||'?')+' to '+ver+': 
 const relFor=(rel,b)=>rel&&rel.builds&&Object.prototype.hasOwnProperty.call(rel.builds,b)?Object.assign({},rel,{files:rel.builds[b].files}):rel&&!rel.builds&&b==='plugs'?rel:null;
 /* the meter component's status URL: the relay plugs read switch:0, the Plug PM Gen3 pm1:0 */
 const meterUrl=m=>m&&m.relay?'/rpc/Switch.GetStatus?id=0':'/rpc/PM1.GetStatus?id=0';
+/* free space (rc.10): the files are rewritten in place, so only growth needs room; old = stored sizes by name (missing = new file);
+   returns null when it fits, else the shortfall in bytes */
+const fsShort=(free,files,old)=>{let need=0;files.forEach(f=>{const o=old&&typeof old[f.name]==='number'?old[f.name]:0;if(f.size>o)need+=f.size-o});return typeof free!=='number'||need<=free?null:need-free};
 /* the Installer loader of the release (rc.7): written over the running page's own script (self = its id) after the
    meter is up, so the next Check for updates loads this release's page; stored null = unreadable, write anyway */
 const loaderEntry=r=>(r&&r.files||[]).find(f=>f.name==='Installer'&&f.kind==='code')||null;
@@ -117,7 +121,8 @@ function log(t,c){$('logc').style.display='';const d=document.createElement('div
 /* the installer runs as the 4th script: stopping Led and Page made room for it (setup page, Check for updates); leaving restarts them */
 const halt=h=>{$('app').innerHTML='<div class="c">'+h+'</div><div class="c"><button id="back">Leave without changes</button><div class="mu" style="margin-top:6px">Restarts the Led and Page scripts if they were stopped to make room for this installer.</div></div>'};
 async function restore(names){const L=await list();for(const n of restoreList(names)){const x=L.find(y=>y.name===n);if(x&&!x.running)await rpc('Script.Start',{id:x.id}).catch(()=>{})}return L}
-async function leave(){$('back').disabled=true;try{if(SELF)await rpc('Script.Stop',{id:Number(SELF)}).catch(()=>{});const L=await restore(['Meter','Led','Page']),p=L.find(x=>x.name==='Page');
+async function dbgBack(){try{await rpc('KVS.Get',{key:'cc:dbgon'})}catch(e){return}try{await rpc('Sys.SetConfig',{config:{debug:{websocket:{enable:false}}}});await rpc('KVS.Delete',{key:'cc:dbgon'})}catch(e){}}
+async function leave(){$('back').disabled=true;try{await dbgBack();if(SELF)await rpc('Script.Stop',{id:Number(SELF)}).catch(()=>{});const L=await restore(['Meter','Led','Page']),p=L.find(x=>x.name==='Page');
 $('app').innerHTML='<div class="c">Left without changes.'+(p?' <a href="/script/'+p.id+'/ui">Open the daily page</a>':'')+'</div>'}catch(e){$('back').disabled=false;log('Could not leave cleanly: '+esc(e.message),'er')}}
 let HM='',DI={},MODEL=null,CUT=null,REL=null,PLAN=null,LAT=null,CUR={},BASE=CL.base,TZ='',BUSY=false;
 function loadTag(tag){if(!tagOk(tag)||!SELF)throw new Error('bad tag');location.href='/script/'+SELF+'/install?tag='+tag}
@@ -159,6 +164,7 @@ CUR=await curState();TZ=(()=>{try{return Intl.DateTimeFormat().resolvedOptions()
 const PL=planLine(PLAN.mode,hdrVer(HM)===null?null:esc(hdrVer(HM)),esc(REL.version),PLAN.write.map(esc).join(', '));h+=row(PL.ok,PL.t);
 if(upd)h+='<div class="mu">Your settings, mail template and energy log are kept.</div>';
 let f='<div class="c">'+h+'</div>';
+f+='<div class="c"><div class="lab">Use at your own risk</div><div class="mu" style="color:var(--warn)">&#9888; '+RISK+'</div></div>';
 f+=!MODEL.relay?'<div class="c"><div class="lab">No cut-off</div><div class="mu" style="color:var(--warn)">&#9888; '+NOCUT+'</div>'+ck('c_ok','I understand: this plug cannot switch the power off.',false)+'</div>':'<div class="c"><div class="lab">Charger</div>'+'<div class="mu">'+(cutText(CUT)?'The plug cuts the power above '+cutText(CUT)+' (its relay protection, set in the Shelly web UI).':"The plug's relay protection could not be read: check it in the Shelly web UI (Output protections).")+'</div>'+ck('c_ok','My charger is limited below these values.',false)+'</div>';
 if(PLAN.stop.length||PLAN.disable.length){const ns=PLAN.stop.filter(n=>['Led','Page','Meter'].indexOf(n)<0);
 if(ns.length||PLAN.disable.length)f+='<div class="c"><div class="lab">Other scripts</div><div class="mu">The plug runs at most 3 scripts and ChargeLens needs all 3. Nothing is deleted.</div>'+
@@ -195,6 +201,9 @@ try{
 const files=await fetchAll();
 if(upd&&!await idle())throw new Error('The plug started charging. Nothing was changed; try again when the car is unplugged.');
 const L=await list(),own=['Led','Page','Meter'];
+{const old={};for(const n of PLAN.write.concat(SELF&&loaderEntry(REL)?['Installer']:[])){const id=idOf(L,n);if(id!==null)old[n]=await g('/rpc/Script.GetCode?id='+id+'&offset=0&len=1').then(r=>1+r.left,()=>0)}
+const st=await g('/rpc/Sys.GetStatus').catch(()=>null),sh=fsShort(st&&st.fs_free,PLAN.write.concat(SELF&&loaderEntry(REL)?['Installer']:[]).map(n=>REL.files.find(x=>x.name===n)),old);
+if(sh!==null)throw new Error('the plug file system is too full ('+sh+' bytes short). Nothing was changed. Free space by deleting scripts you do not need, then try again')}
 for(const n of PLAN.stop){log('Stopping '+esc(n));await stopS(L,n);stopped.push(n)}
 for(const n of PLAN.disable){const id=idOf(L,n);if(id!==null)await rpc('Script.SetConfig',{id:id,config:{enable:false}})}
 wrote=true;$('back').style.display='none';
@@ -205,6 +214,7 @@ if(tz){await rpc('Sys.SetConfig',{config:{location:{tz:TZ}}});log('Time zone set
 if(upd){const cd=await g('/rpc/Sys.GetConfig').then(dbgOn).catch(()=>null);for(const p of hardenPlan({dbg:cd},{dbg:true})){try{await rpc(p.rpc,p.params);log(esc(p.label),'ok')}catch(e){log(esc(p.label)+' failed: '+esc(e.message),'er')}}}
 if(!upd){const on=k=>!!($(k)&&$(k).checked),b={cloud:on('h_cloud'),ble:on('h_ble'),mqtt:on('h_mqtt'),button:on('h_button'),dbg:on('h_dbg')};
 for(const p of hardenPlan(CUR,b)){try{await rpc(p.rpc,p.params);log(esc(p.label),'ok')}catch(e){log(esc(p.label)+' failed: '+esc(e.message),'er')}}}
+await rpc('KVS.Delete',{key:'cc:dbgon'}).catch(()=>{});
 log('Stopping the installer (3 scripts is the limit)&hellip;');
 if(SELF)await rpc('Script.Stop',{id:Number(SELF)}).catch(()=>{});
 const mid=idOf(L,'Meter');log('Starting the meter&hellip;');
