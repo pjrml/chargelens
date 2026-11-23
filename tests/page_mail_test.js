@@ -102,11 +102,15 @@ t("csv_header_iso", function () {
   eq("no BOM", c.charCodeAt(0), 116);
 });
 t("relay_icon_cut", function () {
+  //@if relay
   eq("on", relayIcon({output: true, errors: []}), "on");
   eq("off", relayIcon({output: false}), "off");
   eq("overcurrent", relayIcon({output: false, errors: ["overcurrent"]}), "cut");
   eq("overpower", relayIcon({output: false, errors: ["x", "overpower"]}), "cut");
   eq("other error", relayIcon({output: true, errors: ["overtemp"]}), "on");
+  //@else
+  eq("no relayIcon", typeof relayIcon, "undefined");
+  //@end
 });
 t("ev_text_u", function () {
   eq("U", evText("U,1794735000"), "Script restarted (update)");

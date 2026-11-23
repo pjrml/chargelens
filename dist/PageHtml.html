@@ -232,7 +232,8 @@ const nowU=()=>D&&D.unix>1.7e9?D.unix:Math.floor(Date.now()/1000);const tkey=()=
 async function sync(){const now=Math.floor(Date.now()/1000);if(!(D.unix>1.7e9)||Math.abs(D.unix-now)>60){await j('time?set='+now);D=await j('data?m='+tkey().slice(0,6))}}
 function show(){const t=new Date((D.unix+D.off)*1000);const ok=D.unix>1.7e9;
 $('clk').innerHTML=ok?t.toLocaleDateString(navigator.language,{weekday:'short',timeZone:'UTC'})+' '+fd(tkey())+' &middot; '+pad(t.getUTCHours())+':'+pad(t.getUTCMinutes())+' <span style="color:var(--ok)">&#10003;</span>':'<span style="color:var(--warn)">&#9888; clock unknown &ndash; setting&hellip;</span>';
-$('w').textContent=fmtW(D.w,CFG.ds);const R=$('rel'),ic=relayIcon({output:D.on,errors:D.er});R.className='sw '+ic;R.setAttribute('aria-checked',D.on?'true':'false');$('rs').textContent=ic==='cut'?'Cut by protection':D.on?'On':'Off';
+$('w').textContent=fmtW(D.w,CFG.ds);
+const R=$('rel'),ic=relayIcon({output:D.on,errors:D.er});R.className='sw '+ic;R.setAttribute('aria-checked',D.on?'true':'false');$('rs').textContent=ic==='cut'?'Cut by protection':D.on?'On':'Off';
 const tk=tkey(),mk=tk.slice(0,6);let m=pm(D.m);if(D.k!==mk)m=null;if(m)months[mk]=m;else m={s:0,days:[]};
 $('td').textContent=fmtWh(todayWh(D,D.k===mk?m:null,tk),CFG.ds);$('mn').textContent=mname(mk);$('mt').textContent=fmtWh(monthWh(D,m,mk,tk),CFG.ds)}
 async function tick(){try{const was=D?D.on:null;D=await j('data'+(D?'?m='+tkey().slice(0,6):''));show();if(was!==null&&was!==D.on)setTimeout(refLog,2500)}catch(e){$('clk').textContent='no connection to the plug'}}

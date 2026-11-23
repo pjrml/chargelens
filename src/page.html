@@ -20,7 +20,9 @@ input[type=checkbox]{width:20px;height:20px;margin:0 10px 0 0;padding:0;vertical
 <div class="c"><div class="hd"><h1><img class="lg" alt="">ChargeLens</h1><nav class="nv"><a class="on" aria-current="page">Daily</a><a href="ui?p=setup">Setup</a></nav></div><div class="mu" id="clk">&hellip;</div><button id="ts" class="sm">&#128339; Set the clock from this phone</button><div class="mu" id="tsr"></div></div>
 <div class="c">
 <div class="r"><span class="lab">Now</span><span class="big" id="w">&ndash;</span></div>
+<!--@if relay-->
 <div class="r"><span class="lab">Relay</span><span><span class="mu" id="rs"></span><button id="rel" class="sw" role="switch" aria-checked="false" aria-label="Relay"><span class="k">&#9889;&#xFE0E;</span></button></span></div>
+<!--@end-->
 <div class="r"><span class="lab">Today</span><span class="big" id="td">&ndash;</span></div>
 <div class="r"><span class="lab" id="mn">Month</span><span class="big" id="mt">&ndash;</span></div>
 <div class="adj" id="pend"></div></div>
@@ -102,7 +104,9 @@ let c=r(['type','date','start','end','min','wh','kwh','cost','flags']);
 days.forEach(d=>c+=r(['day',d[0],'','','',d[1],k3(d[1]),'','']));months.forEach(d=>c+=r(['month',d[0],'','','',d[1],k3(d[1]),'','']));
 sessions.forEach(s=>c+=r(['session',s.day,s.hhmm||'',s.end||'',s.min,s.wh,k3(s.wh),s.cost===undefined?'':s.cost,s.f||'']));
 events.forEach(e=>c+=r(['event',e.date,e.time,'','','','','',e.text]));return c}
+//@if relay
 function relayIcon(sw){const e=sw.errors||[];return e.indexOf('overcurrent')>=0||e.indexOf('overpower')>=0?'cut':sw.output?'on':'off'}
+//@end
 /* events: raw line "R,stamp,1/source" -> text (stamps are resolved by evLines) */
 function evText(l){const p=l.split(','),x=(p[2]||'').split('/');
 if(p[0]==='R')return 'Relay '+(x[0]==='1'?'on':'off')+' ('+(x[1]||'?')+')';
@@ -160,7 +164,10 @@ const nowU=()=>D&&D.unix>1.7e9?D.unix:Math.floor(Date.now()/1000);const tkey=()=
 async function sync(){const now=Math.floor(Date.now()/1000);if(!(D.unix>1.7e9)||Math.abs(D.unix-now)>60){await j('time?set='+now);D=await j('data?m='+tkey().slice(0,6))}}
 function show(){const t=new Date((D.unix+D.off)*1000);const ok=D.unix>1.7e9;
 $('clk').innerHTML=ok?t.toLocaleDateString(navigator.language,{weekday:'short',timeZone:'UTC'})+' '+fd(tkey())+' &middot; '+pad(t.getUTCHours())+':'+pad(t.getUTCMinutes())+' <span style="color:var(--ok)">&#10003;</span>':'<span style="color:var(--warn)">&#9888; clock unknown &ndash; setting&hellip;</span>';
-$('w').textContent=fmtW(D.w,CFG.ds);const R=$('rel'),ic=relayIcon({output:D.on,errors:D.er});R.className='sw '+ic;R.setAttribute('aria-checked',D.on?'true':'false');$('rs').textContent=ic==='cut'?'Cut by protection':D.on?'On':'Off';
+$('w').textContent=fmtW(D.w,CFG.ds);
+//@if relay
+const R=$('rel'),ic=relayIcon({output:D.on,errors:D.er});R.className='sw '+ic;R.setAttribute('aria-checked',D.on?'true':'false');$('rs').textContent=ic==='cut'?'Cut by protection':D.on?'On':'Off';
+//@end
 const tk=tkey(),mk=tk.slice(0,6);let m=pm(D.m);if(D.k!==mk)m=null;if(m)months[mk]=m;else m={s:0,days:[]};
 $('td').textContent=fmtWh(todayWh(D,D.k===mk?m:null,tk),CFG.ds);$('mn').textContent=mname(mk);$('mt').textContent=fmtWh(monthWh(D,m,mk,tk),CFG.ds)}
 async function tick(){try{const was=D?D.on:null;D=await j('data'+(D?'?m='+tkey().slice(0,6):''));show();if(was!==null&&was!==D.on)setTimeout(refLog,2500)}catch(e){$('clk').textContent='no connection to the plug'}}
@@ -191,7 +198,9 @@ if(!sel.length||!v||v<r.lo||v>r.hi){$('udr').textContent='Pick the day from the 
 $('uda').disabled=true;$('udr').textContent='assigning...';
 try{for(const x of sel)await j('time?boot='+x.n+'&up='+x.up+'&day='+v.replace(/-/g,''))}catch(e){$('udr').textContent='Failed ('+e+')';$('uda').disabled=false;return}
 setTimeout(async()=>{months={};await hist();$('udr').textContent='Assigned to '+fd(v)+'.'},1500+800*sel.length)};
+//@if relay
 $('rel').onclick=async()=>{if(!D)return;const on=!D.on;if(!on&&!confirm('Turn the socket off? Charging stops.'))return;await fetch('/rpc/Switch.Set?id=0&on='+on);tick()};
+//@end
 $('ts').onclick=async()=>{const now=Math.floor(Date.now()/1000);try{const r=await j('time?set='+now);$('tsr').textContent='Clock set'+(r.prev>1.7e9?' (difference: '+(now-r.prev)+' s)':'');tick()}catch(e){$('tsr').textContent='Could not set the clock'}};
 (async()=>{try{CFG=cfgParse((await g('/rpc/KVS.Get?key=cc:cfg')).value)}catch(e){}
 scode('MailTpl').then(c=>{try{MT=JSON.parse(c)}catch(e){}}).catch(e=>{});g('/rpc/Shelly.GetDeviceInfo').then(r=>{DN=r.name||''}).catch(e=>{});

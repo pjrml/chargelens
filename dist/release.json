@@ -32,8 +32,8 @@
       "path": "dist/PageHtml.html",
       "kind": "data",
       "enable": false,
-      "size": 28714,
-      "crc32": 1715520515
+      "size": 28715,
+      "crc32": 747924763
     },
     {
       "name": "SetupHtml",
@@ -104,8 +104,8 @@
           "path": "dist/PageHtml.html",
           "kind": "data",
           "enable": false,
-          "size": 28714,
-          "crc32": 1715520515
+          "size": 28715,
+          "crc32": 747924763
         },
         {
           "name": "SetupHtml",
@@ -175,8 +175,8 @@
           "path": "dist/plugpmg3/PageHtml.html",
           "kind": "data",
           "enable": false,
-          "size": 28714,
-          "crc32": 1715520515
+          "size": 27986,
+          "crc32": 1545547448
         },
         {
           "name": "SetupHtml",
