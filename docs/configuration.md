@@ -58,6 +58,8 @@ relay; energy keeps counting.
 
 *Not on the Plug PM Gen3: it has no relay, so the setup page shows a "No cut-off" card there (the plug cannot cut the load; the only protection is the circuit breaker) and no Relay protection or Button settings.*
 
+<img src="assets/screenshots/setup-thresholds-plugpm.png" alt="Setup page on a Plug PM Gen3: thresholds up to 16 A and the No cut-off card" width="300">
+
 The plug's own relay protection, kept in the plug and **shown read-only** on the setup page:
 
 | Shown | Meaning |

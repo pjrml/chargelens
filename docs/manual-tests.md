@@ -114,10 +114,12 @@ maintainer publishes it when the test is due). Start from a plug installed by te
   version (or *A newer version is available* with a *What changed* link and a button for it).
 - [ ] **4.2 Refused while charging.**
   1. Plug in a load above the residual current (or start a charge).
-  2. Press **Update**.
+  2. Press **Check for updates** on the setup page.
 
-  Expected: *The plug is charging or a session is open*; nothing is written (the *About* version and the
-  energy log are unchanged).
+  Expected: the setup page refuses at once (*An open charging session or current above the residual threshold:
+  update after charging.*). If the load starts only after the install page is open, **Update** (or **Check
+  again**) refuses with *The plug is charging or a session is open*. Either way nothing is written (the *About*
+  version and the energy log are unchanged).
 - [ ] **4.3 Same version.** Open the install page again after the update.
 
   Expected: *ChargeLens X is installed and up to date* with a check mark; the button says **Reinstall**; no
@@ -126,7 +128,8 @@ maintainer publishes it when the test is due). Start from a plug installed by te
 - [ ] **4.4 Leave without changes.**
   1. Press **Leave without changes**.
 
-  Expected: `Led` and `Page` run again and the daily page works.
+  Expected: `Led` and `Page` run again and the daily page works. If the install page had turned the websocket
+  debug logs on, **Settings -> Debug** in the Shelly web UI shows *Websocket debug* off again.
 - [ ] **4.5 Update when idle.**
   1. Unplug the load.
   2. Press **Check for updates** again.

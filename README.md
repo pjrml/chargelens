@@ -90,6 +90,8 @@ not about safety (see the caution at the top). Other Shelly devices with meterin
 > The installer shows this and asks you to tick "I understand: this plug cannot switch the power off". The daily
 > page has no relay switch and the setup page has no relay protection or button settings on this model.
 
+<p align="center"><img src="docs/assets/screenshots/daily-page-plugpm.png" alt="ChargeLens daily page on a Plug PM Gen3: power now, today, month and history, no relay switch" width="300"></p>
+
 > **Charger requirement: stay below the plug's relay protection.** These plugs are rated 12 A / 2500 W. Limit your
 > car or charger **below the relay protection values** of the plug (the installer and the setup page show them).
 > Above them the plug's relay switches the power off by itself. A charger that draws more than the plug is rated

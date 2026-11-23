@@ -115,6 +115,14 @@ GitHub, so the browser needs internet. The page then runs these checks and scree
 | Hardening | Cloud, Bluetooth and MQTT off, button does nothing, websocket debug logs off (all ticked by default; each says what you lose), and an optional "Forget the home Wi-Fi at the end (recommended)" (off by default). |
 | Progress | Downloads each file, checks size and checksum, writes the scripts, reads them back, starts the meter and waits for the page. |
 
+On the Plug PM Gen3 the page looks like this (the *No cut-off* card replaces *Charger*, with a required tick):
+
+<img src="assets/screenshots/install-checks-plugpm.png" alt="Install page on a Plug PM Gen3: use at your own risk, No cut-off with the I understand box, setup and hardening" width="300">
+
+Pressing *Leave without changes* restarts the scripts that were stopped and puts the websocket debug logs back off if the
+installer had turned them on. Before writing, the page checks that the plug's file system has room; if not it stops with
+nothing changed.
+
 When it finishes it shows **Installed** with a link to the setup page and opens it a few seconds later; the
 setup page links to the daily page. If you set an access point it also tells you how to reconnect: the plug's
 network changes, so your phone may lose it.
