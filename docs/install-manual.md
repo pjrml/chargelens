@@ -10,6 +10,10 @@ plug's web UI. It is longer, but always works.
 > is rated 12 A / 2500 W). Read them in the Shelly web UI (Output protections); the setup page shows them too,
 > after the install.
 
+**Plug PM Gen3:** use the files in `dist/plugpmg3/` (same names; the `Installer` stays in `dist/`) instead of `dist/`; the raw link pattern becomes
+`https://raw.githubusercontent.com/pjrml/chargelens/<tag>/dist/plugpmg3/<file>`. That plug has no relay and cannot
+cut the load.
+
 Prerequisites as in [install.md](install.md): a tested plug model, firmware up to date, and no other scripts running
 (the plug runs at most 3 at once).
 

@@ -1,4 +1,4 @@
-// ChargeLens Led v1.0.0-rc.9
+// ChargeLens Led v1.0.0-rc.10
 let K = {r: 0.1, g: 5, y: 11, h: 0.3, hr: 0.05, hs: 10, lo: 1, lb: 50};
 function L(n, t, d) {
 if (!t || n <= d.r) return 0;

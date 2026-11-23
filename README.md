@@ -22,7 +22,7 @@
 > meanwhile. Details: [docs/usage.md](docs/usage.md#the-clock-and-undated-charges).
 
 Offline energy logger for charging an electric car from a socket someone else pays for (a condominium, an
-employer, a landlord, family). ChargeLens runs as scripts on a **Shelly Plus Plug S**: it keeps daily and monthly
+employer, a landlord, family). ChargeLens runs as scripts on a **Shelly plug** (Plus Plug S, Plug S Gen3 or Plug PM Gen3): it keeps daily and monthly
 totals and charging sessions on the plug itself (no cloud, no hub, no internet needed, survives power cuts), shows
 them on a phone page served by the plug, and prepares a monthly report by e-mail or CSV.
 
@@ -73,10 +73,22 @@ car charging before publishing. Tests run on real devices and in a headless brow
 
 ## Tested hardware
 
-ChargeLens was developed and tested on the Shelly **Plus Plug S** (Gen2) and the Shelly **Plug S Gen3**,
-including rebranded variants that run Shelly firmware (e.g. EcoFlow x Shelly). The installer accepts only these
-models. "Tested" means only that the software was tested on them; it is no warranty of any kind, in particular
+ChargeLens was developed and tested on the Shelly **Plus Plug S** (Gen2), the Shelly **Plug S Gen3** (including
+rebranded variants that run Shelly firmware, e.g. EcoFlow x Shelly) and the Shelly **Plug PM Gen3**. The installer
+accepts only these models. "Tested" means only that the software was tested on them; it is no warranty of any kind, in particular
 not about safety (see the caution at the top). Other Shelly devices with metering may follow.
+
+| Model | Rating | Relay | LED ring | Notes |
+|---|---|---|---|---|
+| Plus Plug S (Gen2, `SNPL-00112EU`) | 12 A / 2500 W | yes | yes | Reference model: the code targets its limits. |
+| Plug S Gen3 (`EF3PL-00112EU`, EcoFlow x Shelly) | 12 A / 2500 W | yes | yes | Same behaviour as the Plus Plug S. |
+| Plug PM Gen3 (`S3PL-30116EU`) | 16 A | **no** | yes | Metering only: see the warning below. |
+
+> [!WARNING]
+> **The Plug PM Gen3 has no relay.** ChargeLens logs the energy and shows the colours, but the plug **cannot switch
+> the load off**, and neither can ChargeLens. The only overload protection is the circuit breaker of the socket.
+> The installer shows this and asks you to tick "I understand: this plug cannot switch the power off". The daily
+> page has no relay switch and the setup page has no relay protection or button settings on this model.
 
 > **Charger requirement: stay below the plug's relay protection.** These plugs are rated 12 A / 2500 W. Limit your
 > car or charger **below the relay protection values** of the plug (the installer and the setup page show them).

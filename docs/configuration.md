@@ -56,6 +56,8 @@ relay; energy keeps counting.
 
 ## Relay protection
 
+*Not on the Plug PM Gen3: it has no relay, so the setup page shows a "No cut-off" card there (the plug cannot cut the load; the only protection is the circuit breaker) and no Relay protection or Button settings.*
+
 The plug's own relay protection, kept in the plug and **shown read-only** on the setup page:
 
 | Shown | Meaning |
@@ -94,6 +96,8 @@ Notes:
   see the caution in the [README](../README.md).
 
 ## Button
+
+*Not on the Plug PM Gen3 (no relay, no button component).*
 
 *Button does nothing* (default, `detached`) or *toggles the relay*. In the default mode only the page's relay
 toggle switches the relay, and button presses leave no trace (the plug emits no event for them). In the toggle mode

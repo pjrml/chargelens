@@ -24,7 +24,7 @@ rewrites the `Installer` with the installed version's loader.
 
 ## Device limits that shape the code
 
-Verified on a Plus Plug S (firmware 1.7.x) and a Plug S Gen3; the code targets the smaller Gen2 limits.
+Verified on a Plus Plug S (firmware 1.7.x), a Plug S Gen3 and a Plug PM Gen3 (same 25 KB script heap, 10 stored / 3 running scripts); the code targets the smaller Gen2 limits.
 
 - 3 scripts enabled, 3 running, 10 stored; one script at most 65535 bytes.
 - About 25 KB of heap shared by all running scripts. Heap is spent on declared functions (~27 B each plus the

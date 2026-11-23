@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## 1.0.0-rc.10 (2026-11-23)
+
+- Installer: *Leave without changes* now puts the websocket debug logs back off when the installer had turned them
+  on (it remembers that in the plug's `cc:dbgon` key; a finished install or update deletes the key).
+- Installer: before writing, it checks that the plug's file system has room for the growth of the files it rewrites,
+  and stops with nothing changed when it does not (the Plus Plug S keeps only a few KB free).
+- Installer: a "Use at your own risk" card with the README disclaimer is shown before anything is written.
+- Docs: the Plug PM Gen3 is in the supported-models list and the model table of the README, with its no-relay
+  warning; screenshots of the Plug PM Gen3 pages and a retaken mail card and install page.
+
 ## 1.0.0-rc.9 (2026-11-23)
 
 - New model: the Shelly Plug PM Gen3 (metering only, no relay). The meter reads its `pm1:0` component, the LED ring

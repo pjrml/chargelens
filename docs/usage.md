@@ -38,9 +38,12 @@ in its band for 10 seconds (the band hold time), so short spikes do not make it 
 
 The ring can be dimmed or turned off on the setup page; the plug keeps counting either way.
 
+On the Plug PM Gen3 (no relay) the ring is never dark: it shows blue, red, green and yellow by current (purple and
+orange when the clock is unknown), and nothing is cut at any colour.
+
 ## The daily page
 
-- **Now** (current power), **Relay** (a switch with a lightning icon: yellow on, grey off, red when the plug cut
+- **Now** (current power), **Relay** (not on the Plug PM Gen3; a switch with a lightning icon: yellow on, grey off, red when the plug cut
   itself off for overcurrent or overpower), **Today** and the **Month** total, in kWh and (with a price) in
   money.
 - **History**: the months kept on the plug (six).

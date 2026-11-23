@@ -3,14 +3,18 @@
 What to do with a new plug before installing ChargeLens. You need the plug, a phone or computer, and (once, for the
 install) a Wi-Fi network with internet access.
 
-> **Charger requirement.** The plug is rated 12 A / 2500 W. Limit your car or charger **below the plug's relay
-> protection values** before you plug it in (the installer shows them). Above them the plug's relay cuts the
-> power, and a charger that draws more than the plug is rated for can overheat the plug or the socket. The
-> installer asks you to confirm this.
+> **Charger requirement.** The Plus Plug S and Plug S Gen3 are rated 12 A / 2500 W. Limit your car or charger
+> **below the plug's relay protection values** before you plug it in (the installer shows them). Above them the
+> plug's relay cuts the power, and a charger that draws more than the plug is rated for can overheat the plug or
+> the socket. The installer asks you to confirm this.
+>
+> **The Plug PM Gen3 (16 A) has no relay**, so nothing cuts the power if the charger draws too much: the only
+> protection is the circuit breaker. Keep the charger below the plug rating and the circuit rating. The installer
+> asks you to confirm that you understand this.
 
-Tested models: Shelly **Plus Plug S** (Gen2, `SNPL-00112EU`) and Shelly **Plug S Gen3**, including rebranded variants
-that run Shelly firmware (for example EcoFlow x Shelly, `EF3PL-00112EU`). Anything else is refused by the
-installer. "Tested" is no warranty of any kind, in particular not about safety: you use ChargeLens at your own
+Tested models: Shelly **Plus Plug S** (Gen2, `SNPL-00112EU`), Shelly **Plug S Gen3**, including rebranded variants
+that run Shelly firmware (for example EcoFlow x Shelly, `EF3PL-00112EU`), and Shelly **Plug PM Gen3**
+(`S3PL-30116EU`, metering only, no relay). Anything else is refused by the installer. "Tested" is no warranty of any kind, in particular not about safety: you use ChargeLens at your own
 risk (see the [README](../README.md)).
 
 > **Use a plug dedicated to ChargeLens.** We recommend that the plug runs **no other scripts**: ChargeLens needs
