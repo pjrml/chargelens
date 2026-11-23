@@ -16,8 +16,8 @@
       "path": "dist/Led.js",
       "kind": "code",
       "enable": false,
-      "size": 2532,
-      "crc32": 1465366831
+      "size": 2578,
+      "crc32": 284310781
     },
     {
       "name": "Page",
@@ -88,8 +88,8 @@
           "path": "dist/Led.js",
           "kind": "code",
           "enable": false,
-          "size": 2532,
-          "crc32": 1465366831
+          "size": 2578,
+          "crc32": 284310781
         },
         {
           "name": "Page",
@@ -159,8 +159,8 @@
           "path": "dist/plugpmg3/Led.js",
           "kind": "code",
           "enable": false,
-          "size": 2532,
-          "crc32": 1465366831
+          "size": 2428,
+          "crc32": 735071949
         },
         {
           "name": "Page",

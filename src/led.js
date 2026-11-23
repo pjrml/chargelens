@@ -1,12 +1,13 @@
 // ChargeLens "Led" - status colour of the plug's RGB ring from the charging current.
 // Design: docs/superpowers/specs/2026-11-19-chargelens-design.md.
-//   dark   : relay off
+//   dark   : relay off (Plug PM Gen3 build: no relay and no dark/off colour, the ring always shows a band colour)
 //   blue   : relay on, I <= 0.1 A (idle / residual)
 //   green  : 5 A <= I <= 11 A (charging; charger minimum 6 A, cap 10 A)
 //   yellow : I > 11 A (above the cap; the plug itself cuts at 12 A = switch current_limit)
 //   red    : anything else (residual < I < 5 A, typically a charging error)
 //   v2.2: clock unknown -> blue/green/off purple, red/yellow orange (time needs attention)
-// PLUGS_UI.SetConfig writes flash: it is called only when the state changes (after a 10 s hold).
+// PLUGS_UI.SetConfig (Plug PM Gen3: plugpm_ui.SetConfig) writes flash: it is called only when the state changes
+// (after a 10 s hold).
 
 // ==== LIB ====
 // c = the cc_cfg object from Meter {r,g,y,h,hr,hs,lo,lb}; LED_DEF = defaults (until the first cc_cfg arrives)
@@ -51,10 +52,29 @@ function ledColour(b, noClock, c) {
   return {rgb: [0, 0, 100], brightness: c.lb};  // residual
 }
 
+//@if relay
 // relay off (PLUGS_UI 'off' colour): dark, or purple while the clock is unknown
 function ledOff(noClock, c) {
   if (noClock) return {rgb: [60, 0, 100], brightness: c.lb};
   return {rgb: [0, 0, 0], brightness: 0};
+}
+//@end
+
+// SetConfig params for a ledWrite result w ("band" or the off mode). The Plug PM Gen3 ring has no off colour.
+function ledParams(w, b, noClock, c) {
+  if (w !== "band") return {config: {leds: {mode: "off"}}};
+  let ch = {};
+  ch.on = ledColour(b, noClock, c);
+  //@if relay
+  ch.off = ledOff(noClock, c);
+  //@end
+  let colors = {};
+  //@if relay
+  colors["switch:0"] = ch;
+  //@else
+  colors["pm1:0"] = ch;
+  //@end
+  return {config: {leds: {mode: "switch", colors: colors}}};
 }
 
 // v2: data of the cc_band event Meter uses for sessions (0 off/residual, 1 red, 2 green, 3 yellow)
@@ -62,7 +82,13 @@ function bandEventData(b) { return {b: b}; }
 // ==== END LIB ====
 
 // ==== DEVICE ====
-let SWITCH_ID = 0;
+//@if relay
+let MC = "switch:0";  // metering component
+let UI_SET = "PLUGS_UI.SetConfig";
+//@else
+let MC = "pm1:0";
+let UI_SET = "plugpm_ui.SetConfig";
+//@end
 let POLL_MS = 2000;
 
 let cur = -1, cand = -1, candSince = 0, lastErr = "none";
@@ -76,16 +102,7 @@ function apply(b, noClock) {
   let w = ledWrite(wrote, c.lo);
   if (w !== "none") {
     wrote = w;
-    let params = {config: {leds: {mode: "off"}}};
-    if (w === "band") {
-      let ch = {};
-      ch.on = ledColour(b, noClock, c);
-      ch.off = ledOff(noClock, c);
-      let colors = {};
-      colors["switch:0"] = ch;
-      params = {config: {leds: {mode: "switch", colors: colors}}};
-    }
-    Shelly.call("PLUGS_UI.SetConfig", params, function (r, err, msg) {
+    Shelly.call(UI_SET, ledParams(w, b, noClock, c), function (r, err, msg) {
       lastErr = err ? String(err) + " " + String(msg) : "";
       if (err) { print("led: SetConfig failed: " + String(msg)); cur = -1; wrote = ""; }  // retry on next poll
     });
@@ -106,12 +123,16 @@ Shelly.addEventHandler(function (e) {
 });
 
 function poll() {
-  let sw = Shelly.getComponentStatus("switch:" + SWITCH_ID);
+  let sw = Shelly.getComponentStatus(MC);
   let sys = Shelly.getComponentStatus("sys");
   if (!sw || !sys) return;
   if (!asked) { asked = true; Shelly.emitEvent("cc_cfgq", {}); return; }  // config first, then the first write
   let nc = !clockOk(sys);
+  //@if relay
   let b = band(sw.current || 0, sw.output === true, cur, c);
+  //@else
+  let b = band(sw.current || 0, true, cur, c);
+  //@end
   if (cur < 0) { apply(b, nc); return; }
   if (nc !== curNoClock) { apply(cur, nc); return; }  // clock set or lost: recolour now, same band
   if (b === cur) { cand = -1; return; }

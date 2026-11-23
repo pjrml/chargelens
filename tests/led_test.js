@@ -26,7 +26,9 @@ t("hysteresis", function () {
 
 t("colours", function () {
   eq("residual blue", ledColour(0, false, LED_DEF), {rgb: [0, 0, 100], brightness: 50});
+  //@if relay
   eq("relay off dark", ledOff(false, LED_DEF), {rgb: [0, 0, 0], brightness: 0});
+  //@end
   eq("red", ledColour(1, false, LED_DEF).rgb, [100, 0, 0]);
   eq("green", ledColour(2, false, LED_DEF).rgb, [0, 100, 0]);
   eq("yellow", ledColour(3, false, LED_DEF).rgb, [100, 70, 0]);
@@ -42,7 +44,9 @@ t("noClock", function () {
   eq("green -> purple", ledColour(2, true, LED_DEF).rgb, [60, 0, 100]);
   eq("red -> orange", ledColour(1, true, LED_DEF).rgb, [100, 30, 0]);
   eq("yellow -> orange", ledColour(3, true, LED_DEF).rgb, [100, 30, 0]);
+  //@if relay
   eq("off -> purple", ledOff(true, LED_DEF), {rgb: [60, 0, 100], brightness: 50});
+  //@end
   eq("default = clock ok", ledColour(2, false, LED_DEF).rgb, [0, 100, 0]);
   eq("clock null", clockOk({unixtime: null}), false);
   eq("clock missing", clockOk({}), false);
@@ -73,8 +77,10 @@ t("brightness_cfg", function () {
   let c = {r: 0.1, g: 5, y: 11, h: 0.3, hr: 0.05, hs: 10, lo: 1, lb: 20};
   eq("on", ledColour(2, false, c).brightness, 20);
   eq("no clock", ledColour(0, true, c).brightness, 20);
+  //@if relay
   eq("no clock off", ledOff(true, c).brightness, 20);
   eq("dark off", ledOff(false, c).brightness, 0);
+  //@end
 });
 
 t("led_off_cfg", function () {
@@ -88,4 +94,19 @@ t("led_off_cfg", function () {
 
 t("led_def", function () {
   eq("defaults", LED_DEF, {r: 0.1, g: 5, y: 11, h: 0.3, hr: 0.05, hs: 10, lo: 1, lb: 50});
+});
+
+t("ledParams", function () {
+  let on = ledColour(2, false, LED_DEF);
+  //@if relay
+  eq("band", ledParams("band", 2, false, LED_DEF),
+     {config: {leds: {mode: "switch", colors: {"switch:0": {on: on, off: {rgb: [0, 0, 0], brightness: 0}}}}}});
+  eq("band no clock", ledParams("band", 0, true, LED_DEF).config.leds.colors["switch:0"].off,
+     {rgb: [60, 0, 100], brightness: 50});
+  //@else
+  eq("band", ledParams("band", 2, false, LED_DEF),
+     {config: {leds: {mode: "switch", colors: {"pm1:0": {on: on}}}}});
+  eq("no off colour", typeof ledParams("band", 0, true, LED_DEF).config.leds.colors["pm1:0"].off, "undefined");
+  //@end
+  eq("off mode", ledParams("off", 2, false, LED_DEF), {config: {leds: {mode: "off"}}});
 });
