@@ -4,10 +4,11 @@ Everything is set on the plug's **setup page**: `http://<plug-ip>/script/<PageId
 of the daily page). Changes are live within about a minute: the meter reads the settings once a minute.
 Nothing on the setup page switches the relay.
 
-> **Charger requirement.** The tested plugs are rated **12 A / 2500 W**. Set the car or charger to draw **at
-> most 10 A**. A charger that draws more can overheat the plug or the socket. The installer asks you to confirm
-> "My charger is set to draw at most 10 A". ChargeLens cannot limit the charger; the relay limits below only cut
-> the plug off when they are exceeded.
+> **Charger requirement.** The tested plugs are rated **12 A / 2500 W**. Limit the car or charger **below the
+> plug's relay protection values** (the *Relay protection* card below, also shown by the installer). A charger that
+> draws more than the plug is rated for can overheat the plug or the socket. The installer asks you to confirm
+> "My charger is limited below these values". ChargeLens cannot limit the charger; the plug's relay only cuts the
+> power off when its limits are exceeded.
 
 <img src="assets/screenshots/setup-thresholds.png" alt="Setup page: thresholds and relay protection" width="260"> <img src="assets/screenshots/setup-price-time-led.png" alt="Setup page: price, time and LED ring" width="260">
 
@@ -22,15 +23,24 @@ The LED ring and the sessions use three current thresholds.
 |---|---|---|---|
 | Residual current (A) | 0.1 | 0.02 to 1 | At or below this the socket counts as idle (blue). |
 | Minimum charging current (A) | 5 | 1 to 11 | At or above this a charging session starts (green). |
-| Maximum normal current (A) | 11 | 1 to 12 | Above this the ring turns yellow. |
+| Maximum normal current (A) | 11, or the proposal below | 1 to 12, below the relay current cut-off | Above this the ring turns yellow. |
 
-The order must be residual < minimum < maximum, and the maximum must be below the relay current limit. Between the
-residual and the minimum the ring is red (usually a charging error).
+**Proposal for the maximum.** When no maximum has been saved yet, the setup page proposes **90% of the relay
+current cut-off** read from the plug (for example 12 A -> 10.8 A) and says "Proposal, not saved yet: the plug uses
+11 A until you save." Until you press **Save** the plug keeps using its built-in 11 A. If you later lower the
+cut-off in the plug settings, a saved maximum is **not** changed by itself; the setup page shows the error below
+until you correct it. Set the maximum from your charger: a little above the current it draws, and below the
+cut-off.
+
+The order must be residual < minimum < maximum, and the maximum must be below the relay current cut-off (read from
+the plug, see [Relay protection](#relay-protection)): if it is not, the field shows *Below the relay current
+cut-off (12 A): lower it, or raise the cut-off in the plug settings* and **Save** is refused. Between the residual
+and the minimum the ring is red (usually a charging error).
 
 **Choosing values for your charger:** watch the charger's standby current (the plug's web UI shows the current in
 amps) and its lowest charging current. Set *residual* just above the standby current, *minimum* a little below the
 lowest charging current (many chargers start at 6 A), and *maximum* a little above the highest current you set. The
-defaults suit a charger limited to 10 A.
+defaults suit a charger limited to about 10 A.
 
 *Advanced* (collapsed on the page):
 
@@ -46,22 +56,40 @@ relay; energy keeps counting.
 
 ## Relay protection
 
-Device settings, kept in the plug itself:
+The plug's own relay protection, kept in the plug and **shown read-only** on the setup page:
 
-- **Current limit (A)** and **Power limit (W)**: the relay cuts above them. The maximum normal current must stay
-  below the current limit.
-- **The plug rating is 12 A / 2500 W on both tested plugs.** ChargeLens does not read it from the plug (the
-  firmware has no call that reports it); it is a fixed value per model in the setup page and the installer, taken
-  from:
-  - the manufacturer's data: [Shelly Plus Plug S](https://www.shelly.com/blogs/documentation/shelly-plus-plug-s)
-    (12 A) and [Shelly Plug S MTR Gen3](https://www.shelly.com/blogs/documentation/shelly-plug-s-mtr-gen3) (12 A,
-    2500 W for resistive loads);
-  - the firmware itself, which refuses a current limit above 12 A or a power limit above 2500 W (checked on Plus
-    Plug S firmware 1.7.6 and Plug S Gen3 firmware 2.2.0).
-- The setup page refuses values above the rating and warns while you type when a value is below it: the relay
-  then cuts earlier, and a power limit below about 2400 W can cut a 10 A charge.
-- Note: 2500 W is about 10.9 A at 230 V, so the power limit can cut before the current limit and before the
-  default 11 A maximum. A 10 A charger draws roughly 2300 to 2450 W.
+| Shown | Meaning |
+|---|---|
+| Current cut-off (A) | The relay switches off above this current. |
+| Power cut-off (W) | The relay switches off above this power. |
+| Voltage cut-off (V) | The relay switches off above this voltage. |
+
+A value the plug does not report shows as *unknown*; the other cards keep working.
+
+> **Limit your charger below these values.** Above them the plug's relay switches the power off by itself, and it
+> stays off until you switch it on again.
+
+ChargeLens never writes these values: not from the setup page, not from the installer and not from an imported
+configuration file (an exported file keeps them for information, and an import shows them as "shown only, not
+applied"). To change them:
+
+1. Press **Open the plug settings** on the Relay protection card. The Shelly web UI opens in a new tab, on
+   *Output protections*.
+2. Change the values there and save them.
+3. Return to the setup page and reload it: the card shows the new values.
+
+Notes:
+
+- The plug rating is 12 A / 2500 W on both tested plugs, and the firmware refuses a current cut-off above 12 A or
+  a power cut-off above 2500 W (checked on Plus Plug S firmware 1.7.6 and Plug S Gen3 firmware 2.2.0). A current
+  cut-off of 0 A cuts at once; it does not turn the protection off. Sources:
+  [Shelly Plus Plug S](https://www.shelly.com/blogs/documentation/shelly-plus-plug-s) (12 A) and
+  [Shelly Plug S MTR Gen3](https://www.shelly.com/blogs/documentation/shelly-plug-s-mtr-gen3) (12 A, 2500 W for
+  resistive loads).
+- Example, not a rule: on the tested 12 A / 2500 W plugs the power cut-off is reached at about 10.4 to 10.9 A (on a
+  240 to 230 V line), so 10 A is the largest common charger step that fits. On a charge of 10 A or more at a high
+  line voltage the relay can cut at 2500 W before the ring ever turns yellow.
+- ChargeLens logs every cut and the page shows "Cut by protection" (see [troubleshooting](troubleshooting.md)).
 - These figures are the manufacturer's ratings, not a statement that charging a car through the plug is safe:
   see the caution in the [README](../README.md).
 

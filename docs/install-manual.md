@@ -6,7 +6,9 @@ plug's web UI. It is longer, but always works.
 > **Status: release candidate.** There is no final `v1.0.0` yet. Replace `<tag>` below with the newest tag on the
 > GitHub *Releases* page (a release candidate, `v1.0.0-rc.N`).
 >
-> **Charger requirement.** Set the car or charger to draw **at most 10 A** first (the plug is rated 12 A).
+> **Charger requirement.** Limit the car or charger **below the plug's relay protection values** first (the plug
+> is rated 12 A / 2500 W). Read them in the Shelly web UI (Output protections); the setup page shows them too,
+> after the install.
 
 Prerequisites as in [install.md](install.md): a tested plug model, firmware up to date, and no other scripts running
 (the plug runs at most 3 at once).

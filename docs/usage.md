@@ -31,8 +31,8 @@ in its band for 10 seconds (the band hold time), so short spikes do not make it 
 | ⚫ Dark | Relay off | The socket is switched off. | Turn it on from the daily page if you want to charge. |
 | 🔵 Blue | Relay on, current at or below 0.1 A | Nothing is drawing power. | Nothing: normal when the car is not charging. |
 | 🔴 Red | Relay on, above 0.1 A and below 5 A | Something draws a little, but it is not charging: a charger in standby, a finished or paused charge, or another small load. | Check the car and the charger if you expected it to charge. |
-| 🟢 Green | 5 A to 11 A | Charging normally. | Nothing. |
-| 🟡 Yellow | Above 11 A | More current than a 10 A charger should draw. | Check the charger setting (at most 10 A). |
+| 🟢 Green | 5 A up to the maximum normal current (default 11 A; the setup page proposes 90% of the relay current cut-off) | Charging normally. | Nothing. |
+| 🟡 Yellow | Above the maximum normal current | More current than you set as normal for your charger. | Check the charger setting; the plug's relay cuts the power above its current cut-off. |
 | 🟣 Purple | Clock unknown (instead of dark, blue or green) | The plug does not know the time. Energy is still counted. | Set the clock ([below](#the-clock-and-undated-charges)). |
 | 🟠 Orange | Clock unknown (instead of red or yellow) | As purple, and the current needs a look. | Set the clock, then check the charger as for red or yellow. |
 

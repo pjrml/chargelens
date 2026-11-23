@@ -40,8 +40,8 @@
       "path": "dist/SetupHtml.html",
       "kind": "data",
       "enable": false,
-      "size": 33382,
-      "crc32": 3643743247
+      "size": 33816,
+      "crc32": 3987195433
     },
     {
       "name": "MailTpl",
@@ -64,8 +64,8 @@
       "path": "dist/install.html",
       "kind": "data",
       "enable": false,
-      "size": 27827,
-      "crc32": 1573177012
+      "size": 28152,
+      "crc32": 1739839337
     }
   ]
 }

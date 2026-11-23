@@ -119,12 +119,14 @@ const storedCfg=c=>{const s=cfgJson(c);return s===null?null:asciiEsc(s)};
 const mailText=m=>{const o={v:1,to:String(m.to||''),cc:String(m.cc||''),bcc:String(m.bcc||''),subject:String(m.subject||''),body:String(m.body||'')},l=String(m.lang||'').trim();if(l)o.lang=l;return asciiJson(o)};
 const langOk=l=>{if(!l)return true;try{new Intl.DateTimeFormat(l);return /^[A-Za-z]{2,3}(-[A-Za-z0-9]{1,8})*$/.test(l)}catch(e){return false}};
 const RNG=k=>{const a=CFG_NUM.find(x=>x[0]===k);return a?'Between '+a[2]+' and '+a[3]+(k==='r'||k==='g'||k==='y'?', and residual < minimum < maximum':''):k==='cu'?'1 to 4 characters':k==='ds'?'Dot or comma':'Pick one'};
-function validateForm(f,model){
+const cutOf=sw=>{const o={},s=sw||{};['current_limit','power_limit','voltage_limit'].forEach(k=>{o[k]=typeof s[k]==='number'?s[k]:null});return o};
+const yProposal=c=>typeof c.current_limit==='number'&&c.current_limit>0?Math.round(c.current_limit*9)/10:cfgDef('y');
+const cutLink=h=>'http://'+h+'/#/switch/0/settings/protections';
+function validateForm(f,model,cut){
 const e={},raw={};CFG_ORD.forEach(k=>{raw[k]=f[k]});
 cfgBad(raw).forEach(k=>{e[k]=RNG(k)});
-const y=typeof raw.y==='number'&&!e.y?raw.y:cfgDef('y'),cl=f.current_limit,pl=f.power_limit;
-if(!(typeof cl==='number'&&cl>y&&cl<=model.maxA))e.current_limit='Above the maximum normal current ('+y+' A) and at most '+model.maxA+' A';
-if(!(typeof pl==='number'&&pl>0&&pl<=model.maxW))e.power_limit='Above 0 and at most '+model.maxW+' W';
+const cl=cut&&cut.current_limit;
+if(!e.y&&typeof cl==='number'&&raw.y>=cl)e.y='Below the relay current cut-off ('+cl+' A): lower it, or raise the cut-off in the plug settings';
 const tz=String(f.tz||'').trim();if(!tz)e.tz='Enter a time zone, e.g. Europe/Berlin';
 if(f.in_mode!=='detached'&&f.in_mode!=='momentary')e.in_mode='Pick one';
 const name=String(f.name||'').trim();if(name.length>64)e.name='At most 64 characters';
@@ -133,17 +135,10 @@ let cfg=null,mail=null;
 if(!CFG_ORD.some(k=>e[k])){cfg=storedCfg(cfgFix(raw));if(cfg===null||cfg.length>253){e.cfg='The settings do not fit the 253 byte limit (shorten the currency)';cfg=null}}
 if(f.mail&&!langOk(String(f.mail.lang||'').trim()))e.lang='A language tag such as pt-PT or en-GB, or empty';
 else if(f.mail){mail=mailText(f.mail);if(mail.length>16000){e.body='Mail template too long';mail=null}}
-return{cfg:cfg,mail:mail,native:{current_limit:cl,power_limit:pl,in_mode:f.in_mode,tz:tz,name:name},errors:e}}
-const CHARGER_A=10;
-function limitNotes(f,model){const n={},cl=f.current_limit,pl=f.power_limit;
-if(typeof cl==='number'&&cl>0&&cl<model.maxA)n.current_limit='Below the plug rating ('+model.maxA+' A): the relay cuts earlier. Keep it above what your charger draws (at most '+CHARGER_A+' A).';
-if(typeof pl==='number'&&pl>0&&pl<model.maxW)n.power_limit='Below the plug rating ('+model.maxW+' W): the relay cuts earlier.'+(pl<CHARGER_A*240?' A '+CHARGER_A+' A charge draws about '+CHARGER_A*230+' to '+CHARGER_A*240+' W, so this can cut the charge.':'');
-return n}
+return{cfg:cfg,mail:mail,native:{in_mode:f.in_mode,tz:tz,name:name},errors:e}}
 function writePlan(o,n){const P=[],a=o.native,b=n.native;
 if(n.cfg!==null&&n.cfg!==o.cfg)P.push({rpc:'KVS.Set',params:{key:'cc:cfg',value:n.cfg},label:'Settings (cc:cfg)'});
 if(n.mail!==null&&n.mail!==o.mail)for(let i=0;i<n.mail.length;i+=4000){const p={name:'MailTpl',code:n.mail.slice(i,i+4000)};if(i>0)p.append=true;P.push({rpc:'Script.PutCode',params:p,label:'Mail template'+(n.mail.length>4000?' ('+(i/4000+1)+'/'+Math.ceil(n.mail.length/4000)+')':'')})}
-const sw={};['current_limit','power_limit'].forEach(k=>{if(b[k]!==a[k])sw[k]=b[k]});
-if(Object.keys(sw).length)P.push({rpc:'Switch.SetConfig',params:{id:0,config:sw},label:'Relay protection'});
 if(b.in_mode!==a.in_mode)P.push({rpc:'PLUGS_UI.SetConfig',params:{config:{controls:{'switch:0':{in_mode:b.in_mode}}}},label:'Button'});
 const sy={};if(b.tz!==a.tz)sy.location={tz:b.tz};if(b.name!==a.name)sy.device={name:b.name};
 if(Object.keys(sy).length)P.push({rpc:'Sys.SetConfig',params:{config:sy},label:'Time zone / name'});
@@ -152,11 +147,11 @@ const MAILD={subject:'Charging report | {month_name} {year}',body:'Hello,\n\nHer
 const skipItem=(p,failed)=>p.rpc==='Script.PutCode'&&failed.indexOf('Script.PutCode')>=0;
 const apSsid=m=>'chargelens-'+String(m||'').replace(/[^0-9a-fA-F]/g,'').slice(-4).toLowerCase();
 const viaAp=h=>h==='192.168.33.1';
-function exportDoc(s,version,now){const n=s.native,m=JSON.parse(s.mail||'{}');delete m.v;
+function exportDoc(s,version,now){const n=s.native,ct=cutOf(s.cut),m=JSON.parse(s.mail||'{}');delete m.v;
 return{app:'chargelens',fv:1,version:version||'dev',exported:now.toISOString().slice(0,10),model:s.model,cfg:JSON.parse(s.cfg||'{"v":1}'),mail:m,
-native:{current_limit:n.current_limit,power_limit:n.power_limit,in_mode:n.in_mode,tz:n.tz,name:n.name,ap:{ssid:(n.ap||{}).ssid,enable:(n.ap||{}).enable},cloud:n.cloud,ble:n.ble,mqtt:n.mqtt}}}
+native:{current_limit:ct.current_limit,power_limit:ct.power_limit,voltage_limit:ct.voltage_limit,in_mode:n.in_mode,tz:n.tz,name:n.name,ap:{ssid:(n.ap||{}).ssid,enable:(n.ap||{}).enable},cloud:n.cloud,ble:n.ble,mqtt:n.mqtt}}}
 const exportFile=(s,now)=>'chargelens-config-'+String(s.native.name||s.model).replace(/[^A-Za-z0-9_-]+/g,'-').replace(/^-+|-+$/g,'')+'-'+now.getFullYear()+('0'+(now.getMonth()+1)).slice(-2)+('0'+now.getDate()).slice(-2)+'.json';
-const NATK=['current_limit','power_limit','in_mode','tz','name'],MAILK=['to','cc','bcc','subject','body','lang'];
+const NATK=['in_mode','tz','name'],MAILK=['to','cc','bcc','subject','body','lang'];
 function importCheck(doc,model,c){const er=[],ch=[];let next=null;
 if(!doc||typeof doc!=='object'||Array.isArray(doc))return{ok:false,errors:['Not a ChargeLens configuration file'],changes:ch,next:null};
 if(doc.app!=='chargelens')er.push('Not a ChargeLens configuration file');
@@ -170,7 +165,7 @@ if(er.length)return{ok:false,errors:er,changes:ch,next:null};
 const f={},cc=cfgParse(JSON.stringify(cf));CFG_ORD.forEach(k=>{f[k]=cf[k]===undefined?cc[k]:cf[k]});
 NATK.forEach(k=>{f[k]=nt[k]});
 if(doc.mail)f.mail=doc.mail;
-const v=validateForm(f,model);
+const v=validateForm(f,model,c&&c.cut);
 Object.keys(v.errors).forEach(k=>er.push(k+': '+v.errors[k]));
 if(er.length)return{ok:false,errors:er,changes:ch,next:null};
 next={cfg:v.cfg,mail:v.mail,native:v.native};
@@ -178,7 +173,8 @@ if(c){const o=cfgParse(c.cfg),p=cfgParse(v.cfg),on=c.native,om=JSON.parse(c.mail
 CFG_ORD.forEach(k=>{if(o[k]!==p[k])ch.push({field:k,from:o[k],to:p[k]})});
 NATK.forEach(k=>{if(on[k]!==v.native[k])ch.push({field:k,from:on[k],to:v.native[k]})});
 MAILK.forEach(k=>{if(String(om[k]||'')!==String(nm[k]||''))ch.push({field:k,from:String(om[k]||''),to:String(nm[k]||'')})})}
-return{ok:true,errors:er,changes:ch,next:next}}
+const a=nt.current_limit,w=nt.power_limit,q=x=>typeof x==='number'?x:'?';
+return{ok:true,errors:er,changes:ch,next:next,relay:typeof a==='number'||typeof w==='number'?'Relay protection in the file (shown only, not applied): '+q(a)+' A / '+q(w)+' W':''}}
 const bleState=c=>{if(!c)return null;const en=typeof c.enable==='boolean'?c.enable:null,rp=c.rpc&&typeof c.rpc.enable==='boolean'?c.rpc.enable:null;return en===null&&rp===null?null:{en:en,rpc:rp}};
 const bleOn=b=>b?(b.en===true||b.rpc===true):null;
 const dbgOn=c=>{const w=c&&c.debug&&c.debug.websocket;return w&&typeof w.enable==='boolean'?w.enable:null};
@@ -194,16 +190,18 @@ const g=u=>fetch(u).then(r=>r.json());
 async function rpc(m,p){const r=await(await fetch('/rpc',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:1,method:m,params:p||{}})})).json();if(r.error)throw new Error(r.error.message||('error '+r.error.code));return r.result}
 async function scode(n){const L=await g('/rpc/Script.List'),s=L.scripts.find(x=>x.name===n);if(!s)return null;let h='',o=0,r;
 do{r=await g('/rpc/Script.GetCode?id='+s.id+'&offset='+o);h+=r.data;o+=r.data.length}while(r.left>0&&r.data.length);return h}
-let MODEL={gen:0,maxA:12,maxW:2500},OLD=null,DI={},IMP=null;
+let MODEL={gen:0,maxA:12,maxW:2500},OLD=null,DI={},IMP=null,CUT=cutOf(null),PROP=false;
 const fl=(k,l,h,v,x)=>'<div class="f"><label for="f_'+k+'">'+l+'</label><input id="f_'+k+'" value="'+esc(v)+'" '+(x||'inputmode="decimal" autocomplete="off"')+'>'+(h?'<div class="mu">'+h+'</div>':'')+'<div class="er" id="e_'+k+'"></div><div class="wl" id="w_'+k+'"></div></div>';
 const sl=(k,l,o,v)=>'<div class="f"><label for="f_'+k+'">'+l+'</label><select id="f_'+k+'">'+o.map(x=>'<option value="'+x[0]+'"'+(x[0]===v?' selected':'')+'>'+x[1]+'</option>').join('')+'</select><div class="er" id="e_'+k+'"></div></div>';
 const tx=(k,l,v)=>fl(k,l,'',v,'autocomplete="off" autocapitalize="off"');
 function draw(c,n,mt){
 $('app').innerHTML=
 '<div class="c"><div class="lab">Thresholds</div><div class="bar" id="bar"></div><div class="mu" id="leg"></div>'+
-fl('r','Residual current (A)','At or below this the socket counts as idle.',c.r)+fl('g','Minimum charging current (A)','A charging session starts above this.',c.g)+fl('y','Maximum normal current (A)','Above this the ring turns yellow.',c.y)+
+fl('r','Residual current (A)','At or below this the socket counts as idle.',c.r)+fl('g','Minimum charging current (A)','A charging session starts above this.',c.g)+fl('y','Maximum normal current (A)','Above this the ring turns yellow. Proposed: 90% of the relay current cut-off'+(CUT.current_limit>0?' ('+CUT.current_limit+' A &rarr; '+yProposal(CUT)+' A, from this plug\'s value)':'')+'. Set it from your charger: a little above the current it draws, and below the cut-off.',c.y)+
 '<details><summary>Advanced</summary>'+fl('h','Hysteresis (A)','',c.h)+fl('hr','Residual hysteresis (A)','',c.hr)+fl('hs','Band hold time (s)','',c.hs)+fl('sg','Session gap (s)','A session ends after this long without charging current.',c.sg)+'</details></div>'+
-'<div class="c"><div class="lab">Relay protection</div>'+fl('current_limit','Current limit (A)','The relay cuts above this. Plug rating: '+MODEL.maxA+' A (manufacturer data); higher values are refused.',n.current_limit)+fl('power_limit','Power limit (W)','The relay cuts above this. Plug rating: '+MODEL.maxW+' W (manufacturer data); higher values are refused.',n.power_limit)+'</div>'+
+'<div class="c"><div class="lab">Relay protection</div>'+[['current_limit','Current','A'],['power_limit','Power','W'],['voltage_limit','Voltage','V']].map(x=>'<div class="f">'+x[1]+' cut-off: <b>'+(CUT[x[0]]===null?'unknown':CUT[x[0]]+' '+x[2])+'</b></div>').join('')+
+'<div class="mu" style="color:var(--warn)">&#9888; Limit your charger below these values. Above them the plug\'s relay switches the power off by itself, and it stays off until you switch it on again.</div><div class="mu">These are the plug\'s own settings; ChargeLens does not change them.</div>'+
+'<div class="f"><a href="'+cutLink(location.host)+'" target="_blank" rel="noopener">Open the plug settings</a><div class="mu">Opens the Shelly web UI in a new tab: Output protections.</div></div></div>'+
 '<div class="c"><div class="lab">Device</div>'+tx('name','Device name (optional, up to 64 characters)',n.name)+'</div>'+
 '<div class="c"><div class="lab">Button</div>'+sl('in_mode','The button',[['detached','does nothing'],['momentary','toggles the relay']],n.in_mode)+'</div>'+
 '<div class="c"><div class="lab">Price</div>'+fl('p','Price per kWh (0 = not set)','',c.p)+tx('cu','Currency label (1 to 4 characters)',c.cu)+sl('ds','Decimal separator',[['.','Dot (1.50)'],[',','Comma (1,50)']],c.ds)+sl('df','Date format',[['YMD','2026-11-20'],['DMY','20/11/2026'],['MDY','11/20/2026']],c.df)+'</div>'+
@@ -216,25 +214,26 @@ fl('r','Residual current (A)','At or below this the socket counts as idle.',c.r)
 bands()}
 const num=k=>{const s=$('f_'+k).value.trim().replace(',','.');return s===''?NaN:Number(s)};
 function readForm(){const f={},v=k=>$('f_'+k).value;
-['r','g','y','h','hr','hs','sg','p','lb','current_limit','power_limit'].forEach(k=>f[k]=num(k));
+['r','g','y','h','hr','hs','sg','p','lb'].forEach(k=>f[k]=num(k));
 f.cu=v('cu').trim();f.ds=v('ds');f.df=v('df');f.lo=$('f_lo').checked?1:0;f.in_mode=v('in_mode');f.tz=v('tz');f.name=v('name');
 f.mail={to:v('to').trim(),cc:v('cc').trim(),bcc:v('bcc').trim(),subject:v('subject'),body:v('body').replace(/\r\n?/g,'\n'),lang:v('lang').trim()};return f}
-function bands(){const f=readForm(),r=f.r,a=f.g,y=f.y,m=Math.max(f.current_limit||MODEL.maxA,y||0,1),s=[[r,'#3b82f6'],[a-r,'#ef4444'],[y-a,'#10b981'],[m-y,'#f59e0b']],ok=s.every(x=>x[0]>=0);
+function bands(){const f=readForm(),r=f.r,a=f.g,y=f.y,m=Math.max(CUT.current_limit||MODEL.maxA,y||0,1),s=[[r,'#3b82f6'],[a-r,'#ef4444'],[y-a,'#10b981'],[m-y,'#f59e0b']],ok=s.every(x=>x[0]>=0);
 $('bar').innerHTML=ok?s.map(x=>'<div style="flex:'+x[0]+';background:'+x[1]+'"></div>').join(''):'';
 $('leg').textContent=ok?'0 A to '+m+' A':'Check the three thresholds.'}
 function clock(){return g('/rpc/Sys.GetStatus').then(s=>{$('clk').innerHTML=s.unixtime>1.7e9?'Clock: '+new Date((s.unixtime+(s.utc_offset||0))*1000).toISOString().slice(0,16).replace('T',' ')+(s.utc_offset===undefined?' (UTC)':'')+' <span class="ok">&#10003;</span>':'<span style="color:var(--warn)">&#9888; Clock unknown.</span>'}).catch(e=>{})}
 async function load(){
 const raw=await g('/rpc/KVS.Get?key=cc:cfg').then(r=>r.value).catch(e=>null);
-const [mc,sw,ui,sy,di]=await Promise.all([scode('MailTpl').catch(e=>null),g('/rpc/Switch.GetConfig?id=0'),g('/rpc/PLUGS_UI.GetConfig'),g('/rpc/Sys.GetConfig'),g('/rpc/Shelly.GetDeviceInfo')]);
+const [mc,sw,ui,sy,di]=await Promise.all([scode('MailTpl').catch(e=>null),g('/rpc/Switch.GetConfig?id=0').catch(e=>null),g('/rpc/PLUGS_UI.GetConfig'),g('/rpc/Sys.GetConfig'),g('/rpc/Shelly.GetDeviceInfo')]);
 MODEL=MODELS[di.model]||MODEL;
 const c=cfgParse(raw);let mt=null;try{mt=JSON.parse(mc)}catch(e){}if(!mt||typeof mt!=='object')mt=MAILD;
-const n={current_limit:sw.current_limit,power_limit:sw.power_limit,in_mode:((ui.controls||{})['switch:0']||{}).in_mode||'detached',tz:(sy.location||{}).tz||'',name:String((sy.device||{}).name||'')};
+CUT=cutOf(sw);let o=null;try{o=JSON.parse(raw)}catch(e){}PROP=!(o&&typeof o.y==='number')&&yProposal(CUT)!==cfgDef('y');
+const n={in_mode:((ui.controls||{})['switch:0']||{}).in_mode||'detached',tz:(sy.location||{}).tz||'',name:String((sy.device||{}).name||'')};
 const m={to:mt.to,cc:mt.cc,bcc:mt.bcc,subject:mt.subject===undefined?MAILD.subject:mt.subject,body:mt.body===undefined?MAILD.body:mt.body,lang:typeof mt.lang==='string'?mt.lang:''};
 const ex=await Promise.all(['WiFi','Cloud','BLE','MQTT'].map(x=>g('/rpc/'+x+'.GetConfig').catch(e=>null)));
 const ap=(ex[0]||{}).ap;n.ap=ap?{ssid:ap.ssid,enable:!!ap.enable}:null;n.cloud=ex[1]?!!ex[1].enable:null;n.ble=bleState(ex[2]);n.mqtt=ex[3]?!!ex[3].enable:null;n.dbg=dbgOn(sy);
-OLD={cfg:storedCfg(c),mail:mailText(m),native:n,name:n.name};DI=di;
+OLD={cfg:storedCfg(c),mail:mailText(m),native:n,cut:CUT,name:n.name};DI=di;
 $('dev').textContent=(n.name?n.name+' - ':'')+di.model+' (gen '+di.gen+')';
-draw(c,n,m);more();clock();$('save').disabled=false}
+draw(PROP?Object.assign({},c,{y:yProposal(CUT)}):c,n,m);if(PROP)$('w_y').textContent='\u26a0 Proposal, not saved yet: the plug uses '+cfgDef('y')+' A until you save.';more();clock();lims();$('save').disabled=false}
 const ck=(k,l,on)=>'<div class="f"><label><input type="checkbox" id="'+k+'"'+(on?' checked':'')+'>'+l+'</label></div>';
 function more(){const n=OLD.native,ap=n.ap||{},hs=[['cloud','Cloud',"Cloud off: no Shelly app access from outside the plug's networks."],['ble','Bluetooth',''],['mqtt','MQTT',''],['dbg','websocket debug logs','Only needed to see script output in the console of the Shelly web UI.']];
 $('more').innerHTML=
@@ -256,22 +255,22 @@ try{let o=0,t=1,c=0,z,d;while(o<t){z=await g('/rpc/KVS.List?offset='+o);t=z.tota
 try{r=Math.round((await g('/rpc/Sys.GetStatus')).ram_free/1024)+' KB'}catch(e){}
 $('ab').innerHTML='Version: '+esc(VER)+'<br>Firmware: '+esc(DI.fw_id||DI.ver||'?')+'<br>Free memory: '+r+'<br>KVS keys: '+k}
 async function apApply(){const on=$('ap_on').checked,pass=$('ap_pass').value,ssid=$('ap_ssid').value.trim();$('e_ap_pass').textContent='';
-const e=validateForm(Object.assign(readForm(),{ap:{on:on,pass:pass}}),MODEL).errors;
+const e=validateForm(Object.assign(readForm(),{ap:{on:on,pass:pass}}),MODEL,CUT).errors;
 if(on&&e.ap_pass){$('e_ap_pass').textContent=e.ap_pass;return}
 if(on&&(!ssid||ssid.length>32)){$('e_ap_pass').textContent='The network name must be 1 to 32 characters';return}
 if(viaAp(location.hostname)&&!confirm('You are connected through this access point. Applying the change will disconnect you; reconnect to the new network afterwards. Continue?'))return;
 const bad=await runPlan([{rpc:'WiFi.SetConfig',params:{config:{ap:on?{ssid:ssid,pass:pass,is_open:false,enable:true}:{enable:false}}},label:'Access point'}],'ap_res','Done.');
 if(!bad)$('ap_pass').value='';try{await load()}catch(x){}}
-function exportNow(){const s={model:DI.model,cfg:OLD.cfg,mail:OLD.mail,native:OLD.native},now=new Date(),b=new Blob([JSON.stringify(exportDoc(s,VER,now),null,1)],{type:'application/json'}),a=document.createElement('a');
+function exportNow(){const s={model:DI.model,cfg:OLD.cfg,mail:OLD.mail,native:OLD.native,cut:OLD.cut},now=new Date(),b=new Blob([JSON.stringify(exportDoc(s,VER,now),null,1)],{type:'application/json'}),a=document.createElement('a');
 a.href=URL.createObjectURL(b);a.download=exportFile(s,now);document.body.appendChild(a);a.click();a.remove()}
 async function importFile(f){IMP=null;$('im_go').innerHTML='';let d;
 try{d=JSON.parse(await f.text())}catch(e){$('im_res').innerHTML='<div class="er">Not a valid file.</div>';return}
-const r=importCheck(d,MODEL,{model:DI.model,cfg:OLD.cfg,mail:OLD.mail,native:OLD.native});
+const r=importCheck(d,MODEL,{model:DI.model,cfg:OLD.cfg,mail:OLD.mail,native:OLD.native,cut:OLD.cut});
 if(!r.ok){$('im_res').innerHTML=r.errors.map(x=>'<div class="er">'+esc(x)+'</div>').join('');return}
-IMP=r.next;$('im_res').innerHTML=r.changes.length?'<div class="mu">Will change:</div>'+r.changes.map(c=>'<div>'+esc(c.field)+': '+esc(c.from)+' &rarr; '+esc(c.to)+'</div>').join(''):'<div class="mu">Nothing differs.</div>';
+IMP=r.next;$('im_res').innerHTML=(r.relay?'<div class="mu">'+esc(r.relay)+'</div>':'')+(r.changes.length?'<div class="mu">Will change:</div>'+r.changes.map(c=>'<div>'+esc(c.field)+': '+esc(c.from)+' &rarr; '+esc(c.to)+'</div>').join(''):'<div class="mu">Nothing differs.</div>');
 if(r.changes.length)$('im_go').innerHTML='<button id="ia">Apply import</button>'}
 document.addEventListener('input',e=>{if(OLD&&e.target.id&&e.target.id.charAt(0)==='f')bands();if(OLD&&MODEL)lims()});
-function lims(){const f=readForm(),er=validateForm(f,MODEL).errors,n=limitNotes(f,MODEL);['current_limit','power_limit'].forEach(k=>{const a=$('e_'+k),b=$('w_'+k);if(a)a.textContent=er[k]||'';if(b)b.textContent=er[k]?'':(n[k]?'\u26a0 '+n[k]:'')})}
+function lims(){const a=$('e_y');if(a)a.textContent=validateForm(readForm(),MODEL,CUT).errors.y||''}
 document.addEventListener('click',async e=>{const id=e.target.id;
 if(id==='tzp')$('f_tz').value=Intl.DateTimeFormat().resolvedOptions().timeZone||'';
 if(id==='ts'){try{await g(B+'time?set='+Math.floor(Date.now()/1000));clock()}catch(x){$('clk').textContent='Could not set the clock'}}
@@ -287,7 +286,7 @@ if(!idleOk(null,ss,sw.current,cfgParse(cr))){$('up_res').textContent='An open ch
 for(const n of['Led','Page']){const o=L.scripts.find(x=>x.name===n);if(o)await rpc('Script.Stop',{id:o.id}).catch(x=>{})}
 await rpc('Script.Start',{id:s.id});location.href='/script/'+s.id+'/install'}catch(x){$('up_res').textContent='Could not start the installer: '+x.message;try{const L=await g('/rpc/Script.List');for(const o of L.scripts)if((o.name==='Led'||o.name==='Page')&&!o.running)await rpc('Script.Start',{id:o.id}).catch(y=>{})}catch(y){}}}});
 document.addEventListener('change',e=>{if(e.target.id==='imf'&&e.target.files[0])importFile(e.target.files[0])});
-async function save(){const f=readForm(),v=validateForm(f,MODEL);
+async function save(){const f=readForm(),v=validateForm(f,MODEL,CUT);
 document.querySelectorAll('.er').forEach(x=>x.textContent='');Object.keys(v.errors).forEach(k=>{const x=$('e_'+k);if(x)x.textContent=v.errors[k];else $('e_cfg').textContent=v.errors[k]});
 if(Object.keys(v.errors).length){$('res').textContent='Not saved: fix the marked fields.';return}
 const P=writePlan(OLD,v);if(!P.length){$('res').textContent='Nothing changed.';return}

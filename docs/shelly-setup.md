@@ -3,9 +3,10 @@
 What to do with a new plug before installing ChargeLens. You need the plug, a phone or computer, and (once, for the
 install) a Wi-Fi network with internet access.
 
-> **Charger requirement.** The plug is rated 12 A / 2500 W. Set your car or charger to draw **at most 10 A**
-> before you plug it in. A charger that draws more can overheat the plug or the socket. The installer asks you
-> to confirm this.
+> **Charger requirement.** The plug is rated 12 A / 2500 W. Limit your car or charger **below the plug's relay
+> protection values** before you plug it in (the installer shows them). Above them the plug's relay cuts the
+> power, and a charger that draws more than the plug is rated for can overheat the plug or the socket. The
+> installer asks you to confirm this.
 
 Tested models: Shelly **Plus Plug S** (Gen2, `SNPL-00112EU`) and Shelly **Plug S Gen3**, including rebranded variants
 that run Shelly firmware (for example EcoFlow x Shelly, `EF3PL-00112EU`). Anything else is refused by the

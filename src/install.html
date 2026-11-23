@@ -23,8 +23,8 @@ document.querySelector('img.lg').src=document.querySelector('link[rel=icon]').hr
 /* ==== PURE ==== */
 /*@lib cfg_lib.js*/
 const MODELS={"SNPL-00112EU":{gen:2,maxA:12,maxW:2500},"EF3PL-00112EU":{gen:3,maxA:12,maxW:2500}};
-/* the charger setting the user confirms (A): below the plug rating (MODELS maxA); the docs quote this number */
-const CHARGER_A=10;
+/* relay protection read from Switch.GetConfig, for the charger confirmation; null when unreadable */
+const cutText=sw=>{if(!sw||typeof sw!=='object')return null;const n=k=>typeof sw[k]==='number'?sw[k]:'?';return n('current_limit')+' A / '+n('power_limit')+' W / '+n('voltage_limit')+' V'};
 const DEF_CFG=cfgJson(cfgParse(null));
 const SLOTS=10,OWN=['Installer','InstallHtml'],HDR=/^(\/\/|<!--) ChargeLens /;
 const modelOf=d=>d&&typeof d.model==='string'&&Object.prototype.hasOwnProperty.call(MODELS,d.model)?MODELS[d.model]:null;
@@ -113,7 +113,7 @@ const halt=h=>{$('app').innerHTML='<div class="c">'+h+'</div><div class="c"><but
 async function restore(names){const L=await list();for(const n of restoreList(names)){const x=L.find(y=>y.name===n);if(x&&!x.running)await rpc('Script.Start',{id:x.id}).catch(()=>{})}return L}
 async function leave(){$('back').disabled=true;try{if(SELF)await rpc('Script.Stop',{id:Number(SELF)}).catch(()=>{});const L=await restore(['Meter','Led','Page']),p=L.find(x=>x.name==='Page');
 $('app').innerHTML='<div class="c">Left without changes.'+(p?' <a href="/script/'+p.id+'/ui">Open the daily page</a>':'')+'</div>'}catch(e){$('back').disabled=false;log('Could not leave cleanly: '+esc(e.message),'er')}}
-let HM='',DI={},MODEL=null,REL=null,PLAN=null,LAT=null,CUR={},BASE=CL.base,TZ='',BUSY=false;
+let HM='',DI={},MODEL=null,CUT=null,REL=null,PLAN=null,LAT=null,CUR={},BASE=CL.base,TZ='',BUSY=false;
 function loadTag(tag){if(!tagOk(tag)||!SELF)throw new Error('bad tag');location.href='/script/'+SELF+'/install?tag='+tag}
 async function idle(){const ss=await rpc('KVS.Get',{key:'cc:ss'}).then(r=>ssState(0,r.value),e=>ssState(e.code||-1,''));
 const sw=await g('/rpc/Switch.GetStatus?id=0'),raw=await g('/rpc/KVS.Get?key=cc:cfg').then(r=>r.value).catch(()=>null);
@@ -129,7 +129,7 @@ async function init(){
 if(!CL.base){$('dev').innerHTML='<span class="er">Open this page through the ChargeLens Installer script on the plug (see the documentation).</span>';return}
 let h='';
 try{
-DI=await g('/rpc/Shelly.GetDeviceInfo');MODEL=modelOf(DI);
+DI=await g('/rpc/Shelly.GetDeviceInfo');MODEL=modelOf(DI);CUT=await g('/rpc/Switch.GetConfig?id=0').catch(()=>null);
 $('dev').textContent=(DI.model||'?')+', firmware '+(DI.fw_id||DI.ver||'?');
 h+=MODEL?row(true,'Tested model: '+esc(DI.model)):row(false,'This plug ('+esc(DI.model||'unknown')+') is not one of the models ChargeLens v1 was tested on (Shelly Plus Plug S and Plug S Gen3 only).');
 if(!MODEL){halt(h);return}
@@ -152,7 +152,7 @@ CUR=await curState();TZ=(()=>{try{return Intl.DateTimeFormat().resolvedOptions()
 const PL=planLine(PLAN.mode,hdrVer(HM)===null?null:esc(hdrVer(HM)),esc(REL.version),PLAN.write.map(esc).join(', '));h+=row(PL.ok,PL.t);
 if(upd)h+='<div class="mu">Your settings, mail template and energy log are kept.</div>';
 let f='<div class="c">'+h+'</div>';
-f+='<div class="c"><div class="lab">Charger</div>'+ck('c_ok','My charger is set to draw at most '+CHARGER_A+' A.',false,'The plug is rated '+MODEL.maxA+' A. A charger that draws more can overheat the plug or the socket: set the current in the car or charger first.')+'</div>';
+f+='<div class="c"><div class="lab">Charger</div>'+'<div class="mu">'+(cutText(CUT)?'The plug cuts the power above '+cutText(CUT)+' (its relay protection, set in the Shelly web UI).':"The plug's relay protection could not be read: check it in the Shelly web UI (Output protections).")+'</div>'+ck('c_ok','My charger is limited below these values.',false)+'</div>';
 if(PLAN.stop.length||PLAN.disable.length){const ns=PLAN.stop.filter(n=>['Led','Page','Meter'].indexOf(n)<0);
 if(ns.length||PLAN.disable.length)f+='<div class="c"><div class="lab">Other scripts</div><div class="mu">The plug runs at most 3 scripts and ChargeLens needs all 3. Nothing is deleted.</div>'+
 (ns.length?'<div class="r">To stop: '+ns.map(esc).join(', ')+'</div>':'')+(PLAN.disable.length?'<div class="r">Not to start at power-up: '+PLAN.disable.map(esc).join(', ')+'</div>':'')+ck('c_stop','Yes, stop and disable them (I can start them again later).',false)+'</div>'}

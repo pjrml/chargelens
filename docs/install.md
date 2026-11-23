@@ -10,9 +10,10 @@ This installs everything from your phone or computer, with no tools. If it fails
 > **Use at your own risk.** ChargeLens comes without warranty of any kind and the author accepts no liability
 > for its use or for the use of the plug, the charger or the socket. See the [README](../README.md).
 
-> **Charger requirement.** The tested plugs are rated 12 A / 2500 W. Set the car or charger to draw **at most
-> 10 A** before you start. The installer asks you to tick "My charger is set to draw at most 10 A"; a charger that
-> draws more can overheat the plug or the socket.
+> **Charger requirement.** The tested plugs are rated 12 A / 2500 W. Limit the car or charger **below the plug's
+> relay protection values** before you start (the installer shows them). The installer asks you to tick "My
+> charger is limited below these values"; above them the plug's relay cuts the power, and a charger that draws
+> more than the plug is rated for can overheat the plug or the socket.
 
 ## Before you start
 
@@ -104,7 +105,7 @@ GitHub, so the browser needs internet. The page then runs these checks and scree
 |---|---|
 | Tested model | The model is on the allow-list of tested models (Plus Plug S Gen2, Plug S Gen3, EcoFlow variant). Otherwise it stops. |
 | Firmware | Must be up to date. If an update is offered, update first ([shelly-setup.md](shelly-setup.md)) and open the page again. |
-| Charger | Tick the box to confirm the charger draws at most 10 A. |
+| Charger | Shows the relay protection values read from the plug (for example "The plug cuts the power above 12 A / 2500 W / 280 V"). Tick the box "My charger is limited below these values". If the plug's values cannot be read, it says so: check them in the Shelly web UI (Output protections) first. |
 | Other scripts | Lists scripts that must be stopped or disabled to fit the 3-script limit. Nothing is deleted. |
 | Setup | Optional: time zone from this phone, the plug's access point (SSID and a WPA2 password of at least 8 characters). |
 | Hardening | Cloud, Bluetooth and MQTT off, button does nothing, websocket debug logs off (all ticked by default; each says what you lose), and an optional "Forget the home Wi-Fi at the end (recommended)" (off by default). |

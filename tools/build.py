@@ -168,8 +168,6 @@ def build(out_root):
         assert a and a == b, "MODELS differs between setup.html and install.html"
         a, b = gate_lines(read("setup.html")), gate_lines(read("install.html"))
         assert a and a == b, "idleOk/ssState differ between setup.html and install.html"
-        a, b = re.search(r"const CHARGER_A=(\d+);", read("setup.html")), re.search(r"const CHARGER_A=(\d+);", read("install.html"))
-        assert a and b and a.group(1) == b.group(1), "CHARGER_A differs between setup.html and install.html"
     for dst, data in blobs.items():
         with open(os.path.join(dist, dst), "wb") as f:
             f.write(data)

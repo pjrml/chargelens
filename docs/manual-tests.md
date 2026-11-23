@@ -32,8 +32,9 @@ phone, from Step 1.
   Write down whether the name goes back to `chargelens-installer.js` (then the docs must warn against it).
 - [ ] **1.5 Address.** The address in the console opens the install page (no 404) and the page shows the version
       that was imported (the version in `main/dist/release.json`, e.g. `1.0.0-rc.1`).
-- [ ] **1.6 Checks.** Tested model, firmware up to date, charger confirmation; **Install** stays disabled until the
-      10 A box is ticked.
+- [ ] **1.6 Checks.** Tested model, firmware up to date, charger confirmation; the Charger card shows the values
+      read from the plug ("The plug cuts the power above ... A / ... W / ... V"); **Install** stays disabled
+      until the box "My charger is limited below these values" is ticked.
 - [ ] **1.7 Hardening.** Cloud, Bluetooth, MQTT, button and *Turn the websocket debug logs off* are ticked by
       default (only the ones that are on are listed); *Forget the home Wi-Fi at the end (recommended)* is **not**
       ticked and stays disabled until an access point password of 8 or more characters is typed.
@@ -51,14 +52,33 @@ phone, from Step 1.
 
 Open `http://<plug-ip>/script/<PageId>/ui?p=setup`.
 
-- [ ] **2.1 Limits while typing.**
-  1. Type `13` in *Current limit*.
-  2. Type `11` in *Current limit*.
-  3. Type `2600` in *Power limit*.
-  4. Type `2300` in *Power limit*.
+- [ ] **2.1 Relay protection card.** Current, power and voltage cut-off show the values of the plug (open the
+      Shelly web UI to compare), nothing on the card is editable, and the warning says to limit the charger
+      below them.
+- [ ] **2.1a Link (Gen2 and Gen3).**
+  1. Press **Open the plug settings**.
 
-  Expected: 13 A and 2600 W show an error (above the 12 A / 2500 W rating) and **Save** refuses them; 11 A and
-  2300 W show a warning (below the rating: the relay cuts earlier; under about 2400 W a 10 A charge can be cut).
+  Expected: the Shelly web UI opens in a new tab on *Output protections*. Repeat on a Plus Plug S (Gen2) and on a
+  Plug S Gen3.
+- [ ] **2.1b Proposal for the maximum.** On a plug with no saved maximum normal current:
+  1. Open the setup page.
+
+  Expected: *Maximum normal current* shows 90% of the current cut-off (12 A -> 10.8 A) and the line "Proposal,
+  not saved yet: the plug uses 11 A until you save."
+- [ ] **2.1c Maximum at or above the cut-off.**
+  1. Type the current cut-off value (for example `12`) in *Maximum normal current*.
+
+  Expected: the field shows the error "Below the relay current cut-off ..." and **Save** refuses it.
+  2. Type a lower value (for example `10`).
+
+  Expected: the error goes away and **Save** works.
+- [ ] **2.1d Import does not change the cut-off.**
+  1. Export the configuration.
+  2. Edit the file: set other `current_limit` and `power_limit` values in `native`.
+  3. Import the edited file.
+
+  Expected: the import shows "Relay protection in the file (shown only, not applied)" and the Relay protection
+  card still shows the plug's own values afterwards.
 - [ ] **2.2 Saved message.**
   1. Change one setting.
   2. Press **Save**.

@@ -78,9 +78,11 @@ including rebranded variants that run Shelly firmware (e.g. EcoFlow x Shelly). T
 models. "Tested" means only that the software was tested on them; it is no warranty of any kind, in particular
 not about safety (see the caution at the top). Other Shelly devices with metering may follow.
 
-> **Charger requirement: at most 10 A.** These plugs are rated 12 A / 2500 W. Set your car or charger to draw **no
-> more than 10 A**. A charger that draws more can overheat the plug or the socket. The installer asks you to
-> confirm it. See [docs/configuration.md](docs/configuration.md).
+> **Charger requirement: stay below the plug's relay protection.** These plugs are rated 12 A / 2500 W. Limit your
+> car or charger **below the relay protection values** of the plug (the installer and the setup page show them).
+> Above them the plug's relay switches the power off by itself. A charger that draws more than the plug is rated
+> for can also overheat the plug or the socket. The installer asks you to confirm it. See
+> [docs/configuration.md](docs/configuration.md).
 
 > **Use a plug dedicated to ChargeLens.** We recommend that the plug runs **no other scripts**. ChargeLens needs
 > all 3 running script slots and most of the plug's small script memory (about 25 KB shared), and it was tested
@@ -92,7 +94,7 @@ not about safety (see the caution at the top). Other Shelly devices with meterin
 
 Each guide below has numbered steps, one action per step.
 
-1. Set the charger to draw at most 10 A.
+1. Limit the charger below the plug's relay protection values (shown by the installer).
 2. Prepare the plug (power, Wi-Fi, firmware): [docs/shelly-setup.md](docs/shelly-setup.md).
 3. Install ChargeLens from the plug's web UI through the Shelly Library: [docs/install.md](docs/install.md) (or the
    [manual path](docs/install-manual.md)).

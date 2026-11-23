@@ -65,8 +65,10 @@ months of random energy and sessions written into the KVS with `Meter` stopped; 
 page faked by rewriting the `data` response in the browser; the MAC (and the dev plug's address) replaced in
 the DOM before each capture; the install page loaded with `?base=` on `main` (the developer-base notice
 hidden, since no tag existed). Retake them when a page changes visibly. Document
-what the code does; the charger limit (10 A) must match `CHARGER_A` in `src/install.html` in `README.md`,
-`docs/install.md`, `docs/install-manual.md`, `docs/shelly-setup.md` and `docs/configuration.md`.
+what the code does. There is no fixed charger limit in the code: the installer and the setup page show the
+relay protection values read from the plug (`Switch.GetConfig`), and the docs say "below the plug's relay
+protection values" (`README.md`, `docs/install.md`, `docs/install-manual.md`, `docs/shelly-setup.md`,
+`docs/configuration.md`).
 
 ## Privacy check
 

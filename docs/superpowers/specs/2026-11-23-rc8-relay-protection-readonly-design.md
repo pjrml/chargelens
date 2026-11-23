@@ -1,6 +1,6 @@
 # rc.8: relay protection shown read-only, colour thresholds from the cut-off (design)
 
-Status: approved scope (owner, 2026-11-23); the setup mockup below waits for the owner's confirmation before code.
+Status: approved (owner, 2026-11-23, mockup confirmed); plan: `docs/superpowers/plans/2026-11-23-rc8-relay-protection-readonly.md`.
 
 ## Why
 

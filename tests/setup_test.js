@@ -4,7 +4,7 @@ function tb(name, fn) { t(name, fn); }
 let M2 = MODELS["SNPL-00112EU"];
 function form(o) {
   let f = {r: 0.1, g: 5, y: 11, h: 0.3, hr: 0.05, hs: 10, sg: 600, p: 0, cu: "EUR", ds: ".", df: "YMD", lo: 1, lb: 50,
-    current_limit: 12, power_limit: 2500, in_mode: "detached", tz: "Europe/Berlin", name: "Plug",
+    in_mode: "detached", tz: "Europe/Berlin", name: "Plug",
     mail: {to: "", cc: "", bcc: "", subject: "S {year}", body: "B"}};
   for (let k in o) f[k] = o[k];
   return f;
@@ -21,19 +21,34 @@ t("validate_ok_defaults", function () {
   let v = validateForm(form({}), M2);
   eq("no errors", v.errors, {});
   eq("cfg", v.cfg, '{"v":1}');
-  eq("native", v.native, {current_limit: 12, power_limit: 2500, in_mode: "detached", tz: "Europe/Berlin", name: "Plug"});
+  eq("native", v.native, {in_mode: "detached", tz: "Europe/Berlin", name: "Plug"});
 });
-t("validate_y_vs_limit", function () {
-  let v = validateForm(form({y: 11, current_limit: 11}), M2);
-  eq("limit flagged", typeof v.errors.current_limit, "string");
-  eq("y fine", v.errors.y, undefined);
-  eq("ok at 12", validateForm(form({y: 11, current_limit: 12}), M2).errors, {});
+t("validate_y_vs_cutoff", function () {
+  let c = cutOf({current_limit: 12, power_limit: 2500, voltage_limit: 280});
+  eq("below", validateForm(form({y: 11}), M2, c).errors, {});
+  eq("equal", typeof validateForm(form({y: 12}), M2, c).errors.y, "string");
+  eq("above", typeof validateForm(form({y: 13}), M2, c).errors.y, "string");
+  eq("msg", validateForm(form({y: 12}), M2, c).errors.y, "Below the relay current cut-off (12 A): lower it, or raise the cut-off in the plug settings");
+  eq("no cut", validateForm(form({y: 12}), M2).errors, {});
+  eq("null cut", validateForm(form({y: 12}), M2, null).errors, {});
+  eq("null limit", validateForm(form({y: 12}), M2, cutOf(null)).errors, {});
+  eq("range error wins", validateForm(form({y: 99}), M2, c).errors.y, RNG("y"));
+  eq("no limits in form", validateForm(form({current_limit: 99, power_limit: 0}), M2).errors, {});
 });
-t("validate_limit_max", function () {
-  eq("13 A", typeof validateForm(form({current_limit: 13}), M2).errors.current_limit, "string");
-  eq("0 W", typeof validateForm(form({power_limit: 0}), M2).errors.power_limit, "string");
-  eq("2501 W", typeof validateForm(form({power_limit: 2501}), M2).errors.power_limit, "string");
-  eq("NaN", typeof validateForm(form({power_limit: NaN}), M2).errors.power_limit, "string");
+t("cut_of", function () {
+  eq("full", cutOf({current_limit: 12, power_limit: 2500, voltage_limit: 280, x: 1}), {current_limit: 12, power_limit: 2500, voltage_limit: 280});
+  eq("null", cutOf(null), {current_limit: null, power_limit: null, voltage_limit: null});
+  eq("non-number", cutOf({current_limit: "12", power_limit: undefined, voltage_limit: 280}), {current_limit: null, power_limit: null, voltage_limit: 280});
+});
+t("y_proposal", function () {
+  eq("12", yProposal({current_limit: 12}), 10.8);
+  eq("11", yProposal({current_limit: 11}), 9.9);
+  eq("null", yProposal({current_limit: null}), 11);
+  eq("zero", yProposal({current_limit: 0}), 11);
+  eq("cutOf null", yProposal(cutOf(null)), 11);
+});
+t("cut_link", function () {
+  eq("link", cutLink("plug.local"), "http://plug.local/#/switch/0/settings/protections");
 });
 t("validate_cfg_rules", function () {
   eq("g >= y", typeof validateForm(form({g: 8, y: 7}), M2).errors.g, "string");
@@ -98,19 +113,20 @@ t("write_plan_only_changed", function () {
 });
 t("write_plan_never_switch_set", function () {
   let a = st({});
-  let b = st({r: 0.2, g: 6, p: 1, current_limit: 11.5, y: 10, power_limit: 2000, in_mode: "momentary", tz: "UTC", name: "X",
+  let b = st({r: 0.2, g: 6, p: 1, y: 10, in_mode: "momentary", tz: "UTC", name: "X",
     mail: {to: "a@b", cc: "", bcc: "", subject: "s", body: "b"}});
+  b.native.current_limit = 5; b.native.power_limit = 100;
+  a.native.current_limit = 12; a.native.power_limit = 2500;
   let pl = writePlan(a, b), i, names = [];
   for (i = 0; i < pl.length; i++) names.push(pl[i].rpc);
-  eq("order", names, ["KVS.Set", "Script.PutCode", "Switch.SetConfig", "PLUGS_UI.SetConfig", "Sys.SetConfig"]);
+  eq("order", names, ["KVS.Set", "Script.PutCode", "PLUGS_UI.SetConfig", "Sys.SetConfig"]);
   eq("no Switch.Set", names.indexOf("Switch.Set"), -1);
-  eq("switch cfg", pl[2].params, {id: 0, config: {current_limit: 11.5, power_limit: 2000}});
-  eq("ui cfg", pl[3].params, {config: {controls: {"switch:0": {in_mode: "momentary"}}}});
-  eq("sys cfg", pl[4].params, {config: {location: {tz: "UTC"}, device: {name: "X"}}});
+  eq("no Switch.SetConfig", names.indexOf("Switch.SetConfig"), -1);
+  eq("ui cfg", pl[2].params, {config: {controls: {"switch:0": {in_mode: "momentary"}}}});
+  eq("sys cfg", pl[3].params, {config: {location: {tz: "UTC"}, device: {name: "X"}}});
 });
 t("write_plan_native_partial", function () {
   let a = st({});
-  eq("limit only", writePlan(a, st({power_limit: 2000}))[0].params, {id: 0, config: {power_limit: 2000}});
   eq("tz only", writePlan(a, st({tz: "UTC"}))[0].params, {config: {location: {tz: "UTC"}}});
   eq("name only", writePlan(a, st({name: "Z"}))[0].params, {config: {device: {name: "Z"}}});
 });
@@ -147,13 +163,14 @@ t("mail_default_single_source", function () {
 });
 t("skip_after_failed_chunk", function () {
   eq("putcode skipped", skipItem({rpc: "Script.PutCode"}, ["Script.PutCode"]), true);
-  eq("other continues", skipItem({rpc: "Switch.SetConfig"}, ["Script.PutCode"]), false);
+  eq("other continues", skipItem({rpc: "Sys.SetConfig"}, ["Script.PutCode"]), false);
   eq("nothing failed", skipItem({rpc: "Script.PutCode"}, []), false);
 });
 // ---- Task 7: access point, hardening, export/import ----
 function cur(o) {
   let s = {model: "SNPL-00112EU", cfg: '{"v":1,"p":0.3}', mail: JSON.stringify({v: 1, to: "a@b", cc: "", bcc: "", subject: "S", body: "B"}),
-    native: {current_limit: 12, power_limit: 2500, in_mode: "detached", tz: "Europe/Berlin", name: "My plug",
+    cut: {current_limit: 12, power_limit: 2500, voltage_limit: 280},
+    native: {in_mode: "detached", tz: "Europe/Berlin", name: "My plug",
       ap: {ssid: "chargelens-ab12", enable: true}, cloud: false, ble: {en: false, rpc: false}, mqtt: false}};
   for (let k in o) s[k] = o[k];
   return s;
@@ -173,7 +190,9 @@ t("export_no_password", function () {
   eq("fv", d.fv, 1);
   eq("version", d.version, "1.0.0");
   eq("model", d.model, "SNPL-00112EU");
-  eq("native keys", Object.keys(d.native), ["current_limit", "power_limit", "in_mode", "tz", "name", "ap", "cloud", "ble", "mqtt"]);
+  eq("native keys", Object.keys(d.native), ["current_limit", "power_limit", "voltage_limit", "in_mode", "tz", "name", "ap", "cloud", "ble", "mqtt"]);
+  eq("cut shown", [d.native.current_limit, d.native.power_limit, d.native.voltage_limit], [12, 2500, 280]);
+  eq("no cut: nulls", [exportDoc(cur({cut: undefined}), "dev", NOW).native.current_limit, exportDoc(cur({cut: undefined}), "dev", NOW).native.voltage_limit], [null, null]);
   eq("ap keys", Object.keys(d.native.ap), ["ssid", "enable"]);
   eq("ble kept", d.native.ble, {en: false, rpc: false});
   eq("cfg obj", d.cfg, {v: 1, p: 0.3});
@@ -192,12 +211,13 @@ t("export_import_roundtrip", function () {
 t("import_changes_listed", function () {
   let s = cur({}), d = JSON.parse(JSON.stringify(exportDoc(s, "dev", NOW)));
   d.cfg.p = 0.5; d.native.power_limit = 2000; d.native.name = "Other"; d.mail.subject = "T";
+  eq("relay text", importCheck(d, MODELS["SNPL-00112EU"], s).relay, "Relay protection in the file (shown only, not applied): 12 A / 2000 W");
   let r = importCheck(d, MODELS["SNPL-00112EU"], s), f = r.changes.map(function (c) { return c.field; });
   eq("ok", r.ok, true);
-  eq("fields", f, ["p", "power_limit", "name", "subject"]);
-  eq("from/to", r.changes[1], {field: "power_limit", from: 2500, to: 2000});
+  eq("fields", f, ["p", "name", "subject"]);
+  eq("limits never in next", r.next.native, {in_mode: "detached", tz: "Europe/Berlin", name: "Other"});
   let pl = writePlan({cfg: s.cfg, mail: s.mail, native: s.native}, r.next), n = pl.map(function (x) { return x.rpc; });
-  eq("plan", n, ["KVS.Set", "Script.PutCode", "Switch.SetConfig", "Sys.SetConfig"]);
+  eq("plan", n, ["KVS.Set", "Script.PutCode", "Sys.SetConfig"]);
 });
 t("import_wrong_app", function () {
   let d = exportDoc(cur({}), "dev", NOW);
@@ -217,10 +237,17 @@ t("import_other_fv", function () {
 });
 t("import_out_of_range", function () {
   let d = exportDoc(cur({}), "dev", NOW);
-  d.native.current_limit = 20; d.cfg.r = 5;
+  d.native.current_limit = 20; d.cfg.r = 5; d.cfg.y = 13;
   let r = importCheck(d, M2, cur({}));
   eq("not ok", r.ok, false);
   eq("two errors", r.errors.length >= 2, true);
+  let c = exportDoc(cur({}), "dev", NOW); c.cfg.y = 12;
+  eq("y at cut-off refused", importCheck(c, M2, cur({})).ok, false);
+  c.cfg.y = 11;
+  eq("y below cut-off ok", importCheck(c, M2, cur({})).ok, true);
+  eq("relay none when absent", importCheck(exportDoc(cur({cut: undefined}), "dev", NOW), M2, cur({})).relay, "");
+  let q = exportDoc(cur({}), "dev", NOW); delete q.native.power_limit;
+  eq("relay missing value", importCheck(q, M2, cur({})).relay, "Relay protection in the file (shown only, not applied): 12 A / ? W");
   let e = exportDoc(cur({}), "dev", NOW);
   e.model = "OTHER-1";
   eq("unknown model ok if values fit", importCheck(e, M2, cur({})).ok, true);
@@ -284,17 +311,6 @@ t("idle_gate", function () {
   eq("unknown is busy", idleOk(null, ssState(-114, ""), 0, {r: 0.1}), false);
   eq("absent is idle", idleOk(null, ssState(-105, ""), 0, {r: 0.1}), true);
 });
-t("limit_notes", function () {
-  eq("defaults: no notes", limitNotes(form({}), M2), {});
-  eq("charger constant", CHARGER_A, 10);
-  eq("current below rating", typeof limitNotes(form({current_limit: 11.5}), M2).current_limit, "string");
-  eq("power below rating", typeof limitNotes(form({power_limit: 2450}), M2).power_limit, "string");
-  let n = limitNotes(form({power_limit: 2000}), M2).power_limit;
-  eq("power cuts a 10 A charge", /2300/.test(n), true);
-  eq("above rating is an error, not a note", limitNotes(form({current_limit: 13, power_limit: 3000}), M2), {});
-  eq("not a number: no note", limitNotes(form({current_limit: NaN}), M2), {});
-});
-
 // optional mail language (MailTpl "lang", used for {month_name}); empty = the phone's language, not stored
 t("mail_lang", function () {
   let v = validateForm(form({mail: {to: "", cc: "", bcc: "", subject: "s", body: "b", lang: "pt-PT"}}), M2);

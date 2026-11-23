@@ -54,11 +54,16 @@ update that was interrupted.
 **There are "Undated" charges.** The plug logged energy before it knew the date. Assign them on the page, or set the
 clock in the same power-up next time.
 
-**The relay is red / the plug cut itself off.** The current or power limit was exceeded.
+**The relay is red / the plug cut itself off.** The plug's own relay protection (current, power or voltage
+cut-off) switched the power off, and it stays off until you switch it on. The page says "Cut by protection".
 
-1. Lower the current in the car or charger (at most 10 A).
-2. Unplug the car.
-3. Turn the relay on from the page.
+1. Open the setup page and read the **Relay protection** card for the plug's cut-off values.
+2. Lower the current in the car or charger below those values.
+3. Unplug the car.
+4. Turn the relay on from the page.
+
+ChargeLens does not change the cut-off values. To change them, press **Open the plug settings** on the setup page
+(Shelly web UI, Output protections).
 
 **A setting is not saved.** The setup page shows the field that is wrong. The settings may not exceed 253 bytes
 (shorten the currency label).

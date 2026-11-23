@@ -28,8 +28,14 @@ t("model_unknown", function () {
 });
 t("models_literal", function () {
   eq("gen2", MODELS["SNPL-00112EU"], {gen: 2, maxA: 12, maxW: 2500});
-  eq("charger a", CHARGER_A < MODELS["SNPL-00112EU"].maxA, true);
-  eq("charger a value", CHARGER_A, 10);
+});
+t("cut_text", function () {
+  eq("full", cutText({current_limit: 12, power_limit: 2500, voltage_limit: 280}), "12 A / 2500 W / 280 V");
+  eq("one missing", cutText({current_limit: 12, voltage_limit: 280}), "12 A / ? W / 280 V");
+  eq("non-number", cutText({current_limit: "12", power_limit: 2500, voltage_limit: null}), "? A / 2500 W / ? V");
+  eq("null", cutText(null), null);
+  eq("not an object", cutText("x"), null);
+  eq("undefined", cutText(undefined), null);
 });
 t("fw_up_to_date", function () {
   eq("empty", fwUpToDate({}), true);
