@@ -18,15 +18,6 @@
 let CLOCK_MIN = 1700000000;
 let TADJ_MAX = 5;
 
-let BOOT = "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"utf-8\">" +
-  "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1,viewport-fit=cover\">" +
-  "<meta name=\"apple-mobile-web-app-capable\" content=\"yes\"><meta name=\"apple-mobile-web-app-title\" content=\"ChargeLens\">" +
-  "<title>ChargeLens</title></head><body style=\"background:#0b1221;color:#94a3b8;font-family:sans-serif\">Loading...<script>" +
-  "(async function(){var g=async function(u){return (await fetch(u)).json()};" +
-  "var L=await g('/rpc/Script.List'),id=-1,i,n=location.search.indexOf('p=setup')>=0?'SetupHtml':'PageHtml';for(i=0;i<L.scripts.length;i++)if(L.scripts[i].name==n)id=L.scripts[i].id;" +
-  "var h='',o=0,r;do{r=await g('/rpc/Script.GetCode?id='+id+'&offset='+o);h+=r.data;o+=r.data.length}while(r.left>0&&r.data.length);" +
-  "document.open();document.write(h);document.close()})()</script></body></html>";
-
 function q(req, key) {
   let s = req.query || "";
   let k = key + "="; let p = s.indexOf(k);
@@ -60,7 +51,18 @@ function getAll(keys, out, cb) {
 
 function validMonth(m) { return m !== null && m.length === 6 && !isNaN(Number(m)); }
 
-HTTPServer.registerEndpoint("ui", function (req, res) { send(res, 200, "text/html; charset=utf-8", BOOT); });
+// The loader HTML is a literal inside the handler, not a global: a global string costs script heap all the time
+// (~1.4 KB), a literal in a function body only while the handler runs.
+HTTPServer.registerEndpoint("ui", function (req, res) {
+  send(res, 200, "text/html; charset=utf-8", "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"utf-8\">" +
+    "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1,viewport-fit=cover\">" +
+    "<meta name=\"apple-mobile-web-app-capable\" content=\"yes\"><meta name=\"apple-mobile-web-app-title\" content=\"ChargeLens\">" +
+    "<title>ChargeLens</title></head><body style=\"background:#0b1221;color:#94a3b8;font-family:sans-serif\">Loading...<script>" +
+    "(async function(){var g=async function(u){return (await fetch(u)).json()};" +
+    "var L=await g('/rpc/Script.List'),id=-1,i,n=location.search.indexOf('p=setup')>=0?'SetupHtml':'PageHtml';for(i=0;i<L.scripts.length;i++)if(L.scripts[i].name==n)id=L.scripts[i].id;" +
+    "var h='',o=0,r;do{r=await g('/rpc/Script.GetCode?id='+id+'&offset='+o);h+=r.data;o+=r.data.length}while(r.left>0&&r.data.length);" +
+    "document.open();document.write(h);document.close()})()</script></body></html>");
+});
 
 HTTPServer.registerEndpoint("data", function (req, res) {
   let sw = Shelly.getComponentStatus("switch:0");

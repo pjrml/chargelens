@@ -752,7 +752,10 @@ function startTimers() {
   Timer.set(HB_MS, true, heartbeat);
 }
 
+// total < 0: read the counter now. Never keep a status object in a global: Shelly.getComponentStatus("switch:0")
+// held by a global costs ~1.2 KB of script heap for the whole run (measured).
 function start(total) {
+  if (total < 0) { let sw0 = Shelly.getComponentStatus("switch:" + SWITCH_ID); total = sw0 && sw0.aenergy ? sw0.aenergy.total : 0; sw0 = null; }
   Shelly.call("KVS.Get", {key: "cc:adj"}, function (r, err) {
     if (monthLoadAction(err, null) === "skip") { Timer.set(5000, false, function () { start(total); }); return; }
     if (!err && r && r.value) { try { adj = JSON.parse(r.value); } catch (e) { adj = []; } }
@@ -794,7 +797,6 @@ function start(total) {
 // Launcher: Meter is the only script enabled at boot (device limit: 3 enabled /
 // 3 running scripts, all sharing ~25 KB heap); it starts the others with a delay. A separate launcher script
 // would take one of the 3 running slots, so Meter does it.
-let LAUNCH = [["Led", 5000], ["Page", 20000]];
 // One timer at a time (device limit: 5 timers per script): each step starts a script and arms the next.
 function startChain(q, i, prev) {
   if (i >= q.length) return;
@@ -806,6 +808,7 @@ function startChain(q, i, prev) {
 function launch() {
   Shelly.call("Script.List", {}, function (r, err) {
     if (err || !r || !r.scripts) return;
+    let LAUNCH = [["Led", 5000], ["Page", 20000]];  // local: a global table would stay in the heap
     let i, j, q = [];
     for (i = 0; i < LAUNCH.length; i++) {
       for (j = 0; j < r.scripts.length; j++) {
@@ -818,5 +821,4 @@ function launch() {
 }
 launch();
 
-let sw0 = Shelly.getComponentStatus("switch:" + SWITCH_ID);
-start(sw0 && sw0.aenergy ? sw0.aenergy.total : 0);
+start(-1);

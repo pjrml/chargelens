@@ -60,8 +60,12 @@ RAM on fw 2.0.0) but must run the same code. Gen3 differences are measured in sp
   rated 12 A / 2500 W, LED ring driven only by `PLUGS_UI.SetConfig` (each call writes flash: never animate).
 - Scripts (spike 2026-11-19, identical on Gen2 1.7.6 and Gen3 2.2.0): **max 3 enabled, 3 running, 10 stored**;
   one script <= 65535 bytes; ~25 KB heap shared by all running scripts (25130 B free with one tiny script), and
-  loaded code costs ~1.25 B of heap per byte of code (comments cost nothing), so Meter+Led+Page together must stay
-  well under ~20 KB of minified code; script HTTP response body <= **4096 B** (4097+ gives HTTP 500); max 5
+  (corrected by measurement 2026-11-23; the earlier "~1.25 B of heap per byte of code" was wrong) heap is spent on
+  each declared function (~27 B + ~1.5 B per name character), each parameter (~14 B + ~1.3 B/char), each global
+  (~13 B + name) and every live object/array/string (property ~21 B, integer array element ~14 B, float ~28 B,
+  string ~1 B/char + overhead); function bodies, locals, string literals inside functions, comments and whitespace
+  cost nothing until executed, while a global string literal costs its length all the time; script HTTP
+  response body <= **4096 B** (4097+ gives HTTP 500); max 5
   `registerEndpoint` per script (more are silently ignored: 404); no `Array.sort`; no `\uXXXX` literals in
   source; tiny stack; a `Shelly.call` during script load can be rejected (defer to a timer). Building a string by
   concatenation peaks at ~3x its length in heap (a 4 KB reply peaked at 12.8 KB): send replies in small pieces.
@@ -390,7 +394,7 @@ Both generations gave **the same answers** for every question below; no per-gene
   tests for config parsing/validation, the 6-month pruning, migrations and mail placeholders.
 - Changing each setup field is live within ~60 s and never toggles the relay nor loses energy.
 - Export -> factory reset -> install -> import restores the configuration (not the log, by design).
-- Heap `mem_free` with the 3 scripts running not below the v2.2 level (~11 KB) minus 1 KB.
+- Heap `mem_free` with the 3 scripts running not below the v2.2 level (~11 KB) minus 1 KB (rc.5: ~14.5 KB on Gen2).
 - `dist/` reproducible (CI green); no non-ASCII in `dist/`; no personal data in the repo (grep list in
   `docs/development.md`).
 

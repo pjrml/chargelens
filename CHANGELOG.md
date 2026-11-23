@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 1.0.0-rc.5 (2026-11-23)
+
+- More free memory on the plug: about 14.5 KB instead of 10 KB on a Plus Plug S, so pages and counting have more
+  headroom.
+- The build shortens names inside the plug scripts (Meter, Led, Page) to save memory.
+- Developer CLI: `tools/shelly.py test` and `put` accept `--mangle`; `python tools/test_mangle.py` tests the
+  name shortener.
+
 ## 1.0.0-rc.4 (2026-11-20)
 
 - Mail: the report goes whole in the mail link up to 8000 characters (was 1800); longer reports are copied to the

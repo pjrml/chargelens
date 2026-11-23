@@ -161,6 +161,141 @@ def minify(code):
             out.append(s)
     return chr(10).join(out) + chr(10)
 
+RESERVED = frozenset("""break case catch class const continue debugger default delete do else enum export extends false
+finally for function if implements import in instanceof interface let new null of as package private protected public
+return static super switch this throw true try typeof var void while with yield await async get set""".split())
+_TOK = re.compile(r"""(?P<ws>\s+)
+  |(?P<str>'(?:[^'\\\n]|\\.)*'|"(?:[^"\\\n]|\\.)*")
+  |(?P<num>0[xX][0-9a-fA-F]+|(?:\d+\.?\d*|\.\d+)(?:[eE][+-]?\d+)?)
+  |(?P<id>[A-Za-z_$][A-Za-z0-9_$]*)
+  |(?P<p>.)""", re.X | re.S)
+
+
+def _tokenize(code):
+    if "`" in code or "/*" in code:
+        raise ValueError("mangle: backtick or block comment in code (unsupported)")
+    toks, pos = [], 0
+    while pos < len(code):
+        m = _TOK.match(code, pos)
+        if not m or m.end() == pos:
+            raise ValueError("mangle: cannot tokenize at offset %d" % pos)
+        toks.append([m.lastgroup, m.group()])
+        pos = m.end()
+    return toks
+
+
+def _new_names():
+    first = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    rest = first + "0123456789"
+    for c in first:
+        yield c
+    n = 2
+    while True:
+        def gen(prefix, left):
+            if left == 0:
+                yield prefix
+                return
+            for c in rest:
+                for r in gen(prefix + c, left - 1):
+                    yield r
+        for c in first:
+            for r in gen(c, n - 1):
+                yield r
+        n += 1
+
+
+def mangle(code, keep=()):
+    """Shorten every identifier the script declares (functions, parameters, let/var/const, catch).
+    Script heap is paid per declared name, comments and whitespace are free. Input: minified ES5-subset JS.
+    Never renamed: names in keep, names starting with __, property accesses (after .), object-literal keys
+    (name followed by : and preceded by { or ,), builtins (they are never declared) and keywords.
+    Renaming is global and bijective (scope-blind), which preserves shadowing. Deterministic.
+    Device tests can run mangled too: `shelly.py --ip IP test LIB TEST --mangle`."""
+    toks = _tokenize(code)
+    sig = [i for i, t in enumerate(toks) if t[0] != "ws"]
+    n = len(sig)
+
+    def tv(k):
+        return toks[sig[k]][1] if 0 <= k < n else ""
+
+    def ttype(k):
+        return toks[sig[k]][0] if 0 <= k < n else ""
+
+    declared = set()
+
+    def declare(k):
+        if ttype(k) == "id" and tv(k) not in RESERVED:
+            declared.add(tv(k))
+
+    k = 0
+    while k < n:
+        v = tv(k) if ttype(k) == "id" else ""
+        if v == "function":
+            j = k + 1
+            if ttype(j) == "id":
+                declare(j)
+                j += 1
+            if tv(j) == "(":
+                depth, j = 1, j + 1
+                while j < n and depth:
+                    if tv(j) in "([{" and ttype(j) == "p":
+                        depth += 1
+                    elif tv(j) in ")]}" and ttype(j) == "p":
+                        depth -= 1
+                    elif depth == 1 and ttype(j) == "id" and tv(j - 1) in ("(", ","):
+                        declare(j)
+                    j += 1
+        elif v in ("let", "var", "const"):
+            j = k + 1
+            while j < n:
+                declare(j)
+                j += 1
+                depth = 0
+                while j < n:
+                    t, x = ttype(j), tv(j)
+                    if t == "p" and x in "([{":
+                        depth += 1
+                    elif t == "p" and x in ")]}":
+                        if depth == 0:
+                            break
+                        depth -= 1
+                    elif depth == 0 and ((t == "p" and x in ",;") or (t == "id" and x in ("in", "of", "let", "var", "const"))):
+                        break
+                    j += 1
+                if not (j < n and tv(j) == "," and ttype(j) == "p"):
+                    break
+                j += 1
+        elif v == "catch" and tv(k + 1) == "(":
+            declare(k + 2)
+        k += 1
+
+    keep = set(keep)
+    declared = set(d for d in declared if d not in keep and not d.startswith("__"))
+    renamable = []  # token indexes (into toks) of renamable occurrences
+    count, first = {}, {}
+    for k in range(n):
+        if ttype(k) != "id" or tv(k) not in declared:
+            continue
+        if tv(k - 1) == "." and ttype(k - 1) == "p":
+            continue
+        if tv(k + 1) == ":" and ttype(k + 1) == "p" and ttype(k - 1) == "p" and tv(k - 1) in "{,":
+            continue
+        renamable.append(sig[k])
+        count[tv(k)] = count.get(tv(k), 0) + 1
+        first.setdefault(tv(k), k)
+    taken = set(t[1] for t in toks if t[0] == "id")
+    order = sorted(count, key=lambda d: (-count[d], first[d]))
+    mapping, gen = {}, _new_names()
+    for d in order:
+        c = next(gen)
+        while c in taken or c in RESERVED:
+            c = next(gen)
+        mapping[d] = c
+    for i in renamable:
+        toks[i][1] = mapping[toks[i][1]]
+    mangle.last_count = len(mapping)
+    return "".join(t[1] for t in toks)
+
 
 def strip_trailing_comment(line):
     """Cut a trailing // comment from one line, quote-aware: a // inside '...' or "..." (e.g. "http://") stays.
@@ -200,11 +335,13 @@ def src_version():
         return f.read().strip()
 
 
-def put(ip, name, code, start=True, enable=True, mini=True, hdr=""):
+def put(ip, name, code, start=True, enable=True, mini=True, hdr="", mangle=False):
     """Create (if missing) or replace script NAME with CODE, enable it (start at boot), start it. Returns the id.
     The device allows at most 3 enabled scripts: temporary scripts use enable=False."""
     if mini:
         code = minify(code)
+    if mangle:
+        code = globals()["mangle"](code)
     code = hdr + code  # after minify: it would strip the comment line
     bad = [i for i, ch in enumerate(code) if ord(ch) > 127]
     if bad:
@@ -319,7 +456,7 @@ HTTPServer.registerEndpoint("r", function (req, res) {
 """
 
 
-def run_tests(ip, libfile, testfile):
+def run_tests(ip, libfile, testfile, mangle=False):
     import time
     code = TEST_PRELUDE + lib_section(libfile) + "\n" + open(testfile, encoding="utf-8").read()
     # max 3 running scripts and a shared ~25 KB heap: pause Led and Page (never Meter) while the test runs
@@ -330,16 +467,16 @@ def run_tests(ip, libfile, testfile):
             rpc(ip, "Script.Stop", {"id": sid})
             paused.append(sid)
     try:
-        return _run_tests(ip, code)
+        return _run_tests(ip, code, mangle)
     finally:
         for sid in paused:
             rpc(ip, "Script.Start", {"id": sid})
 
 
-def _run_tests(ip, code):
+def _run_tests(ip, code, mangle=False):
     import time
     try:
-        sid = put(ip, "Test", code, enable=False)
+        sid = put(ip, "Test", code, enable=False, mangle=mangle)
     except RuntimeError as e:
         sid = script_id(ip, "Test")
         st = rpc(ip, "Script.GetStatus", {"id": sid}) if sid is not None else {}
@@ -497,6 +634,7 @@ def main():
     ap.add_argument("--port", type=int, default=8000, help="serve: port (default 8000)")
     ap.add_argument("--temp", action="store_true", help="put: do not enable (start at boot)")
     ap.add_argument("--store", action="store_true", help="put: store as data, never enable/start")
+    ap.add_argument("--mangle", action="store_true", help="put/test: shorten declared identifiers before upload")
     a = ap.parse_args()
     if a.cmd == "testpage":  # testpage HTMLFILE TESTFILE (local, headless Edge)
         if not a.method or not a.params:
@@ -522,11 +660,11 @@ def main():
         if a.store:  # data stored as a script (e.g. PageHtml): never enabled or started, not minified
             print("stored %s id=%d" % (a.method, put(ip, a.method, code, start=False, enable=False, mini=False, hdr=hdr)))
         else:
-            print("script %s id=%d" % (a.method, put(ip, a.method, code, enable=not a.temp, hdr=hdr)))
+            print("script %s id=%d" % (a.method, put(ip, a.method, code, enable=not a.temp, hdr=hdr, mangle=a.mangle)))
     elif a.cmd == "delscript":
         delscript(ip, a.method)
     elif a.cmd == "test":  # test LIBFILE TESTFILE
-        sys.exit(0 if run_tests(ip, a.method, a.params) else 1)
+        sys.exit(0 if run_tests(ip, a.method, a.params, a.mangle) else 1)
     else:
         if not a.method:
             sys.exit("rpc needs METHOD")

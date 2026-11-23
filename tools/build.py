@@ -38,8 +38,9 @@ INSTALLER = [
     ("Installer", "installer.js", "installer.js", "code", False),
     ("InstallHtml", "install.html", "install.html", "data", False),
 ]
+MANGLE = {"meter.js", "led.js", "page.js"}  # scripts whose declared identifiers are shortened (not installer.js yet)
 MAX_FILE = 60000
-MAX_CODE_TOTAL = 33000  # Meter + Led + Page minified (ratchet; the plan said 20000 but v2.2 code alone is ~32 KB; real limit = free heap on the plug)
+MAX_CODE_TOTAL = 29000  # Meter + Led + Page minified + mangled (ratchet, rc.5: 28154 B; real limit = free heap on the plug)
 
 
 def read(rel):
@@ -105,7 +106,8 @@ def min_html(s):
 def build_script(rel):
     path = os.path.join(ROOT, "src", rel)
     code = shelly.strip_test_only(shelly.expand_libs(path, read(rel)))  # .js: core cfg_lib only
-    return shelly.minify(code)
+    code = shelly.minify(code)
+    return shelly.mangle(code) if rel in MANGLE else code
 
 
 def build_page(rel):

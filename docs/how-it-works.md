@@ -26,9 +26,11 @@ the `Installer` loader fetches it from GitHub for the tag it was built for.
 Verified on a Plus Plug S (firmware 1.7.x) and a Plug S Gen3; the code targets the smaller Gen2 limits.
 
 - 3 scripts enabled, 3 running, 10 stored; one script at most 65535 bytes.
-- About 25 KB of heap shared by all running scripts, source included (roughly 1.25 bytes of heap per byte of
-  code). ChargeLens leaves about 9 KB free with the three running; any growth of `Meter`, `Led` or `Page` must be
-  measured.
+- About 25 KB of heap shared by all running scripts. Heap is spent on declared functions (~27 B each plus the
+  name), parameters, global variables and live objects, arrays and strings; function bodies, locals, string
+  literals inside functions and comments are free until executed.
+- ChargeLens leaves about 14 KB free with the three running (Plus Plug S Gen2); any growth of `Meter`, `Led` or
+  `Page` must be measured.
 - A script's HTTP reply is at most 4096 bytes; at most 5 endpoints per script; no `Array.sort`; script code is
   ASCII only (the build converts other characters to escapes); a `Shelly.call` during script load can be rejected,
   so work is deferred to a timer.

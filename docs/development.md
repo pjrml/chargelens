@@ -19,7 +19,15 @@ python tools/shelly.py --ip <ip> test src/led.js tests/led_test.js
 
 The runner pauses `Led` and `Page`, uploads a temporary script `Test`, polls its results and deletes it.
 Expected last line of each file: `N passed, 0 failed` (v2.2 counts: meter 49, meter_review 19, stamp 12,
-session 23, session2 20, session3 14, event 9, led 32).
+session 23, session2 20, session3 14, event 9, led 53, cfg 54, meter_cfg 34; cfg runs as
+`test src/cfg_lib.js tests/cfg_test.js`).
+
+The dist code is mangled (see below), so before a release run the device tests both ways: plain and with
+`--mangle` (also accepted by `put`), e.g. `python tools/shelly.py --ip <ip> test src/meter.js tests/meter_test.js --mangle`.
+
+On a Plus Plug S Gen2 with ChargeLens installed (7 scripts) only ~4 KB of the 384 KB filesystem is free, so the
+temporary `Test` script cannot be stored (`Script.PutCode` error -113 "Failed to write code"): run device tests
+on a plug without ChargeLens, or remove the data scripts first. The Gen3 has ~300 KB free.
 
 If a run stops with `out_of_memory` on a plug that was used for many test runs, the script heap is fragmented:
 reboot the plug (`python tools/shelly.py --ip <ip> rpc Shelly.Reboot`) and run again.
@@ -87,9 +95,22 @@ python tools/build.py --check    # exit 1 if dist/ or library/ differ from a fre
 `dist/` is committed (devices read it through raw.githubusercontent.com). Each file starts with a version header
 (`// ChargeLens <Name> vX.Y.Z`, or `<!-- ... -->` for HTML); the setup page reads the Meter version from that first
 line. The build is deterministic (no timestamps), ASCII-only, asserts each file <= 60000 B and Meter+Led+Page
-<= 33000 B (a ratchet; the real limit is the free script heap, measure it on a plug after any growth), and
+<= 29000 B (a ratchet; the real limit is the free script heap, measure it on a plug after any growth), and
 bakes `REPO` (constant in `tools/build.py`) and the tag into `installer.js` (tokens `@REPO@`, `@TAG@`).
 Scripts get the core of `cfg_lib` only, pages the full lib; `// ==== TEST ONLY ====` regions are stripped.
+The build also mangles `Meter`, `Led` and `Page` (`mangle` in `tools/shelly.py`): it shortens every identifier the
+script declares (functions, parameters, let/var/const, catch), never property names, object keys, strings or
+builtins; names starting with `__` are kept. `Installer` is not mangled. Unit tests: `python tools/test_mangle.py`.
+
+### Script heap rules
+
+Heap is spent on declared functions, parameters, globals and live objects/strings, not on code size (see
+`docs/how-it-works.md`). So:
+
+- No status objects or tables in globals (e.g. a `Shelly.getComponentStatus` result costs ~1.2 KB); keep them local.
+- Big literals (HTML, colour tables) go inside the function that uses them; a global string costs its length.
+- Prefer fewer functions and fewer parameters; short names help (the build mangles them).
+- Measure after any change with `Script.GetStatus` (`mem_used`, `mem_peak`, `mem_free`), after a reboot.
 
 Install from a PC onto a development plug (same writes as the install page; never overwrites `MailTpl`; only
 `Meter` enabled and started):

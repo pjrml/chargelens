@@ -37,15 +37,14 @@ function ledWrite(prev, lo) {
   return "band";
 }
 
-// v2.2: while the clock is unknown, blue/green/off show purple and red/yellow orange
-let PURPLE = [60, 0, 100];
-let ORANGE = [100, 30, 0];
+// v2.2: while the clock is unknown, blue/green/off show purple [60, 0, 100] and red/yellow orange [100, 30, 0].
+// Colours are literals inside the functions: global arrays would cost script heap all the time.
 let CLOCK_MIN = 1700000000;  // unixtime above this = clock set (same rule as Meter)
 
 function clockOk(sys) { return typeof sys.unixtime === "number" && sys.unixtime > CLOCK_MIN; }
 
 function ledColour(b, noClock, c) {
-  if (noClock) return {rgb: (b === 1 || b === 3) ? ORANGE : PURPLE, brightness: c.lb};
+  if (noClock) return {rgb: (b === 1 || b === 3) ? [100, 30, 0] : [60, 0, 100], brightness: c.lb};
   if (b === 1) return {rgb: [100, 0, 0], brightness: c.lb};
   if (b === 2) return {rgb: [0, 100, 0], brightness: c.lb};
   if (b === 3) return {rgb: [100, 70, 0], brightness: c.lb};
@@ -54,7 +53,7 @@ function ledColour(b, noClock, c) {
 
 // relay off (PLUGS_UI 'off' colour): dark, or purple while the clock is unknown
 function ledOff(noClock, c) {
-  if (noClock) return {rgb: PURPLE, brightness: c.lb};
+  if (noClock) return {rgb: [60, 0, 100], brightness: c.lb};
   return {rgb: [0, 0, 0], brightness: 0};
 }
 
