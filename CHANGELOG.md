@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 1.0.0-rc.6 (2026-11-23)
+
+- No functional change: a test release for the update procedure (install page, *Check for updates*).
+
 ## 1.0.0-rc.5 (2026-11-23)
 
 - More free memory on the plug: about 14.5 KB instead of 10 KB on a Plus Plug S, so pages and counting have more
