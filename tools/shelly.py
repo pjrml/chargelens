@@ -510,9 +510,11 @@ HTTPServer.registerEndpoint("r", function (req, res) {
 """
 
 
-def run_tests(ip, libfile, testfile, mangle=False):
+def run_tests(ip, libfile, testfile, mangle=False, build="plugs"):
     import time
-    code = TEST_PRELUDE + lib_section(libfile) + "\n" + open(testfile, encoding="utf-8").read()
+    feats = build_features(build)
+    code = TEST_PRELUDE + apply_features(lib_section(libfile), feats, libfile) + "\n" + apply_features(
+        open(testfile, encoding="utf-8").read(), feats, testfile)
     # max 3 running scripts and a shared ~25 KB heap: pause Led and Page (never Meter) while the test runs
     paused = []
     for name in ("Led", "Page"):
@@ -581,21 +583,24 @@ def find_edge(override=None):
     sys.exit("msedge.exe not found (tried %s); pass --browser PATH" % (override or EDGE_PATHS))
 
 
-def run_page_tests(htmlfile, testfile, browser=None):
+def run_page_tests(htmlfile, testfile, browser=None, build="plugs"):
     """Run the PURE block of page.html plus TESTFILE in headless Edge; results come back in the DOM."""
     import html as htmlmod
     import tempfile
+    feats = build_features(build)
     src = open(htmlfile, encoding="utf-8").read()
     if htmlfile.endswith(".js"):  # a plain .js library: its LIB region is the PURE region
         pure = lib_section(htmlfile)
     else:
         a, b = src.find("/* ==== PURE ==== */"), src.find("/* ==== END PURE ==== */")
         pure = expand_libs(htmlfile, src[a:b]) if a >= 0 and b > a else ""
+    pure = apply_features(pure, feats, htmlfile)
     mailf = os.path.join(os.path.dirname(os.path.abspath(htmlfile)), "mail-default.json")
     mail_js = "let MAIL_DEFAULT_JSON = " + json.dumps(open(mailf, encoding="utf-8").read() if os.path.exists(mailf) else "") + ";" + chr(10)
     if not htmlfile.endswith(".js"):  # the whole page script must parse (the PURE tests alone miss a typo outside PURE)
         import re
-        bodies = [expand_libs(htmlfile, m) for m in re.findall(r"<script>(.*?)</script>", src, re.S)]
+        bodies = [apply_features(expand_libs(htmlfile, m), feats, htmlfile + " script %d" % i)
+                  for i, m in enumerate(re.findall(r"<script>(.*?)</script>", src, re.S))]
         pure += (chr(10) + "t('page script parses', function () { " + json.dumps(bodies).replace("</", r"<\/") +
                  ".forEach(function (b, i) { try { new Function(b); eq('script ' + i + ' parses', true, true); }" +
                  " catch (e) { eq('script ' + i + ' parses', String(e), 'no error'); } }); });" + chr(10))
@@ -603,7 +608,7 @@ def run_page_tests(htmlfile, testfile, browser=None):
     prelude = TEST_PRELUDE.split("HTTPServer.registerEndpoint")[0].replace("Timer.set(200, false, __next);", "")
     prelude = prelude.replace("Timer.set(50, false, __next);", "__next();")
     nl = chr(10)
-    js = prelude + pure + nl + open(testfile, encoding="utf-8").read() + (
+    js = prelude + pure + nl + apply_features(open(testfile, encoding="utf-8").read(), feats, testfile) + (
         nl + "__next();document.getElementById('r').textContent=JSON.stringify(__R);" + nl)
     page = "<!DOCTYPE html><html><body><pre id='r'>NOT RUN</pre><script>" + js + "</script></body></html>"
     d = tempfile.mkdtemp()
@@ -689,11 +694,12 @@ def main():
     ap.add_argument("--temp", action="store_true", help="put: do not enable (start at boot)")
     ap.add_argument("--store", action="store_true", help="put: store as data, never enable/start")
     ap.add_argument("--mangle", action="store_true", help="put/test: shorten declared identifiers before upload")
+    ap.add_argument("--build", default="plugs", help="test/testpage/put: build of tools/builds.json whose features resolve the //@if markers (default plugs)")
     a = ap.parse_args()
     if a.cmd == "testpage":  # testpage HTMLFILE TESTFILE (local, headless Edge)
         if not a.method or not a.params:
             sys.exit("testpage needs HTMLFILE TESTFILE")
-        sys.exit(0 if run_page_tests(a.method, a.params, a.browser) else 1)
+        sys.exit(0 if run_page_tests(a.method, a.params, a.browser, a.build) else 1)
     if a.cmd == "serve":
         serve(a.port)
         return
@@ -709,7 +715,8 @@ def main():
     elif a.cmd == "put":  # put NAME FILE
         if not a.method or not a.params:
             sys.exit("put needs NAME FILE")
-        code = strip_test_only(expand_libs(a.params, expand_includes(a.params, open(a.params, encoding="utf-8").read())))
+        code = strip_test_only(apply_features(expand_libs(a.params, expand_includes(a.params, open(a.params, encoding="utf-8").read())),
+                                              build_features(a.build), a.params))
         hdr = header(a.method, src_version(), a.params.endswith(".html")) if a.method in CL_NAMES else ""  # so a dev plug is not seen as legacy
         if a.store:  # data stored as a script (e.g. PageHtml): never enabled or started, not minified
             print("stored %s id=%d" % (a.method, put(ip, a.method, code, start=False, enable=False, mini=False, hdr=hdr)))
@@ -718,7 +725,7 @@ def main():
     elif a.cmd == "delscript":
         delscript(ip, a.method)
     elif a.cmd == "test":  # test LIBFILE TESTFILE
-        sys.exit(0 if run_tests(ip, a.method, a.params, a.mangle) else 1)
+        sys.exit(0 if run_tests(ip, a.method, a.params, a.mangle, a.build) else 1)
     else:
         if not a.method:
             sys.exit("rpc needs METHOD")
