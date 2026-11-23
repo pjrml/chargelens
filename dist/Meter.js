@@ -1,4 +1,4 @@
-// ChargeLens Meter v1.0.0-rc.8
+// ChargeLens Meter v1.0.0-rc.9
 function cx() {
 let D = "r,0.1,0.02,1;g,5,1,11;y,11,1,12;h,0.3,0.05,1;hr,0.05,0.01,0.5;hs,10,2,60;sg,600,60,3600;p,0,0,10;lo,1,0,1;lb,50,5,100".split(";");
 let K = [], w, B;

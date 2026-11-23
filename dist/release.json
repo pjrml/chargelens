@@ -1,6 +1,6 @@
 {
-  "version": "1.0.0-rc.8",
-  "tag": "v1.0.0-rc.8",
+  "version": "1.0.0-rc.9",
+  "tag": "v1.0.0-rc.9",
   "repo": "pjrml/chargelens",
   "files": [
     {
@@ -9,7 +9,7 @@
       "kind": "code",
       "enable": true,
       "size": 21105,
-      "crc32": 2309291574
+      "crc32": 1392749786
     },
     {
       "name": "Led",
@@ -17,7 +17,7 @@
       "kind": "code",
       "enable": false,
       "size": 2578,
-      "crc32": 284310781
+      "crc32": 3849570630
     },
     {
       "name": "Page",
@@ -25,7 +25,7 @@
       "kind": "code",
       "enable": false,
       "size": 4478,
-      "crc32": 1188538621
+      "crc32": 1487371726
     },
     {
       "name": "PageHtml",
@@ -33,7 +33,7 @@
       "kind": "data",
       "enable": false,
       "size": 28715,
-      "crc32": 747924763
+      "crc32": 2134339752
     },
     {
       "name": "SetupHtml",
@@ -41,7 +41,7 @@
       "kind": "data",
       "enable": false,
       "size": 33957,
-      "crc32": 3617751927
+      "crc32": 2593616025
     },
     {
       "name": "MailTpl",
@@ -57,7 +57,7 @@
       "kind": "code",
       "enable": false,
       "size": 3251,
-      "crc32": 3184423068
+      "crc32": 2700390464
     },
     {
       "name": "InstallHtml",
@@ -65,7 +65,7 @@
       "kind": "data",
       "enable": false,
       "size": 29155,
-      "crc32": 2303108003
+      "crc32": 3925784740
     }
   ],
   "builds": {
@@ -81,7 +81,7 @@
           "kind": "code",
           "enable": true,
           "size": 21105,
-          "crc32": 2309291574
+          "crc32": 1392749786
         },
         {
           "name": "Led",
@@ -89,7 +89,7 @@
           "kind": "code",
           "enable": false,
           "size": 2578,
-          "crc32": 284310781
+          "crc32": 3849570630
         },
         {
           "name": "Page",
@@ -97,7 +97,7 @@
           "kind": "code",
           "enable": false,
           "size": 4478,
-          "crc32": 1188538621
+          "crc32": 1487371726
         },
         {
           "name": "PageHtml",
@@ -105,7 +105,7 @@
           "kind": "data",
           "enable": false,
           "size": 28715,
-          "crc32": 747924763
+          "crc32": 2134339752
         },
         {
           "name": "SetupHtml",
@@ -113,7 +113,7 @@
           "kind": "data",
           "enable": false,
           "size": 33957,
-          "crc32": 3617751927
+          "crc32": 2593616025
         },
         {
           "name": "MailTpl",
@@ -129,7 +129,7 @@
           "kind": "code",
           "enable": false,
           "size": 3251,
-          "crc32": 3184423068
+          "crc32": 2700390464
         },
         {
           "name": "InstallHtml",
@@ -137,7 +137,7 @@
           "kind": "data",
           "enable": false,
           "size": 29155,
-          "crc32": 2303108003
+          "crc32": 3925784740
         }
       ]
     },
@@ -152,7 +152,7 @@
           "kind": "code",
           "enable": true,
           "size": 20801,
-          "crc32": 2161806037
+          "crc32": 804897252
         },
         {
           "name": "Led",
@@ -160,7 +160,7 @@
           "kind": "code",
           "enable": false,
           "size": 2428,
-          "crc32": 735071949
+          "crc32": 270681022
         },
         {
           "name": "Page",
@@ -168,7 +168,7 @@
           "kind": "code",
           "enable": false,
           "size": 4441,
-          "crc32": 91800293
+          "crc32": 1937433112
         },
         {
           "name": "PageHtml",
@@ -176,7 +176,7 @@
           "kind": "data",
           "enable": false,
           "size": 27986,
-          "crc32": 3309553852
+          "crc32": 4215686981
         },
         {
           "name": "SetupHtml",
@@ -184,7 +184,7 @@
           "kind": "data",
           "enable": false,
           "size": 31104,
-          "crc32": 3000664950
+          "crc32": 1962218115
         },
         {
           "name": "MailTpl",
@@ -200,7 +200,7 @@
           "kind": "code",
           "enable": false,
           "size": 3251,
-          "crc32": 3184423068
+          "crc32": 2700390464
         },
         {
           "name": "InstallHtml",
@@ -208,7 +208,7 @@
           "kind": "data",
           "enable": false,
           "size": 29155,
-          "crc32": 2303108003
+          "crc32": 3925784740
         }
       ]
     }

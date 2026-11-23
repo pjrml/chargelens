@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## 1.0.0-rc.9 (2026-11-23)
+
+- New model: the Shelly Plug PM Gen3 (metering only, no relay). The meter reads its `pm1:0` component, the LED ring
+  follows the same colours, and the pages and the installer adapt: no relay toggle, no relay protection or button
+  settings, a "No cut-off" notice (the plug cannot switch the load off; overload protection is only the circuit
+  breaker) and a required "I understand" tick in the installer. Colour thresholds go up to 15 A / 16 A on this plug.
+- Per-model builds: one source, feature blocks resolved at build time (`tools/builds.json`); `dist/` keeps the Plus Plug
+  S files where they were, the Plug PM Gen3 files are in `dist/plugpmg3/`, and `release.json` lists both. The
+  installer picks the build from the plug's model at every install and update.
+- Plus Plug S and Plug S Gen3: no change in behaviour.
+
 ## 1.0.0-rc.8 (2026-11-23)
 
 - Setup: the Relay protection card now only shows the plug's own cut-off values (current, power, voltage), with a
